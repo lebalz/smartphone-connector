@@ -36,7 +36,7 @@ A simple socket io server implementing this interface can be seen on [github.com
   [
     {
         'deviceId': str,
-        'timeStamp': int, # time (ms) since client loaded page,
+        'timeStamp': int, # time (seconds) since client loaded page,
         ...
     },
     ...
@@ -46,7 +46,7 @@ A simple socket io server implementing this interface can be seen on [github.com
   ```
   {
     'deviceId': str,
-    'timeStamp': int, # time (ms) since client loaded page,
+    'timeStamp': int, # time (seconds) since client loaded page,
     ...
   }
   ```
@@ -113,6 +113,10 @@ connector.on_key = lambda data: print('on key', data)
 ```
 
 will print each received key
+
+## Helpers
+
+To convert the timestamps (seconds since epoch) to a python `timestamp` object, the function `to_datetime` may be used.
 
 ## Class ´Controller`
 

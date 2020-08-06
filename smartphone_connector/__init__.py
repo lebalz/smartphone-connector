@@ -1,6 +1,6 @@
 import socketio
 import logging
-import time
+import time, datetime
 import math
 from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional
 
@@ -54,11 +54,12 @@ class DeviceLeftMsg(TypedDict):
     room: str
     device: Device
 
+class TimeStampedMsg(TypedDict):
+    timeStamp: int
 
-class BaseMsg(TypedDict):
+class BaseMsg(TimeStampedMsg):
     deviceId: str
     deviceNr: int
-    timeStamp: int
 
 
 class BaseSendMsg(TypedDict):
@@ -131,6 +132,18 @@ class ErrorMsg(TypedDict):
 def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
+def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
+    '''
+    extracts the datetime from a data package. if the field `timeStamp` is not present,
+    the current datetime will be returned
+    '''
+    if 'timeStamp' not in data:
+        return datetime.datetime.now()
+    ts = data['timeStamp']
+    # convert timestamp from ms to seconds
+    if ts > 1000000000000:
+        ts = ts / 1000.0
+    return datetime.datetime.fromtimestamp(ts)
 
 class Connector:
     __start_time_ns: int = time.time_ns()
@@ -499,8 +512,7 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    # connector = Connector('https://io.lebalz.ch', 'FooBar')
-    connector = Connector('http://localhost:5000', 'FooBar')
+    connector = Connector('https://io.lebalz.ch', 'FooBar')
 
     # draw a 3x3 checker board
     connector.set_grid([
@@ -523,19 +535,16 @@ if __name__ == '__main__':
     connector.on_pointer = lambda data: print('pointer: ', data)
     connector.on_error = lambda data: print('error: ', data)
 
-    connector.join_room('blaaas')
-
     time.sleep(1)
     print(connector.joined_room_count)
     print(connector.client_count)
     print(connector.device_count)
-    connector.leave_room('blaaas')
-
 
     print('\n')
     print('data: ', connector.all_data())
     print('data: ', connector.all_data(data_type='grid'))
     print('latest data: ', connector.latest_data())
+    print('timestamp', to_datetime(connector.latest_data()))
     print('latest data: ', connector.latest_data(data_type='key'))
     print('broadcast data: ', connector.all_broadcast_data())
     print('broadcast data: ', connector.all_broadcast_data(data_type='grid'))
