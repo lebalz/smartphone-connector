@@ -1,7 +1,8 @@
 import socketio
 import logging
 import time
-from typing import overload, Union, TypedDict, Literal, Callable, List, Dict
+import math
+from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional
 
 
 DEVICE = 'device'
@@ -13,6 +14,11 @@ CLEAR_DATA = 'clear_data'
 NEW_DEVICE = 'new_device'
 GET_ALL_DATA = 'get_all_data'
 GET_DEVICES = 'get_devices'
+JOIN_ROOM = 'join_room'
+LEAVE_ROOM = 'leave_room'
+ROOM_LEFT = 'room_left'
+ROOM_JOINED = 'room_joined'
+ERROR_MSG = 'error_msg'
 
 EVENTS = Literal[
     DEVICE,
@@ -23,7 +29,12 @@ EVENTS = Literal[
     CLEAR_DATA,
     NEW_DEVICE,
     GET_ALL_DATA,
-    GET_DEVICES
+    GET_DEVICES,
+    JOIN_ROOM,
+    LEAVE_ROOM,
+    ROOM_LEFT,
+    ROOM_JOINED,
+    ERROR_MSG
 ]
 
 
@@ -34,77 +45,146 @@ class Device(TypedDict):
     socketId: str
 
 
+class DeviceJoinedMsg(TypedDict):
+    room: str
+    device: Device
+
+
+class DeviceLeftMsg(TypedDict):
+    room: str
+    device: Device
+
+
 class BaseMsg(TypedDict):
     deviceId: str
+    deviceNr: int
     timeStamp: int
 
 
-class KeyMsg(BaseMsg):
+class BaseSendMsg(TypedDict):
+    deviceId: Optional[str]
+    deviceNr: Optional[int]
+    timeStamp: Optional[int]
+
+
+class DataMsg(BaseMsg):
+    type: str
+
+
+class KeyMsg(DataMsg):
     type: Literal['key']
-    key: Literal['up', 'right', 'down', 'left']
+    key: Literal['up', 'right', 'down', 'left', 'home']
 
 
-class DictX(dict):
-    '''
-    dict with the ability to access keys over dot notation,
-    e.g.
+class PointerData(TypedDict):
+    context: Literal['color', 'grid']
 
-    ```py
-    data = DictX({
-        "foo": "bar"
-    })
 
-    print(data.foo)     # use dot to get
-    data.foo = 'blaa'   # use dot to assign
-    del data.foo        # use dot to delete
-    ```
-    credits: https://dev.to/0xbf/use-dot-syntax-to-access-dictionary-key-python-tips-10ec
-    '''
+class ColorPointer(PointerData):
+    context: Literal['color']
+    x: int
+    y: int
+    width: int
+    height: int
 
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError as k:
-            raise AttributeError(k)
 
-    def __setattr__(self, key, value):
-        self[key] = value
+class GridPointer(PointerData):
+    context: Literal['grid']
+    row: int
+    column: int
+    color: str
 
-    def __delattr__(self, key):
-        try:
-            del self[key]
-        except KeyError as k:
-            raise AttributeError(k)
 
-    def __repr__(self):
-        return '<DictX ' + dict.__repr__(self) + '>'
+class PointerMsg(DataMsg):
+    type: Literal['pointer']
+    pointer: Union[ColorPointer, GridPointer]
+
+
+class Acc(TypedDict):
+    x: float
+    y: float
+    z: float
+
+
+class Gyro(TypedDict):
+    alpha: float
+    beta: float
+    gamma: float
+
+
+class AccMsg(DataMsg):
+    type: Literal['acceleration']
+    acc: Acc
+
+
+class GyroMsg(DataMsg):
+    type: Literal['gyro']
+    gyro: Gyro
+
+
+class ErrorMsg(TypedDict):
+    type: EVENTS
+    msg: str
+    err: Union[str, dict]
+
+
+def flatten(list_of_lists: List[List]) -> List:
+    return [y for x in list_of_lists for y in x]
 
 
 class Connector:
-    start_time_ns = time.time_ns()
+    __start_time_ns: int = time.time_ns()
     data: Dict[str, List[BaseMsg]] = {}
     devices: List[Device] = []
     device: Device = {}
-    server_url: str
-    device_id: str
-    sio = socketio.Client()
-    onKey: Callable[[KeyMsg], None] = None
+    __server_url: str
+    __device_id: str
+    sio: socketio.Client = socketio.Client()
+    room_members: List[Device] = []
+    joined_rooms: List[str]
+
+    # callback functions
+    on_key: Callable[[KeyMsg], None] = None
+    on_pointer: Callable[[PointerMsg], None] = None
+    on_acceleration: Callable[[KeyMsg], None] = None
+    on_gyro: Callable[[KeyMsg], None] = None
+    on_sensor: Callable[[KeyMsg], None] = None
+
+    on_data: Callable[[DataMsg], None] = None
+    on_broadcast_data: Callable[[DataMsg], None] = None
+    on_all_data: Callable[[List[KeyMsg]], None] = None
+    on_device: Callable[[Device], None] = None
+    on_devices: Callable[[List[Device]], None] = None
+    on_error: Callable[[ErrorMsg], None] = None
+    on_room_joined: Callable[[Device], None] = None
+    on_room_left: Callable[[Device], None] = None
+
+    @property
+    def server_url(self):
+        return self.__server_url
+
+    @property
+    def device_id(self):
+        return self.__device_id
 
     def __init__(self, server_url: str, device_id: str):
-        self.server_url = server_url
-        self.device_id = device_id
+        self.__server_url = server_url
+        self.__device_id = device_id
         self.sio.on('connect', self.__on_connect)
         self.sio.on('disconnect', self.__on_disconnect)
         self.sio.on(NEW_DATA, self.__on_new_data)
         self.sio.on(ALL_DATA, self.__on_all_data)
         self.sio.on(DEVICE, self.__on_device)
         self.sio.on(DEVICES, self.__on_devices)
-
+        self.sio.on(ERROR_MSG, self.__on_error)
+        self.sio.on(ROOM_JOINED, self.__on_room_joined)
+        self.sio.on(ROOM_LEFT, self.__on_room_left)
+        self.joined_rooms = [device_id]
         self.connect()
 
-    def emit(self, event: str, data: BaseMsg = {}, broadcast: bool = False):
+    def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False):
         if 'timeStamp' not in data:
-            data['timeStamp'] = (time.time_ns() - self.start_time_ns) // 1000000
+            data['timeStamp'] = time.time_ns() // 1000000
 
         if 'deviceId' not in data:
             data['deviceId'] = self.device_id
@@ -113,6 +193,9 @@ class Connector:
             data['broadcast'] = True
 
         self.sio.emit(event, data)
+
+    def broadcast(self, data: DataMsg):
+        self.emit(ADD_NEW_DATA, data=data, broadcast=True)
 
     def connect(self):
         if self.sio.connected:
@@ -126,7 +209,123 @@ class Connector:
         '''
         self.emit(CLEAR_DATA)
 
-    def set_grid(self, grid: List[List[str]], device_id: str = None, device_nr: int = None, broadcast: bool = False):
+    @property
+    def device_count(self) -> int:
+        return len(self.devices)
+
+    @property
+    def client_count(self) -> int:
+        '''
+        number of web-clients (or controller-clients) connected to this room
+        '''
+        return len(list(filter(lambda device: device['isController'], self.devices)))
+
+    @property
+    def joined_room_count(self) -> int:
+        return len(self.joined_rooms)
+
+    @property
+    def room_member_count(self) -> int:
+        return len(self.room_members)
+
+    def all_broadcast_data(self, data_type: str = None) -> List[DataMsg]:
+        '''
+        Returns the broadcasted data (from all devices)
+        '''
+        data = flatten(self.data.values())
+        data = sorted(
+            data,
+            key=lambda item: item['timeStamp'] if 'timeStamp' in item else 0,
+            reverse=True
+        )
+        data = filter(lambda item: 'broadcast' in item and item['broadcast'], data)
+
+        if data_type is not None:
+            data = filter(lambda pkg: 'type' in pkg and pkg['type'] == data_type, data)
+
+        return list(data)
+
+    def latest_broadcast_data(self, data_type: str = None) -> Union[DataMsg, None]:
+        '''
+        Return
+        ______
+        DataMsg, None
+            the latest data from all broadcasted data. None is returned when no package is found
+        '''
+        data = flatten(self.data.values())
+        data = sorted(
+            data,
+            key=lambda item: item['timeStamp'] if 'timeStamp' in item else 0,
+            reverse=True
+        )
+
+        for pkg in reversed(data):
+            if 'broadcast' in pkg and pkg['broadcast']:
+                if data_type is None or ('type' in pkg and pkg['type'] == data_type):
+                    return pkg
+
+        return None
+
+    def all_data(self, data_type: str = None, device_id: str = None) -> List[DataMsg]:
+        '''
+        Returns all data with the given type and from the given device_id.
+
+        Optional
+        --------
+        data_type : str the type of the data,
+                    e.g. for `data_type='key'` all items of the resulting list will
+                    have a field `type` with the value `'key'`.
+                    By default all data is returned
+
+        device_id : str default is the device_id of this connector. Only data of this device_id is returned
+        '''
+        if device_id is None:
+            device_id = self.device_id
+
+        if device_id not in self.data:
+            return []
+
+        data = self.data[device_id]
+
+        if data_type is None:
+            return data
+
+        data = filter(lambda pkg: 'type' in pkg and pkg['type'] == data_type, data)
+        return list(data)
+
+    def latest_data(self, data_type: str = None, device_id: str = None) -> Union[DataMsg, None]:
+        '''
+        Returns the latest data (last received) with the given type and from the given device_id.
+
+        Optional
+        --------
+        data_type : str the type of the data,
+                    e.g. for `data_type='key'` all items of the resulting list will
+                    have a field `type` with the value `'key'`.
+                    By default all data is returned
+
+        device_id : str default is the device_id of this connector. Only data of this device_id is returned
+
+        Returns
+        -------
+        DataMsg, None
+            when no data is found, None is returned
+        '''
+        if device_id is None:
+            device_id = self.device_id
+
+        if device_id not in self.data:
+            return None
+
+        data = self.data[device_id]
+
+        for pkg in reversed(data):
+            if data_type is None or ('type' in pkg and pkg['type'] == data_type):
+                return pkg
+
+        return None
+
+    def set_grid(self, grid: Union[List[str], List[List[str]]], device_id: str = None, device_nr: int = None, broadcast: bool = False):
         '''
         Parameters
         ----------
@@ -206,6 +405,12 @@ class Connector:
             return
         self.sio.disconnect()
 
+    def join_room(self, deviceId: str):
+        self.emit(JOIN_ROOM, {'room': deviceId})
+
+    def leave_room(self, deviceId: str):
+        self.emit(LEAVE_ROOM, {'room': deviceId})
+
     def __on_connect(self):
         logging.info('SocketIO connected')
 
@@ -215,44 +420,131 @@ class Connector:
     def __register(self):
         self.emit(NEW_DEVICE)
 
-    def __on_new_data(self, data: BaseMsg):
-        data = DictX(data)
-        if data.deviceId not in self.data:
-            self.data[data.deviceId] = []
+    def __on_new_data(self, data: DataMsg):
+        if 'deviceId' not in data:
+            return
 
-        self.data[data.deviceId].append(data)
+        if data['deviceId'] not in self.data:
+            self.data[data['deviceId']] = []
 
-        if data['type'] == 'key':
-            if self.onKey is not None:
-                self.onKey(data)
+        self.data[data['deviceId']].append(data)
 
-    def __on_all_data(self, data: List[BaseMsg]):
-        all_data = map(lambda data : DictX(data), data)
-        self.data[data.deviceId] = all_data
+        if 'type' in data:
+            if data['type'] == 'key' and self.on_key is not None:
+                self.on_key(data)
+            if data['type'] in ['acceleration', 'gyro'] and self.on_sensor is not None:
+                self.on_sensor(data)
+            if data['type'] == 'acceleration' and self.on_acceleration is not None:
+                self.on_acceleration(data)
+            if data['type'] == 'gyro' and self.on_gyro is not None:
+                self.on_gyro(data)
+            if data['type'] == 'pointer' and self.on_pointer is not None:
+                self.on_pointer(data)
+
+        if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
+            self.on_broadcast_data(data)
+        elif self.on_data is not None:
+            self.on_data(data)
+
+    def __on_all_data(self, data: List[DataMsg]):
+        if 'deviceId' not in data:
+            return
+
+        self.data[data['deviceId']] = data['allData']
+        if self.on_all_data is not None:
+            self.on_all_data(data)
+
+    def __on_room_left(self, device: DeviceLeftMsg):
+        if device['room'] == self.device_id:
+            if device['device'] in self.room_members:
+                self.room_members.remove(device['device'])
+                if self.on_room_left is not None:
+                    self.on_room_left(device['device'])
+        elif device['device']['deviceId'] == self.device_id:
+            if device['device'] in self.joined_rooms:
+                self.joined_rooms.remove(device['device'])
+
+    def __on_room_joined(self, device: DeviceJoinedMsg):
+        if device['room'] == self.device_id:
+            if device['device'] not in self.room_members:
+                self.room_members.append(device['device'])
+                if self.on_room_joined is not None:
+                    self.on_room_joined(device['device'])
+        elif device['device']['deviceId'] == self.device_id:
+            if device['device'] not in self.joined_rooms:
+                self.joined_rooms.append(device['device'])
+
+    def __on_error(self, err: ErrorMsg):
+        logging.warn(f'Error on Event {err.type}: {err.msg}')
+
+        if self.on_error is not None:
+            self.on_error(err)
 
     def __on_device(self, device: Device):
-        device = DictX(device)
-        if (self.sio.sid == device.deviceId):
+        if 'deviceId' not in device or 'socketId' not in device:
+            return
+        if self.sio.sid == device['socketId']:
             self.device = device
+            self.emit(GET_ALL_DATA)
+            if device not in self.room_members:
+                self.room_members.append(device)
+            if self.on_device is not None:
+                self.on_device(device)
 
     def __on_devices(self, devices: List[Device]):
-        devices = map(lambda device : DictX(device), devices)
         self.devices = devices
+        if self.on_devices is not None:
+            self.on_devices(devices)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    connector = Connector('https://io.lebalz.ch', 'FooBar')
+    # connector = Connector('https://io.lebalz.ch', 'FooBar')
+    connector = Connector('http://localhost:5000', 'FooBar')
 
     # draw a 3x3 checker board
-    connector.set_grid(
-        [
-            ['black', 'white', 'black'],
-            ['white', 'black', 'white'],
-            ['black', 'white', 'black']
-        ],
-        broadcast=True
-    )
+    connector.set_grid([
+        ['black', 'white', 'black'],
+        ['white', 'black', 'white'],
+        ['black', 'white', 'black'],
+    ], broadcast=True)
 
-    connector.onKey = lambda data: print(data)
+    connector.on_key = lambda data: print('on key', data)
+    connector.on_broadcast_data = lambda data: print(data)
+    connector.on_data = lambda data: print('on data', data)
+    connector.on_all_data = lambda data: print(data)
+    connector.on_device = lambda data: print('on device', data)
+    connector.on_devices = lambda data: print('on devices', data)
+    connector.on_acceleration = lambda data: print(data)
+    connector.on_gyro = lambda data: print(data)
+    connector.on_sensor = lambda data: None
+    connector.on_room_joined = lambda data: print('room joined: ', data)
+    connector.on_room_left = lambda data: print('room left: ', data)
+    connector.on_pointer = lambda data: print('pointer: ', data)
+    connector.on_error = lambda data: print('error: ', data)
+
+    connector.join_room('blaaas')
+
+    time.sleep(1)
+    print(connector.joined_room_count)
+    print(connector.client_count)
+    print(connector.device_count)
+    connector.leave_room('blaaas')
+
+
+    print('\n')
+    print('data: ', connector.all_data())
+    print('data: ', connector.all_data(data_type='grid'))
+    print('latest data: ', connector.latest_data())
+    print('latest data: ', connector.latest_data(data_type='key'))
+    print('broadcast data: ', connector.all_broadcast_data())
+    print('broadcast data: ', connector.all_broadcast_data(data_type='grid'))
+    print('latest broadcast data: ', connector.latest_broadcast_data())
+    print('latest broadcast data: ', connector.latest_broadcast_data(data_type='key'))
+    print('cnt device', connector.device_count)
+    print('cnt room', connector.room_member_count)
+    print('cnt clients', connector.client_count)
+    print('cnt joined rooms', connector.joined_room_count)
+
     connector.sio.wait()
     connector.disconnect()
