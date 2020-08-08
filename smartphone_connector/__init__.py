@@ -1,6 +1,7 @@
 import socketio
 import logging
-import time, datetime
+import time
+import datetime
 import math
 from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional
 
@@ -54,8 +55,10 @@ class DeviceLeftMsg(TypedDict):
     room: str
     device: Device
 
+
 class TimeStampedMsg(TypedDict):
     timeStamp: int
+
 
 class BaseMsg(TimeStampedMsg):
     deviceId: str
@@ -134,6 +137,7 @@ class ErrorMsg(TypedDict):
 def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
+
 def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
     '''
     extracts the datetime from a data package. if the field `timeStamp` is not present,
@@ -147,6 +151,59 @@ def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
         ts = ts / 1000.0
     return datetime.datetime.fromtimestamp(ts)
 
+
+def on_key(data: KeyMsg):
+    None
+
+
+def on_pointer(data: PointerMsg):
+    None
+
+
+def on_acceleration(data: AccMsg):
+    None
+
+
+def on_gyro(data: GyroMsg):
+    None
+
+
+def on_sensor(data: Union[AccMsg, GyroMsg]):
+    None
+
+
+def on_data(data: DataMsg):
+    None
+
+
+def on_broadcast_data(data: DataMsg):
+    None
+
+
+def on_all_data(data: List[DataMsg]):
+    None
+
+
+def on_device(data: Device):
+    None
+
+
+def on_devices(data: List[Device]):
+    None
+
+
+def on_error(data: ErrorMsg):
+    None
+
+
+def on_room_joined(data: DeviceJoinedMsg):
+    None
+
+
+def on_room_left(data: DeviceLeftMsg):
+    None
+
+
 class Connector:
     __start_time_ns: int = time.time_ns()
     data: Dict[str, List[BaseMsg]] = {}
@@ -159,20 +216,20 @@ class Connector:
     joined_rooms: List[str]
 
     # callback functions
-    on_key: Callable[[KeyMsg], None] = lambda data: None
-    on_pointer: Callable[[PointerMsg], None] = lambda data: None
-    on_acceleration: Callable[[KeyMsg], None] = lambda data: None
-    on_gyro: Callable[[KeyMsg], None] = lambda data: None
-    on_sensor: Callable[[KeyMsg], None] = lambda data: None
+    on_key: Callable[[KeyMsg], None] = on_key
+    on_pointer: Callable[[PointerMsg], None] = on_pointer
+    on_acceleration: Callable[[AccMsg], None] = on_acceleration
+    on_gyro: Callable[[GyroMsg], None] = on_gyro
+    on_sensor: Callable[[Union[GyroMsg, AccMsg]], None] = on_sensor
 
-    on_data: Callable[[DataMsg], None] = lambda data: None
-    on_broadcast_data: Callable[[DataMsg], None] = lambda data: None
-    on_all_data: Callable[[List[KeyMsg]], None] = lambda data: None
-    on_device: Callable[[Device], None] = lambda data: None
-    on_devices: Callable[[List[Device]], None] = lambda data: None
-    on_error: Callable[[ErrorMsg], None] = lambda data: None
-    on_room_joined: Callable[[Device], None] = lambda data: None
-    on_room_left: Callable[[Device], None] = lambda data: None
+    on_data: Callable[[DataMsg], None] = on_data
+    on_broadcast_data: Callable[[DataMsg], None] = on_broadcast_data
+    on_all_data: Callable[[List[DataMsg]], None] = on_all_data
+    on_device: Callable[[Device], None] = on_device
+    on_devices: Callable[[List[Device]], None] = on_devices
+    on_error: Callable[[ErrorMsg], None] = on_error
+    on_room_joined: Callable[[DeviceJoinedMsg], None] = on_room_joined
+    on_room_left: Callable[[DeviceLeftMsg], None] = on_room_left
 
     @property
     def server_url(self):
