@@ -106,6 +106,7 @@ when a function is assigned to one of the following props, this function will be
 - `on_error`
 - `on_room_joined`
 - `on_room_left`
+- `on_client_device` - when a webbrowser client with the same `device_id` connects (the client device is passed) or disconnects (`None` is passed)
 
 e.g.
 
@@ -133,8 +134,9 @@ To convert the timestamps (seconds since epoch) to a python `timestamp` object, 
 - `room_members` list of devices and scripts connected to this room
 - `joined_rooms` all rooms which this client gets events from
 - `device_count` the count of all devices and scripts currently connected to the server
-- `client_count` the count of client devices connected to the server (e.g. Smartphones)
+- `client_count` the count of client devices connected over a webbrowser to the server (e.g. Smartphones)
 - `room_member_count` count of other clients/scripts connected to this room. All these clients will receive the events of this room too.
+- `client_device` the first found device connected over a webbrowser with the same `device_id`
 
 ## Methods
 

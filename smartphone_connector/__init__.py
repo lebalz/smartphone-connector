@@ -174,6 +174,7 @@ class Connector:
     on_broadcast_data: Callable[[DataMsg], None] = None
     on_all_data: Callable[[List[DataMsg]], None] = None
     on_device: Callable[[Device], None] = None
+    on_client_device: Callable[[Union[Device, None]], None] = None
     on_devices: Callable[[List[Device]], None] = None
     on_error: Callable[[ErrorMsg], None] = None
     on_room_joined: Callable[[DeviceJoinedMsg], None] = None
@@ -201,6 +202,10 @@ class Connector:
         self.sio.on(ROOM_LEFT, self.__on_room_left)
         self.joined_rooms = [device_id]
         self.connect()
+
+    @property
+    def client_device(self):
+        return next((device for device in self.devices if device['isController'] and device['deviceId'] == self.device_id), None)
 
     def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False):
         if 'timeStamp' not in data:
@@ -512,13 +517,19 @@ class Connector:
                 self.on_device(device)
 
     def __on_devices(self, devices: List[Device]):
+        had_client_device = self.client_device is not None
         self.devices = devices
+        if self.on_client_device:
+            has_client_device = self.client_device is not None
+            if (had_client_device and not has_client_device) or (has_client_device and not had_client_device):
+                self.on_client_device(self.client_device)
+
         if self.on_devices is not None:
             self.on_devices(devices)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     connector = Connector('https://io.lebalz.ch', 'FooBar')
 
     # draw a 3x3 checker board
@@ -528,19 +539,20 @@ if __name__ == '__main__':
         ['black', 'white', 'black'],
     ], broadcast=True)
 
-    connector.on_key = lambda data: print('on key', data)
-    connector.on_broadcast_data = lambda data: print(data)
-    connector.on_data = lambda data: print('on data', data)
-    connector.on_all_data = lambda data: print(data)
-    connector.on_device = lambda data: print('on device', data)
-    connector.on_devices = lambda data: print('on devices', data)
-    connector.on_acceleration = lambda data: print(data)
-    connector.on_gyro = lambda data: print(data)
-    connector.on_sensor = lambda data: None
-    connector.on_room_joined = lambda data: print('room joined: ', data)
-    connector.on_room_left = lambda data: print('room left: ', data)
-    connector.on_pointer = lambda data: print('pointer: ', data)
-    connector.on_error = lambda data: print('error: ', data)
+    connector.on_key = lambda data: logging.info(f'on_key: {data}')
+    connector.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
+    connector.on_data = lambda data: logging.info(f'on_data: {data}')
+    connector.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
+    connector.on_device = lambda data: logging.info(f'on_device: {data}')
+    connector.on_devices = lambda data: logging.info(f'on_devices: {data}')
+    connector.on_acceleration = lambda data: logging.info(f'on_acceleration: {data}')
+    connector.on_gyro = lambda data: logging.info(f'on_gyro: {data}')
+    connector.on_sensor = lambda data: logging.info(f'on_sensor: {data}')
+    connector.on_room_joined = lambda data: logging.info(f'on_room_joined: {data}')
+    connector.on_room_left = lambda data: logging.info(f'on_room_left: {data}')
+    connector.on_pointer = lambda data: logging.info(f'on_pointer: {data}')
+    connector.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
+    connector.on_error = lambda data: logging.info(f'on_error: {data}')    
 
     time.sleep(1)
     print(connector.joined_room_count)
