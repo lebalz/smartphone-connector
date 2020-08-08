@@ -291,7 +291,7 @@ class Connector:
     @property
     def client_count(self) -> int:
         '''
-        number of web-clients (or controller-clients) connected to this room
+        number of web-clients (or controller-clients) connected to the server
         '''
         return len(self.client_devices)
 
