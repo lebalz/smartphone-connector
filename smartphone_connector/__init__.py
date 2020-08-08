@@ -40,10 +40,10 @@ EVENTS = Literal[
 
 
 class Device(TypedDict):
-    deviceId: str
-    isController: bool
-    deviceNr: int
-    socketId: str
+    device_id: str
+    is_controller: bool
+    device_nr: int
+    socket_id: str
 
 
 class DeviceJoinedMsg(TypedDict):
@@ -56,19 +56,19 @@ class DeviceLeftMsg(TypedDict):
     device: Device
 
 
-class TimeStampedMsg(TypedDict):
-    timeStamp: int
+class time_stampedMsg(TypedDict):
+    time_stamp: int
 
 
-class BaseMsg(TimeStampedMsg):
-    deviceId: str
-    deviceNr: int
+class BaseMsg(time_stampedMsg):
+    device_id: str
+    device_nr: int
 
 
 class BaseSendMsg(TypedDict):
-    deviceId: Optional[str]
-    deviceNr: Optional[int]
-    timeStamp: Optional[int]
+    device_id: Optional[str]
+    device_nr: Optional[int]
+    time_stamp: Optional[int]
 
 
 class DataMsg(BaseMsg):
@@ -138,18 +138,18 @@ def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
 
-def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
+def to_datetime(data: time_stampedMsg) -> datetime.datetime:
     '''
-    extracts the datetime from a data package. if the field `timeStamp` is not present,
+    extracts the datetime from a data package. if the field `time_stamp` is not present,
     the current datetime will be returned
     '''
-    if 'timeStamp' not in data:
+    if 'time_stamp' not in data:
         return datetime.datetime.now()
-    ts = data['timeStamp']
-    # convert timestamp from ms to seconds
+    ts = data['time_stamp']
+    # convert time_stamp from ms to seconds
     if ts > 1000000000000:
         ts = ts / 1000.0
-    return datetime.datetime.fromtimestamp(ts)
+    return datetime.datetime.fromtime_stamp(ts)
 
 
 class Connector:
@@ -205,7 +205,7 @@ class Connector:
 
     @property
     def client_device(self):
-        return next((device for device in self.devices if device['isController'] and device['deviceId'] == self.device_id), None)
+        return next((device for device in self.devices if device['is_controller'] and device['device_id'] == self.device_id), None)
 
     def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False, unicast_to: int = None):
         '''
@@ -213,9 +213,9 @@ class Connector:
         ----------
         event : str
             the event name 
-        
+
         data : BaseSendMsg
-            the data to send, fields 'timeStamp' and 'deviceId' are added when they are not present
+            the data to send, fields 'time_stamp' and 'device_id' are added when they are not present
 
         Optional
         --------
@@ -225,11 +225,11 @@ class Connector:
         unicast_to : int
             the device number to which this message is sent exclusively. When set, boradcast has no effect. 
         '''
-        if 'timeStamp' not in data:
-            data['timeStamp'] = time.time_ns() // 1000000
+        if 'time_stamp' not in data:
+            data['time_stamp'] = time.time_ns() // 1000000
 
-        if 'deviceId' not in data:
-            data['deviceId'] = self.device_id
+        if 'device_id' not in data:
+            data['device_id'] = self.device_id
 
         if broadcast:
             data['broadcast'] = True
@@ -237,8 +237,8 @@ class Connector:
         if type(unicast_to) == int:
             if 'broadcast' in data:
                 del data['broadcast']
-            data['unicastTo'] = unicast_to
-        
+            data['unicast_to'] = unicast_to
+
         self.sio.emit(event, data)
 
     def broadcast(self, data: DataMsg):
@@ -265,7 +265,7 @@ class Connector:
 
     @property
     def client_devices(self) -> List[Device]:
-        return list(filter(lambda device: device['isController'], self.devices))
+        return list(filter(lambda device: device['is_controller'], self.devices))
 
     @property
     def client_count(self) -> int:
@@ -289,7 +289,7 @@ class Connector:
         data = flatten(self.data.values())
         data = sorted(
             data,
-            key=lambda item: item['timeStamp'] if 'timeStamp' in item else 0,
+            key=lambda item: item['time_stamp'] if 'time_stamp' in item else 0,
             reverse=True
         )
         data = filter(lambda item: 'broadcast' in item and item['broadcast'], data)
@@ -309,7 +309,7 @@ class Connector:
         data = flatten(self.data.values())
         data = sorted(
             data,
-            key=lambda item: item['timeStamp'] if 'timeStamp' in item else 0,
+            key=lambda item: item['time_stamp'] if 'time_stamp' in item else 0,
             reverse=True
         )
 
@@ -456,11 +456,11 @@ class Connector:
             return
         self.sio.disconnect()
 
-    def join_room(self, deviceId: str):
-        self.emit(JOIN_ROOM, {'room': deviceId})
+    def join_room(self, device_id: str):
+        self.emit(JOIN_ROOM, {'room': device_id})
 
-    def leave_room(self, deviceId: str):
-        self.emit(LEAVE_ROOM, {'room': deviceId})
+    def leave_room(self, device_id: str):
+        self.emit(LEAVE_ROOM, {'room': device_id})
 
     def __on_connect(self):
         logging.info('SocketIO connected')
@@ -472,13 +472,13 @@ class Connector:
         self.emit(NEW_DEVICE)
 
     def __on_new_data(self, data: DataMsg):
-        if 'deviceId' not in data:
+        if 'device_id' not in data:
             return
 
-        if data['deviceId'] not in self.data:
-            self.data[data['deviceId']] = []
+        if data['device_id'] not in self.data:
+            self.data[data['device_id']] = []
 
-        self.data[data['deviceId']].append(data)
+        self.data[data['device_id']].append(data)
 
         if 'type' in data:
             if data['type'] == 'key' and self.on_key is not None:
@@ -498,10 +498,10 @@ class Connector:
             self.on_data(data)
 
     def __on_all_data(self, data: List[DataMsg]):
-        if 'deviceId' not in data:
+        if 'device_id' not in data:
             return
 
-        self.data[data['deviceId']] = data['allData']
+        self.data[data['device_id']] = data['allData']
         if self.on_all_data is not None:
             self.on_all_data(data)
 
@@ -511,7 +511,7 @@ class Connector:
                 self.room_members.remove(device['device'])
                 if self.on_room_left is not None:
                     self.on_room_left(device['device'])
-        elif device['device']['deviceId'] == self.device_id:
+        elif device['device']['device_id'] == self.device_id:
             if device['device'] in self.joined_rooms:
                 self.joined_rooms.remove(device['device'])
 
@@ -521,7 +521,7 @@ class Connector:
                 self.room_members.append(device['device'])
                 if self.on_room_joined is not None:
                     self.on_room_joined(device['device'])
-        elif device['device']['deviceId'] == self.device_id:
+        elif device['device']['device_id'] == self.device_id:
             if device['device'] not in self.joined_rooms:
                 self.joined_rooms.append(device['device'])
 
@@ -532,9 +532,9 @@ class Connector:
             self.on_error(err)
 
     def __on_device(self, device: Device):
-        if 'deviceId' not in device or 'socketId' not in device:
+        if 'device_id' not in device or 'socket_id' not in device:
             return
-        if self.sio.sid == device['socketId']:
+        if self.sio.sid == device['socket_id']:
             self.device = device
             self.emit(GET_ALL_DATA)
             if device not in self.room_members:
@@ -578,7 +578,7 @@ if __name__ == '__main__':
     connector.on_room_left = lambda data: logging.info(f'on_room_left: {data}')
     connector.on_pointer = lambda data: logging.info(f'on_pointer: {data}')
     connector.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
-    connector.on_error = lambda data: logging.info(f'on_error: {data}')    
+    connector.on_error = lambda data: logging.info(f'on_error: {data}')
 
     time.sleep(1)
     print(connector.joined_room_count)
@@ -589,7 +589,7 @@ if __name__ == '__main__':
     print('data: ', connector.all_data())
     print('data: ', connector.all_data(data_type='grid'))
     print('latest data: ', connector.latest_data())
-    print('timestamp', to_datetime(connector.latest_data()))
+    print('time_stamp', to_datetime(connector.latest_data()))
     print('latest data: ', connector.latest_data(data_type='key'))
     print('broadcast data: ', connector.all_broadcast_data())
     print('broadcast data: ', connector.all_broadcast_data(data_type='grid'))

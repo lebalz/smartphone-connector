@@ -13,20 +13,20 @@ A simple socket io server implementing this interface can be seen on [github.com
 - `device`
   ```py
   {
-    'deviceId': str,
-    'isController': bool,
-    'deviceNr': int,
-    'socketId': str
+    'device_id': str,
+    'is_controller': bool,
+    'device_nr': int,
+    'socket_id': str
   }
   ```
 - `devices`
   ```
   [
     {
-        'deviceId': str,
-        'isController': bool,
-        'deviceNr': int,
-        'socketId': str
+        'device_id': str,
+        'is_controller': bool,
+        'device_nr': int,
+        'socket_id': str
     },
     ...
   ]
@@ -35,8 +35,8 @@ A simple socket io server implementing this interface can be seen on [github.com
   ```
   [
     {
-        'deviceId': str,
-        'timeStamp': int, # time (seconds) since client loaded page,
+        'device_id': str,
+        'time_stamp': int, # time (seconds) since client loaded page,
         ...
     },
     ...
@@ -45,9 +45,9 @@ A simple socket io server implementing this interface can be seen on [github.com
 - `new_data`
   ```
   {
-    'deviceId': str,
-    'deviceNr': int,
-    'timeStamp': int, # time (seconds) since client loaded page,
+    'device_id': str,
+    'device_nr': int,
+    'time_stamp': int, # time (seconds) since client loaded page,
     'type': 'key' | 'acceleration' | 'gyro' | 'pointer' | 'notification'
     ...
   }
@@ -55,19 +55,19 @@ A simple socket io server implementing this interface can be seen on [github.com
 - `room_joined`
   ```
   {
-    'deviceId': str,
-    'isController': bool,
-    'deviceNr': int,
-    'socketId': str
+    'device_id': str,
+    'is_controller': bool,
+    'device_nr': int,
+    'socket_id': str
   }
   ```
 - `room_left`
   ```
   {
-    'deviceId': str,
-    'isController': bool,
-    'deviceNr': int,
-    'socketId': str
+    'device_id': str,
+    'is_controller': bool,
+    'device_nr': int,
+    'socket_id': str
   }
   ```
 - `error_msg`
@@ -80,12 +80,12 @@ A simple socket io server implementing this interface can be seen on [github.com
 
 ### Actions (for emitting)
 
-- `emit('clear_data', { 'deviceId': str })`
-- `emit('new_device', { 'deviceId': str })`
-- `emit('get_all_data', { 'deviceId': str })`
-- `emit('get_devices', { 'deviceId': str })`
-- `emit('new_data', { 'deviceId': str, timeStamp: int, ... })`
-- `emit('new_data', { 'deviceNr': int, timeStamp: int, ... })`
+- `emit('clear_data', { 'device_id': str })`
+- `emit('new_device', { 'device_id': str })`
+- `emit('get_all_data', { 'device_id': str })`
+- `emit('get_devices', { 'device_id': str })`
+- `emit('new_data', { 'device_id': str, time_stamp: int, ... })`
+- `emit('new_data', { 'device_nr': int, time_stamp: int, ... })`
 - `emit('join_room', { 'room': str })`
 - `emit('leave_room', { 'room': str })`
 
@@ -119,7 +119,7 @@ will print each received key
 
 ## Helpers
 
-To convert the timestamps (seconds since epoch) to a python `timestamp` object, the function `to_datetime` may be used.
+To convert the time_stamps (seconds since epoch) to a python `time_stamp` object, the function `to_datetime` may be used.
 
 ## Class ´Controller`
 
@@ -168,8 +168,8 @@ To convert the timestamps (seconds since epoch) to a python `timestamp` object, 
 - `set_grid(grid, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sends a `new_data` event with the given grid. the grid can be either a `1D` or `2D` array containing css colors.
 - `set_color(color: str, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sets the color of the color panel
 - `disconnect()`
-- `join_room(deviceId: str)` joins the room of another device. This means that all events from this other device will be streamed to this client too.
-- `leave_room(deviceId: str)` leaves the room of this device. This means no events from this device are received.
+- `join_room(device_id: str)` joins the room of another device. This means that all events from this other device will be streamed to this client too.
+- `leave_room(device_id: str)` leaves the room of this device. This means no events from this device are received.
 
 ## Example
 
