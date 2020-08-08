@@ -1,8 +1,10 @@
+from __future__ import annotations
 import socketio
 import logging
 import time
 import datetime
 import math
+from inspect import signature
 from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional
 
 
@@ -56,11 +58,11 @@ class DeviceLeftMsg(TypedDict):
     device: Device
 
 
-class time_stampedMsg(TypedDict):
+class TimeStampedMsg(TypedDict):
     time_stamp: int
 
 
-class BaseMsg(time_stampedMsg):
+class BaseMsg(TimeStampedMsg):
     device_id: str
     device_nr: int
 
@@ -138,7 +140,7 @@ def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
 
-def to_datetime(data: time_stampedMsg) -> datetime.datetime:
+def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
     '''
     extracts the datetime from a data package. if the field `time_stamp` is not present,
     the current datetime will be returned
@@ -149,7 +151,7 @@ def to_datetime(data: time_stampedMsg) -> datetime.datetime:
     # convert time_stamp from ms to seconds
     if ts > 1000000000000:
         ts = ts / 1000.0
-    return datetime.datetime.fromtime_stamp(ts)
+    return datetime.datetime.fromtimestamp(ts)
 
 
 class Connector:
@@ -164,21 +166,21 @@ class Connector:
     joined_rooms: List[str]
 
     # callback functions
-    on_key: Callable[[KeyMsg], None] = None
-    on_pointer: Callable[[PointerMsg], None] = None
-    on_acceleration: Callable[[AccMsg], None] = None
-    on_gyro: Callable[[GyroMsg], None] = None
-    on_sensor: Callable[[Union[GyroMsg, AccMsg]], None] = None
+    on_key: Callable[[KeyMsg, Optional[Connector]], None] = None
+    on_pointer: Callable[[PointerMsg, Optional[Connector]], None] = None
+    on_acceleration: Callable[[AccMsg, Optional[Connector]], None] = None
+    on_gyro: Callable[[GyroMsg, Optional[Connector]], None] = None
+    on_sensor: Callable[[Union[GyroMsg, AccMsg], Optional[Connector]], None] = None
 
-    on_data: Callable[[DataMsg], None] = None
-    on_broadcast_data: Callable[[DataMsg], None] = None
-    on_all_data: Callable[[List[DataMsg]], None] = None
-    on_device: Callable[[Device], None] = None
-    on_client_device: Callable[[Union[Device, None]], None] = None
-    on_devices: Callable[[List[Device]], None] = None
-    on_error: Callable[[ErrorMsg], None] = None
-    on_room_joined: Callable[[DeviceJoinedMsg], None] = None
-    on_room_left: Callable[[DeviceLeftMsg], None] = None
+    on_data: Callable[[DataMsg, Optional[Connector]], None] = None
+    on_broadcast_data: Callable[[DataMsg, Optional[Connector]], None] = None
+    on_all_data: Callable[[List[DataMsg], Optional[Connector]], None] = None
+    on_device: Callable[[Device, Optional[Connector]], None] = None
+    on_client_device: Callable[[Union[Device, None], Optional[Connector]], None] = None
+    on_devices: Callable[[List[Device], Optional[Connector]], None] = None
+    on_error: Callable[[ErrorMsg, Optional[Connector]], None] = None
+    on_room_joined: Callable[[DeviceJoinedMsg, Optional[Connector]], None] = None
+    on_room_left: Callable[[DeviceLeftMsg, Optional[Connector]], None] = None
 
     @property
     def server_url(self):
@@ -403,7 +405,6 @@ class Connector:
         ])
         ```
         '''
-        did = self.device_id if (device_id is None) else device_id
         self.emit(
             ADD_NEW_DATA,
             {
@@ -451,6 +452,28 @@ class Connector:
             unicast_to=unicast_to
         )
 
+    def clean_data(self):
+        '''
+        removes all gathered data
+        '''
+        self.data = {}
+
+    def sleep(self, seconds=0) -> None:
+        '''
+        Sleep for the requested amount of time using the appropriate async model.
+
+        This is a utility function that applications can use to put a task to sleep without having to worry about using the correct call for the selected async mode.
+        '''
+        self.sio.sleep(seconds)
+
+    def wait(self):
+        '''
+        Wait until the connection with the server ends.
+
+        Client applications can use this function to block the main thread during the life of the connection.
+        '''
+        self.sio.wait()
+
     def disconnect(self):
         if not self.sio.connected:
             return
@@ -471,6 +494,20 @@ class Connector:
     def __register(self):
         self.emit(NEW_DEVICE)
 
+
+    def __callback(self, name, data):
+        callback = getattr(self, name)
+        if callback is None:
+            return
+        try:
+            arg_count = len(signature(callback).parameters)
+            if arg_count == 1:
+                callback(data)
+            elif arg_count == 2:
+                callback(data, self)
+        except Exception:
+            pass
+
     def __on_new_data(self, data: DataMsg):
         if 'device_id' not in data:
             return
@@ -481,36 +518,35 @@ class Connector:
         self.data[data['device_id']].append(data)
 
         if 'type' in data:
-            if data['type'] == 'key' and self.on_key is not None:
-                self.on_key(data)
-            if data['type'] in ['acceleration', 'gyro'] and self.on_sensor is not None:
-                self.on_sensor(data)
-            if data['type'] == 'acceleration' and self.on_acceleration is not None:
-                self.on_acceleration(data)
-            if data['type'] == 'gyro' and self.on_gyro is not None:
-                self.on_gyro(data)
-            if data['type'] == 'pointer' and self.on_pointer is not None:
-                self.on_pointer(data)
+            if data['type'] == 'key':
+                self.__callback('on_key', data)
+            if data['type'] in ['acceleration', 'gyro']:
+                self.__callback('on_sensor', data)
+            if data['type'] == 'acceleration':
+                self.__callback('on_acceleration', data)
+            if data['type'] == 'gyro':
+                self.__callback('on_gyro', data)
+            if data['type'] == 'pointer':
+                self.__callback('on_pointer', data)
 
         if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
-            self.on_broadcast_data(data)
-        elif self.on_data is not None:
-            self.on_data(data)
+            self.__callback('on_broadcast_data', data)
+        else:
+            self.__callback('on_data', data)
 
     def __on_all_data(self, data: List[DataMsg]):
         if 'device_id' not in data:
             return
 
-        self.data[data['device_id']] = data['allData']
-        if self.on_all_data is not None:
-            self.on_all_data(data)
+        self.data[data['device_id']] = data['all_data']
+        self.__callback('on_all_data', data)
 
     def __on_room_left(self, device: DeviceLeftMsg):
         if device['room'] == self.device_id:
             if device['device'] in self.room_members:
                 self.room_members.remove(device['device'])
-                if self.on_room_left is not None:
-                    self.on_room_left(device['device'])
+                self.__callback('on_room_left', device['device'])
+
         elif device['device']['device_id'] == self.device_id:
             if device['device'] in self.joined_rooms:
                 self.joined_rooms.remove(device['device'])
@@ -519,8 +555,7 @@ class Connector:
         if device['room'] == self.device_id:
             if device['device'] not in self.room_members:
                 self.room_members.append(device['device'])
-                if self.on_room_joined is not None:
-                    self.on_room_joined(device['device'])
+                self.__callback('on_room_joined', device['device'])
         elif device['device']['device_id'] == self.device_id:
             if device['device'] not in self.joined_rooms:
                 self.joined_rooms.append(device['device'])
@@ -528,8 +563,7 @@ class Connector:
     def __on_error(self, err: ErrorMsg):
         logging.warn(f'Error on Event {err.type}: {err.msg}')
 
-        if self.on_error is not None:
-            self.on_error(err)
+        self.__callback('on_error', err)
 
     def __on_device(self, device: Device):
         if 'device_id' not in device or 'socket_id' not in device:
@@ -539,19 +573,17 @@ class Connector:
             self.emit(GET_ALL_DATA)
             if device not in self.room_members:
                 self.room_members.append(device)
-            if self.on_device is not None:
-                self.on_device(device)
-
+            self.__callback('on_device', device)
+    
     def __on_devices(self, devices: List[Device]):
         had_client_device = self.client_device is not None
         self.devices = devices
         if self.on_client_device:
             has_client_device = self.client_device is not None
             if (had_client_device and not has_client_device) or (has_client_device and not had_client_device):
-                self.on_client_device(self.client_device)
+                self.__callback('on_client_device', self.client_device)
 
-        if self.on_devices is not None:
-            self.on_devices(devices)
+        self.__callback('on_devices', devices)
 
 
 if __name__ == '__main__':
@@ -565,7 +597,7 @@ if __name__ == '__main__':
         ['black', 'white', 'black'],
     ], broadcast=True)
 
-    connector.on_key = lambda data: logging.info(f'on_key: {data}')
+    connector.on_key = lambda data, c: logging.info(f'on_key: {data}, len: {len(c.all_data())}')
     connector.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
     connector.on_data = lambda data: logging.info(f'on_data: {data}')
     connector.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
@@ -600,5 +632,5 @@ if __name__ == '__main__':
     print('cnt clients', connector.client_count)
     print('cnt joined rooms', connector.joined_room_count)
 
-    connector.sio.wait()
+    connector.sleep(2)
     connector.disconnect()

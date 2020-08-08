@@ -91,7 +91,7 @@ A simple socket io server implementing this interface can be seen on [github.com
 
 ### Callbacks (when fired when event is received)
 
-when a function is assigned to one of the following props, this function will be called with the received data as its first argument
+when a function is assigned to one of the following props, this function will be called with the received data as its first argument and optionally with the Connector instance as the second argument.
 
 - `on_key`
 - `on_pointer`
@@ -113,6 +113,7 @@ e.g.
 ```py
 connector = Connector('https://io.lebalz.ch')
 connector.on_key = lambda data: print('on key', data)
+connector.on_key = lambda data, conn: print('on key', data, 'data pakages', len(conn.all_data()))
 ```
 
 will print each received key
@@ -168,6 +169,9 @@ To convert the time_stamps (seconds since epoch) to a python `time_stamp` object
 - `set_grid(grid, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sends a `new_data` event with the given grid. the grid can be either a `1D` or `2D` array containing css colors.
 - `set_color(color: str, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sets the color of the color panel
 - `disconnect()`
+- `sleep(seconds=0)`
+- `wait()`
+- `clean_data()` removes all gathered data
 - `join_room(device_id: str)` joins the room of another device. This means that all events from this other device will be streamed to this client too.
 - `leave_room(device_id: str)` leaves the room of this device. This means no events from this device are received.
 
