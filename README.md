@@ -137,6 +137,7 @@ To convert the timestamps (seconds since epoch) to a python `timestamp` object, 
 - `client_count` the count of client devices connected over a webbrowser to the server (e.g. Smartphones)
 - `room_member_count` count of other clients/scripts connected to this room. All these clients will receive the events of this room too.
 - `client_device` the first found device connected over a webbrowser with the same `device_id`
+- `client_devices` all devices connected over a webbrowser to the server
 
 ## Methods
 

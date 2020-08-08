@@ -264,11 +264,15 @@ class Connector:
         return len(self.devices)
 
     @property
+    def client_devices(self) -> List[Device]:
+        return list(filter(lambda device: device['isController'], self.devices))
+
+    @property
     def client_count(self) -> int:
         '''
         number of web-clients (or controller-clients) connected to this room
         '''
-        return len(list(filter(lambda device: device['isController'], self.devices)))
+        return len(self.client_devices)
 
     @property
     def joined_room_count(self) -> int:
