@@ -69,7 +69,7 @@ class BaseSendMsg(TypedDict):
 
 
 class DataMsg(BaseMsg):
-    type: str
+    type: Literal['key', 'acceleration', 'gyro', 'pointer', 'notification']
 
 
 class KeyMsg(DataMsg):
@@ -105,12 +105,14 @@ class Acc(TypedDict):
     x: float
     y: float
     z: float
+    interval: float
 
 
 class Gyro(TypedDict):
     alpha: float
     beta: float
     gamma: float
+    absolute: bool
 
 
 class AccMsg(DataMsg):
@@ -157,20 +159,20 @@ class Connector:
     joined_rooms: List[str]
 
     # callback functions
-    on_key: Callable[[KeyMsg], None] = None
-    on_pointer: Callable[[PointerMsg], None] = None
-    on_acceleration: Callable[[KeyMsg], None] = None
-    on_gyro: Callable[[KeyMsg], None] = None
-    on_sensor: Callable[[KeyMsg], None] = None
+    on_key: Callable[[KeyMsg], None] = lambda data: None
+    on_pointer: Callable[[PointerMsg], None] = lambda data: None
+    on_acceleration: Callable[[KeyMsg], None] = lambda data: None
+    on_gyro: Callable[[KeyMsg], None] = lambda data: None
+    on_sensor: Callable[[KeyMsg], None] = lambda data: None
 
-    on_data: Callable[[DataMsg], None] = None
-    on_broadcast_data: Callable[[DataMsg], None] = None
-    on_all_data: Callable[[List[KeyMsg]], None] = None
-    on_device: Callable[[Device], None] = None
-    on_devices: Callable[[List[Device]], None] = None
-    on_error: Callable[[ErrorMsg], None] = None
-    on_room_joined: Callable[[Device], None] = None
-    on_room_left: Callable[[Device], None] = None
+    on_data: Callable[[DataMsg], None] = lambda data: None
+    on_broadcast_data: Callable[[DataMsg], None] = lambda data: None
+    on_all_data: Callable[[List[KeyMsg]], None] = lambda data: None
+    on_device: Callable[[Device], None] = lambda data: None
+    on_devices: Callable[[List[Device]], None] = lambda data: None
+    on_error: Callable[[ErrorMsg], None] = lambda data: None
+    on_room_joined: Callable[[Device], None] = lambda data: None
+    on_room_left: Callable[[Device], None] = lambda data: None
 
     @property
     def server_url(self):

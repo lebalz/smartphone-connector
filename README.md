@@ -46,7 +46,9 @@ A simple socket io server implementing this interface can be seen on [github.com
   ```
   {
     'deviceId': str,
+    'deviceNr': int,
     'timeStamp': int, # time (seconds) since client loaded page,
+    'type': 'key' | 'acceleration' | 'gyro' | 'pointer' | 'notification'
     ...
   }
   ```
