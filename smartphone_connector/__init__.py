@@ -207,7 +207,24 @@ class Connector:
     def client_device(self):
         return next((device for device in self.devices if device['isController'] and device['deviceId'] == self.device_id), None)
 
-    def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False):
+    def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False, unicast_to: int = None):
+        '''
+        Parameters
+        ----------
+        event : str
+            the event name 
+        
+        data : BaseSendMsg
+            the data to send, fields 'timeStamp' and 'deviceId' are added when they are not present
+
+        Optional
+        --------
+        broadcast : bool
+            wheter to send this message to all connected devices
+
+        unicast_to : int
+            the device number to which this message is sent exclusively. When set, boradcast has no effect. 
+        '''
         if 'timeStamp' not in data:
             data['timeStamp'] = time.time_ns() // 1000000
 
@@ -217,10 +234,18 @@ class Connector:
         if broadcast:
             data['broadcast'] = True
 
+        if unicast_to:
+            if 'broadcast' in data:
+                del data['broadcast']
+            data['unicastTo'] = unicast_to
+        
         self.sio.emit(event, data)
 
     def broadcast(self, data: DataMsg):
         self.emit(ADD_NEW_DATA, data=data, broadcast=True)
+
+    def unicast_to(self, data: DataMsg, device_nr: int):
+        self.emit(ADD_NEW_DATA, data=data, unicast_to=device_nr)
 
     def connect(self):
         if self.sio.connected:
@@ -350,7 +375,7 @@ class Connector:
 
         return None
 
-    def set_grid(self, grid: Union[List[str], List[List[str]]], device_id: str = None, device_nr: int = None, broadcast: bool = False):
+    def set_grid(self, grid: Union[List[str], List[List[str]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         '''
         Parameters
         ----------
@@ -360,7 +385,7 @@ class Connector:
         --------
         device_id : str control the device with this id
 
-        device_nr : str control the device with the given number
+        unicast_to : int control the device with the given number
 
         broadcast : bool wheter to send this message to all connected devices
 
@@ -379,14 +404,13 @@ class Connector:
             ADD_NEW_DATA,
             {
                 'type': 'grid',
-                'grid': grid,
-                'deviceId': did,
-                'deviceNr': device_nr
+                'grid': grid
             },
-            broadcast
+            broadcast=broadcast,
+            unicast_to=unicast_to
         )
 
-    def set_color(self, color: str, device_id: str = None, device_nr: int = None, broadcast: bool = False):
+    def set_color(self, color: str, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         '''
         Parameters
         ----------
@@ -398,7 +422,7 @@ class Connector:
         device_id : str
             control the device with this id
 
-        device_nr : str
+        unicast_to : str
             control the device with the given number
 
         broadcast : bool wheter to send this message to all connected devices
@@ -418,11 +442,10 @@ class Connector:
             ADD_NEW_DATA,
             {
                 'type': 'color',
-                'color': color,
-                'deviceId': did,
-                'deviceNr': device_nr
+                'color': color
             },
-            broadcast
+            broadcast=broadcast,
+            unicast_to=unicast_to
         )
 
     def disconnect(self):

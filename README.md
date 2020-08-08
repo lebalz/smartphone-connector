@@ -140,16 +140,24 @@ To convert the timestamps (seconds since epoch) to a python `timestamp` object, 
 
 ## Methods
 
-- `emit(event, data={}, broadcast=False)`
+- `emit(event, data={}, broadcast=False, unicast_to=None)`
   - `event`: name of the emitted event
   - `data`: whatever data you want to send
   - `broadcast`: when set to true, the event is broadcasted to all currently connected devices. Defaults to `False`
+  - `unicast_to`: the message is sent exclusively to the device with the specified number. Has precedence over the `boradcast` option.
 - `broadcast(data: {type: str})` broadcast's a `new_data` event. The data must contain two fields: `type` and a field equivalent to the `types` value.
   e.g.
 
   ```py
   connector.broadcast({'type': 'grid', 'grid': ['red']})
   connector.broadcast({'type': 'color', 'color': 'red'})
+  ```
+- `unicast_to(data: {'type': str}, device_nr: int)` unicast's a `new_data` event to the specified device. The data must contain two fields: `type` and a field equivalent to the `types` value.
+  e.g.
+
+  ```py
+  connector.unicast({'type': 'grid', 'grid': ['red']}, 2)
+  connector.unicast({'type': 'color', 'color': 'red'}, 1)
   ```
 - `clear_data()` clears all data on the server related to this `device_id``
 - `all_broadcast_data(data_type: str = None) -> List[DataMsg]` returns all broadcasted data of the given type. When no type is provided, all broadcasted data is returned.
