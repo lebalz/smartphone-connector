@@ -234,7 +234,7 @@ class Connector:
         if broadcast:
             data['broadcast'] = True
 
-        if unicast_to:
+        if type(unicast_to) == int:
             if 'broadcast' in data:
                 del data['broadcast']
             data['unicastTo'] = unicast_to
@@ -422,7 +422,7 @@ class Connector:
         device_id : str
             control the device with this id
 
-        unicast_to : str
+        unicast_to : int
             control the device with the given number
 
         broadcast : bool wheter to send this message to all connected devices
@@ -437,7 +437,6 @@ class Connector:
         set_panel('hsl(0, 100%, 50%)')        # => hsl
         ```
         '''
-        did = self.device_id if device_id is None else device_id
         self.emit(
             ADD_NEW_DATA,
             {
