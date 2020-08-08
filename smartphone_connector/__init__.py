@@ -152,58 +152,6 @@ def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
     return datetime.datetime.fromtimestamp(ts)
 
 
-def on_key(data: KeyMsg):
-    None
-
-
-def on_pointer(data: PointerMsg):
-    None
-
-
-def on_acceleration(data: AccMsg):
-    None
-
-
-def on_gyro(data: GyroMsg):
-    None
-
-
-def on_sensor(data: Union[AccMsg, GyroMsg]):
-    None
-
-
-def on_data(data: DataMsg):
-    None
-
-
-def on_broadcast_data(data: DataMsg):
-    None
-
-
-def on_all_data(data: List[DataMsg]):
-    None
-
-
-def on_device(data: Device):
-    None
-
-
-def on_devices(data: List[Device]):
-    None
-
-
-def on_error(data: ErrorMsg):
-    None
-
-
-def on_room_joined(data: DeviceJoinedMsg):
-    None
-
-
-def on_room_left(data: DeviceLeftMsg):
-    None
-
-
 class Connector:
     __start_time_ns: int = time.time_ns()
     data: Dict[str, List[BaseMsg]] = {}
@@ -216,20 +164,20 @@ class Connector:
     joined_rooms: List[str]
 
     # callback functions
-    on_key: Callable[[KeyMsg], None] = on_key
-    on_pointer: Callable[[PointerMsg], None] = on_pointer
-    on_acceleration: Callable[[AccMsg], None] = on_acceleration
-    on_gyro: Callable[[GyroMsg], None] = on_gyro
-    on_sensor: Callable[[Union[GyroMsg, AccMsg]], None] = on_sensor
+    on_key: Callable[[KeyMsg], None] = None
+    on_pointer: Callable[[PointerMsg], None] = None
+    on_acceleration: Callable[[AccMsg], None] = None
+    on_gyro: Callable[[GyroMsg], None] = None
+    on_sensor: Callable[[Union[GyroMsg, AccMsg]], None] = None
 
-    on_data: Callable[[DataMsg], None] = on_data
-    on_broadcast_data: Callable[[DataMsg], None] = on_broadcast_data
-    on_all_data: Callable[[List[DataMsg]], None] = on_all_data
-    on_device: Callable[[Device], None] = on_device
-    on_devices: Callable[[List[Device]], None] = on_devices
-    on_error: Callable[[ErrorMsg], None] = on_error
-    on_room_joined: Callable[[DeviceJoinedMsg], None] = on_room_joined
-    on_room_left: Callable[[DeviceLeftMsg], None] = on_room_left
+    on_data: Callable[[DataMsg], None] = None
+    on_broadcast_data: Callable[[DataMsg], None] = None
+    on_all_data: Callable[[List[DataMsg]], None] = None
+    on_device: Callable[[Device], None] = None
+    on_devices: Callable[[List[Device]], None] = None
+    on_error: Callable[[ErrorMsg], None] = None
+    on_room_joined: Callable[[DeviceJoinedMsg], None] = None
+    on_room_left: Callable[[DeviceLeftMsg], None] = None
 
     @property
     def server_url(self):
