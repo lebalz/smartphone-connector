@@ -122,6 +122,8 @@ will print each received key
 
 To convert the time_stamps (seconds since epoch) to a python `time_stamp` object, the function `to_datetime` may be used.
 
+To get a random color (e.g. for the color panel), you can call `random_color()` and get a random rgb color.
+
 ## Class ´Controller`
 
 ### Attributes

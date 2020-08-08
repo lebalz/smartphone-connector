@@ -4,6 +4,7 @@ import logging
 import time
 import datetime
 import math
+import random
 from inspect import signature
 from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional
 
@@ -152,6 +153,24 @@ def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
     if ts > 1000000000000:
         ts = ts / 1000.0
     return datetime.datetime.fromtimestamp(ts)
+
+
+def random_color() -> str:
+    '''
+    Returns
+    -------
+    str
+        random rgb color, colors ranging between 0 and 255
+
+    Example
+    -------
+        rgb(127, 1, 36)
+    '''
+    r = random.randint(0, 255)
+    g = random.randint(0, 255)
+    b = random.randint(0, 255)
+
+    return f'rgb({r}, {g}, {b})'
 
 
 class Connector:
@@ -458,7 +477,7 @@ class Connector:
         '''
         self.data = {}
 
-    def sleep(self, seconds=0) -> None:
+    def sleep(self, seconds: float = 0) -> None:
         '''
         Sleep for the requested amount of time using the appropriate async model.
 
@@ -493,7 +512,6 @@ class Connector:
 
     def __register(self):
         self.emit(NEW_DEVICE)
-
 
     def __callback(self, name, data):
         callback = getattr(self, name)
@@ -574,7 +592,7 @@ class Connector:
             if device not in self.room_members:
                 self.room_members.append(device)
             self.__callback('on_device', device)
-    
+
     def __on_devices(self, devices: List[Device]):
         had_client_device = self.client_device is not None
         self.devices = devices
