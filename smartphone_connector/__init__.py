@@ -42,6 +42,41 @@ EVENTS = Literal[
 ]
 
 
+class DictX(dict):
+    '''
+    dict with the ability to access keys over dot notation,
+    e.g.
+
+    ```py
+    data = DictX({
+        "foo": "bar"
+    })
+
+    print(data.foo)     # use dot to get
+    data.foo = 'blaa'   # use dot to assign
+    del data.foo        # use dot to delete
+    ```
+    credits: https://dev.to/0xbf/use-dot-syntax-to-access-dictionary-key-python-tips-10ec
+    '''
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError as k:
+            raise AttributeError(k)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def __delattr__(self, key):
+        try:
+            del self[key]
+        except KeyError as k:
+            raise AttributeError(k)
+
+    def __repr__(self):
+        return '<DictX ' + dict.__repr__(self) + '>'
+
+
 class Device(TypedDict):
     device_id: str
     is_controller: bool
@@ -175,9 +210,9 @@ def random_color() -> str:
 
 class Connector:
     __start_time_ns: int = time.time_ns()
-    data: Dict[str, List[BaseMsg]] = {}
+    data: Dict[str, List[BaseMsg]] = DictX({})
     devices: List[Device] = []
-    device: Device = {}
+    device: Device = DictX({})
     __server_url: str
     __device_id: str
     sio: socketio.Client = socketio.Client()
@@ -475,7 +510,7 @@ class Connector:
         '''
         removes all gathered data
         '''
-        self.data = {}
+        self.data = DictX({})
 
     def sleep(self, seconds: float = 0) -> None:
         '''
@@ -499,10 +534,10 @@ class Connector:
         self.sio.disconnect()
 
     def join_room(self, device_id: str):
-        self.emit(JOIN_ROOM, {'room': device_id})
+        self.emit(JOIN_ROOM, DictX({'room': device_id}))
 
     def leave_room(self, device_id: str):
-        self.emit(LEAVE_ROOM, {'room': device_id})
+        self.emit(LEAVE_ROOM, DictX({'room': device_id}))
 
     def __on_connect(self):
         logging.info('SocketIO connected')
@@ -527,6 +562,7 @@ class Connector:
             pass
 
     def __on_new_data(self, data: DataMsg):
+        data = DictX(data)
         if 'device_id' not in data:
             return
 
@@ -556,10 +592,12 @@ class Connector:
         if 'device_id' not in data:
             return
 
+        data['all_data'] = list(map(lambda pkg: DictX(pkg), data['all_data']))
         self.data[data['device_id']] = data['all_data']
         self.__callback('on_all_data', data)
 
     def __on_room_left(self, device: DeviceLeftMsg):
+        device = DictX(device)
         if device['room'] == self.device_id:
             if device['device'] in self.room_members:
                 self.room_members.remove(device['device'])
@@ -570,6 +608,7 @@ class Connector:
                 self.joined_rooms.remove(device['device'])
 
     def __on_room_joined(self, device: DeviceJoinedMsg):
+        device = DictX(device)
         if device['room'] == self.device_id:
             if device['device'] not in self.room_members:
                 self.room_members.append(device['device'])
@@ -579,11 +618,13 @@ class Connector:
                 self.joined_rooms.append(device['device'])
 
     def __on_error(self, err: ErrorMsg):
+        err = DictX(err)
         logging.warn(f'Error on Event {err.type}: {err.msg}')
 
         self.__callback('on_error', err)
 
     def __on_device(self, device: Device):
+        device = DictX(device)
         if 'device_id' not in device or 'socket_id' not in device:
             return
         if self.sio.sid == device['socket_id']:
@@ -594,6 +635,7 @@ class Connector:
             self.__callback('on_device', device)
 
     def __on_devices(self, devices: List[Device]):
+        devices = list(map(lambda device: DictX(device), devices))
         had_client_device = self.client_device is not None
         self.devices = devices
         if self.on_client_device:
