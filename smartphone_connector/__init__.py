@@ -58,6 +58,7 @@ class DictX(dict):
     ```
     credits: https://dev.to/0xbf/use-dot-syntax-to-access-dictionary-key-python-tips-10ec
     '''
+
     def __getattr__(self, key):
         try:
             return self[key]
@@ -123,6 +124,7 @@ class PointerData(TypedDict):
 
 
 class ColorPointer(PointerData):
+    type: Literal['pointer']
     context: Literal['color']
     x: int
     y: int
@@ -131,15 +133,11 @@ class ColorPointer(PointerData):
 
 
 class GridPointer(PointerData):
+    type: Literal['pointer']
     context: Literal['grid']
     row: int
     column: int
     color: str
-
-
-class PointerMsg(DataMsg):
-    type: Literal['pointer']
-    pointer: Union[ColorPointer, GridPointer]
 
 
 class Acc(TypedDict):
@@ -156,14 +154,12 @@ class Gyro(TypedDict):
     absolute: bool
 
 
-class AccMsg(DataMsg):
+class AccMsg(Acc):
     type: Literal['acceleration']
-    acc: Acc
 
 
-class GyroMsg(DataMsg):
+class GyroMsg(Gyro):
     type: Literal['gyro']
-    gyro: Gyro
 
 
 class ErrorMsg(TypedDict):
@@ -221,7 +217,7 @@ class Connector:
 
     # callback functions
     on_key: Callable[[KeyMsg, Optional[Connector]], None] = None
-    on_pointer: Callable[[PointerMsg, Optional[Connector]], None] = None
+    on_pointer: Callable[[Union[ColorPointer, GridPointer], Optional[Connector]], None] = None
     on_acceleration: Callable[[AccMsg, Optional[Connector]], None] = None
     on_gyro: Callable[[GyroMsg, Optional[Connector]], None] = None
     on_sensor: Callable[[Union[GyroMsg, AccMsg], Optional[Connector]], None] = None
@@ -338,9 +334,12 @@ class Connector:
     def room_member_count(self) -> int:
         return len(self.room_members)
 
-    def all_broadcast_data(self, data_type: str = None) -> List[DataMsg]:
+    @property
+    def data_list(self) -> List[DataMsg]:
         '''
-        Returns the broadcasted data (from all devices)
+        Returns
+        -------
+        List[DataMsg] a list of all received messages (inlcuding messages to other device id's)
         '''
         data = flatten(self.data.values())
         data = sorted(
@@ -348,7 +347,13 @@ class Connector:
             key=lambda item: item['time_stamp'] if 'time_stamp' in item else 0,
             reverse=True
         )
-        data = filter(lambda item: 'broadcast' in item and item['broadcast'], data)
+        return list(data)
+
+    def all_broadcast_data(self, data_type: str = None) -> List[DataMsg]:
+        '''
+        Returns the broadcasted data (from all devices)
+        '''
+        data = filter(lambda item: 'broadcast' in item and item['broadcast'], self.data_list)
 
         if data_type is not None:
             data = filter(lambda pkg: 'type' in pkg and pkg['type'] == data_type, data)
@@ -384,18 +389,22 @@ class Connector:
         --------
         data_type : str the type of the data,
                     e.g. for `data_type='key'` all items of the resulting list will
-                    have a field `type` with the value `'key'`.
+                    be of type `'key'`.
                     By default all data is returned
 
-        device_id : str default is the device_id of this connector. Only data of this device_id is returned
+        device_id :
+            str default is the device_id of this connector and only data of this device_id will be returned.
+            when set to '__ALL_DEVICES__', the latest data of all devices will be returned
         '''
         if device_id is None:
             device_id = self.device_id
 
-        if device_id not in self.data:
+        if device_id == '__ALL_DEVICES__':
+            pass
+        elif device_id not in self.data:
             return []
 
-        data = self.data[device_id]
+        data = self.data_list if device_id is '__ALL_DEVICES__' else self.data[device_id]
 
         if data_type is None:
             return data
@@ -411,10 +420,12 @@ class Connector:
         --------
         data_type : str the type of the data,
                     e.g. for `data_type='key'` all items of the resulting list will
-                    have a field `type` with the value `'key'`.
+                    be of type `'key'`.
                     By default all data is returned
 
-        device_id : str default is the device_id of this connector. Only data of this device_id is returned
+        device_id : str
+            default is the device_id of this connector. Only data of this device_id is returned.
+            when set to '__ALL_DEVICES__', the latest data of all devices will be returned
 
         Returns
         -------
@@ -424,16 +435,60 @@ class Connector:
         if device_id is None:
             device_id = self.device_id
 
-        if device_id not in self.data:
+        if device_id == '__ALL_DEVICES__':
+            pass
+        elif device_id not in self.data:
             return None
 
-        data = self.data[device_id]
+        data = self.data_list if device_id is '__ALL_DEVICES__' else self.data[device_id]
 
         for pkg in reversed(data):
             if data_type is None or ('type' in pkg and pkg['type'] == data_type):
                 return pkg
 
         return None
+
+    def pointer_data(self, device_id: str = '__ALL_DEVICES__') -> Union[List[ColorPointer], List[GridPointer]]:
+        return self.all_data('pointer', device_id=device_id)
+
+    def color_pointer_data(self, device_id: str = '__ALL_DEVICES__') -> List[ColorPointer]:
+        return list(filter(lambda pkg: pkg['context'] == 'color', self.pointer_data(device_id=device_id)))
+
+    def grid_pointer_data(self, device_id: str = '__ALL_DEVICES__') -> List[GridPointer]:
+        return list(filter(lambda pkg: pkg['context'] == 'grid', self.pointer_data(device_id=device_id)))
+
+    def gyro_data(self, device_id: str = '__ALL_DEVICES__') -> List[GyroMsg]:
+        return self.all_data('gyro', device_id=device_id)
+
+    def acceleration_data(self, device_id: str = '__ALL_DEVICES__') -> List[AccMsg]:
+        return self.all_data('acceleration', device_id=device_id)
+
+    def key_data(self, device_id: str = '__ALL_DEVICES__') -> List[KeyMsg]:
+        return self.all_data('key', device_id=device_id)
+
+    def latest_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, GridPointer, None]:
+        return self.latest_data('pointer', device_id=device_id)
+
+    def latest_color_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, None]:
+        pointer_data = self.color_pointer_data(device_id=device_id)
+        if len(pointer_data) == 0:
+            return None
+        return pointer_data[len(pointer_data) - 1]
+
+    def latest_grid_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[GridPointer, None]:
+        pointer_data = self.grid_pointer_data(device_id=device_id)
+        if len(pointer_data) == 0:
+            return None
+        return pointer_data[len(pointer_data) - 1]
+
+    def latest_gyro(self, device_id: str = '__ALL_DEVICES__') -> Union[None, GyroMsg]:
+        return self.latest_data('gyro', device_id=device_id)
+
+    def latest_acceleration(self, device_id: str = '__ALL_DEVICES__') -> Union[None, AccMsg]:
+        return self.latest_data('acceleration', device_id=device_id)
+
+    def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
+        return self.latest_data('key', device_id=device_id)
 
     def set_grid(self, grid: Union[List[str], List[List[str]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         '''
@@ -691,6 +746,19 @@ if __name__ == '__main__':
     print('cnt room', connector.room_member_count)
     print('cnt clients', connector.client_count)
     print('cnt joined rooms', connector.joined_room_count)
+    print('pointer_data', connector.pointer_data())
+    print('data_list', connector.data_list)
+    print('color_pointer_data', connector.color_pointer_data())
+    print('grid_pointer_data', connector.grid_pointer_data())
+    print('gyro_data', connector.gyro_data())
+    print('acceleration_data', connector.acceleration_data())
+    print('key_data', connector.key_data())
+    print('latest_pointer', connector.latest_pointer())
+    print('latest_color_pointer', connector.latest_color_pointer())
+    print('latest_grid_pointer', connector.latest_grid_pointer())
+    print('latest_gyro', connector.latest_gyro())
+    print('latest_acceleration', connector.latest_acceleration())
+    print('latest_key', connector.latest_key())
 
     connector.sleep(2)
     connector.disconnect()

@@ -129,6 +129,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 ### Attributes
 
 - `data` data dictionary. key: `device_id`, value: List containing all data messages
+- `data_list` flattend list containing all received messages
 - `devices` all devices
 - `device` the connected device (self)
 - `server_url` the connected server. (readonly)
@@ -149,14 +150,14 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   - `data`: whatever data you want to send
   - `broadcast`: when set to true, the event is broadcasted to all currently connected devices. Defaults to `False`
   - `unicast_to`: the message is sent exclusively to the device with the specified number. Has precedence over the `boradcast` option.
-- `broadcast(data: {type: str})` broadcast's a `new_data` event. The data must contain two fields: `type` and a field equivalent to the `types` value.
+- `broadcast(data: {type: str})` broadcast's a `new_data` event. The data must contain the field `type`.
   e.g.
 
   ```py
   connector.broadcast({'type': 'grid', 'grid': ['red']})
   connector.broadcast({'type': 'color', 'color': 'red'})
   ```
-- `unicast_to(data: {'type': str}, device_nr: int)` unicast's a `new_data` event to the specified device. The data must contain two fields: `type` and a field equivalent to the `types` value.
+- `unicast_to(data: {'type': str}, device_nr: int)` unicast's a `new_data` event to the specified device. The data must contain at least the field `type`.
   e.g.
 
   ```py
@@ -176,6 +177,19 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `clean_data()` removes all gathered data
 - `join_room(device_id: str)` joins the room of another device. This means that all events from this other device will be streamed to this client too.
 - `leave_room(device_id: str)` leaves the room of this device. This means no events from this device are received.
+- `pointer_data(device_id = '__ALL_DEVICES__')`
+- `color_pointer_data(device_id = '__ALL_DEVICES__')`
+- `grid_pointer_data(device_id = '__ALL_DEVICES__')`
+- `gyro_data(device_id = '__ALL_DEVICES__')`
+- `acceleration_data(device_id = '__ALL_DEVICES__')`
+- `key_data(device_id = '__ALL_DEVICES__')`
+- `latest_pointer(device_id = '__ALL_DEVICES__')`
+- `latest_color_pointer(device_id = '__ALL_DEVICES__')`
+- `latest_grid_pointer(device_id = '__ALL_DEVICES__')`
+- `latest_gyro(device_id = '__ALL_DEVICES__')`
+- `latest_acceleration(device_id = '__ALL_DEVICES__')`
+- `latest_key(device_id = '__ALL_DEVICES__')`
+
 
 ## Example
 
