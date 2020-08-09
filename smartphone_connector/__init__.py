@@ -339,13 +339,13 @@ class Connector:
         '''
         Returns
         -------
-        List[DataMsg] a list of all received messages (inlcuding messages to other device id's)
+        List[DataMsg] a list of all received messages (inlcuding messages to other device id's), ordered by time_stamp ascending (first element = oldest)
         '''
         data = flatten(self.data.values())
         data = sorted(
             data,
             key=lambda item: item['time_stamp'] if 'time_stamp' in item else 0,
-            reverse=True
+            reverse=False
         )
         return list(data)
 
@@ -367,14 +367,8 @@ class Connector:
         DataMsg, None
             the latest data from all broadcasted data. None is returned when no package is found
         '''
-        data = flatten(self.data.values())
-        data = sorted(
-            data,
-            key=lambda item: item['time_stamp'] if 'time_stamp' in item else 0,
-            reverse=True
-        )
 
-        for pkg in reversed(data):
+        for pkg in reversed(self.data_list):
             if 'broadcast' in pkg and pkg['broadcast']:
                 if data_type is None or ('type' in pkg and pkg['type'] == data_type):
                     return pkg
@@ -470,16 +464,20 @@ class Connector:
         return self.latest_data('pointer', device_id=device_id)
 
     def latest_color_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, None]:
-        pointer_data = self.color_pointer_data(device_id=device_id)
-        if len(pointer_data) == 0:
-            return None
-        return pointer_data[len(pointer_data) - 1]
+        for pkg in reversed(self.data_list):
+            has_type = 'type' in pkg and pkg['type'] == 'pointer' and pkg['context'] == 'color'
+            is_device = device_id == '__ALL_DEVICES__' or ('device_id' in pkg and device_id == pkg['device_id'])
+
+            if has_type and is_device:
+                return pkg
 
     def latest_grid_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[GridPointer, None]:
-        pointer_data = self.grid_pointer_data(device_id=device_id)
-        if len(pointer_data) == 0:
-            return None
-        return pointer_data[len(pointer_data) - 1]
+        for pkg in reversed(self.data_list):
+            has_type = 'type' in pkg and pkg['type'] == 'pointer' and pkg['context'] == 'grid'
+            is_device = device_id == '__ALL_DEVICES__' or ('device_id' in pkg and device_id == pkg['device_id'])
+
+            if has_type and is_device:
+                return pkg
 
     def latest_gyro(self, device_id: str = '__ALL_DEVICES__') -> Union[None, GyroMsg]:
         return self.latest_data('gyro', device_id=device_id)
