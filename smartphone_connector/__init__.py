@@ -792,12 +792,9 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    # connector = Connector('https://io.lebalz.ch', 'FooBar')
-    connector = Connector('http://localhost:5000', 'FooBar')
+    connector = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time.time()
-    print('starting: ')
-    print('ok? ', connector.set_device_nr(13))
-    print('done: ', time.time() - t0)
+    print('set deivce nr: ', connector.set_device_nr(13))
 
     # draw a 3x3 checker board
     connector.set_grid([
