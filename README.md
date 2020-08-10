@@ -14,7 +14,7 @@ A simple socket io server implementing this interface can be seen on [github.com
   ```py
   {
     'device_id': str,
-    'is_controller': bool,
+    'is_client': bool,
     'device_nr': int,
     'socket_id': str
   }
@@ -24,7 +24,7 @@ A simple socket io server implementing this interface can be seen on [github.com
   [
     {
         'device_id': str,
-        'is_controller': bool,
+        'is_client': bool,
         'device_nr': int,
         'socket_id': str
     },
@@ -56,7 +56,7 @@ A simple socket io server implementing this interface can be seen on [github.com
   ```
   {
     'device_id': str,
-    'is_controller': bool,
+    'is_client': bool,
     'device_nr': int,
     'socket_id': str
   }
@@ -65,7 +65,7 @@ A simple socket io server implementing this interface can be seen on [github.com
   ```
   {
     'device_id': str,
-    'is_controller': bool,
+    'is_client': bool,
     'device_nr': int,
     'socket_id': str
   }
@@ -189,6 +189,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `latest_gyro(device_id = '__ALL_DEVICES__')`
 - `latest_acceleration(device_id = '__ALL_DEVICES__')`
 - `latest_key(device_id = '__ALL_DEVICES__')`
+- `set_device_nr(new_device_nr: int, device_id: str = None, current_device_nr: int = None, max_wait: float = 5)`
 
 
 ## Example

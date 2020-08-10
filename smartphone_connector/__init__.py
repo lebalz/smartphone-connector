@@ -6,7 +6,7 @@ import datetime
 import math
 import random
 from inspect import signature
-from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional
+from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional, TypeVar
 
 
 DEVICE = 'device'
@@ -23,6 +23,8 @@ LEAVE_ROOM = 'leave_room'
 ROOM_LEFT = 'room_left'
 ROOM_JOINED = 'room_joined'
 ERROR_MSG = 'error_msg'
+INFORMATION_MSG = 'information_msg'
+SET_NEW_DEVICE_NR = 'set_new_device_nr'
 
 EVENTS = Literal[
     DEVICE,
@@ -38,7 +40,9 @@ EVENTS = Literal[
     LEAVE_ROOM,
     ROOM_LEFT,
     ROOM_JOINED,
-    ERROR_MSG
+    ERROR_MSG,
+    INFORMATION_MSG,
+    SET_NEW_DEVICE_NR
 ]
 
 
@@ -78,11 +82,24 @@ class DictX(dict):
         return '<DictX ' + dict.__repr__(self) + '>'
 
 
+class TimeStampedMsg(TypedDict):
+    time_stamp: int
+
+
+class BaseMsg(TimeStampedMsg):
+    device_id: str
+    device_nr: int
+
+
 class Device(TypedDict):
     device_id: str
-    is_controller: bool
+    is_client: bool
     device_nr: int
     socket_id: str
+
+
+class DevicesMsg(TimeStampedMsg):
+    devices: List[Device]
 
 
 class DeviceJoinedMsg(TypedDict):
@@ -93,15 +110,6 @@ class DeviceJoinedMsg(TypedDict):
 class DeviceLeftMsg(TypedDict):
     room: str
     device: Device
-
-
-class TimeStampedMsg(TypedDict):
-    time_stamp: int
-
-
-class BaseMsg(TimeStampedMsg):
-    device_id: str
-    device_nr: int
 
 
 class BaseSendMsg(TypedDict):
@@ -168,6 +176,11 @@ class ErrorMsg(TypedDict):
     err: Union[str, dict]
 
 
+class InformationMsg(TimeStampedMsg):
+    message: str
+    action: TypedDict
+
+
 def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
@@ -204,13 +217,28 @@ def random_color() -> str:
     return f'rgb({r}, {g}, {b})'
 
 
+def try_or(func, default=None, expected_exc=(Exception,)):
+    try:
+        return func()
+    except expected_exc:
+        return default
+
+
+T = TypeVar('T')
+
+
+def first(filter_func: Callable[[T], bool], list_: List[T]) -> T:
+    return next((item for item in list_ if try_or(lambda: filter_func(item), False)), None)
+
+
 class Connector:
     __start_time_ns: int = time.time_ns()
     data: Dict[str, List[BaseMsg]] = DictX({})
-    devices: List[Device] = []
+    __devices: DevicesMsg = {'time_stamp': time.time(), 'devices': []}
     device: Device = DictX({})
     __server_url: str
     __device_id: str
+    __info_messages: List[InformationMsg] = []
     sio: socketio.Client = socketio.Client()
     room_members: List[Device] = []
     joined_rooms: List[str]
@@ -233,6 +261,10 @@ class Connector:
     on_room_left: Callable[[DeviceLeftMsg, Optional[Connector]], None] = None
 
     @property
+    def devices(self) -> List[Device]:
+        return self.__devices['devices']
+
+    @property
     def server_url(self):
         return self.__server_url
 
@@ -250,6 +282,7 @@ class Connector:
         self.sio.on(DEVICE, self.__on_device)
         self.sio.on(DEVICES, self.__on_devices)
         self.sio.on(ERROR_MSG, self.__on_error)
+        self.sio.on(INFORMATION_MSG, self.__on_information)
         self.sio.on(ROOM_JOINED, self.__on_room_joined)
         self.sio.on(ROOM_LEFT, self.__on_room_left)
         self.joined_rooms = [device_id]
@@ -257,7 +290,7 @@ class Connector:
 
     @property
     def client_device(self):
-        return next((device for device in self.devices if device['is_controller'] and device['device_id'] == self.device_id), None)
+        return first(lambda device: device['is_client'] and device['device_id'] == self.device_id, self.devices)
 
     def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False, unicast_to: int = None):
         '''
@@ -317,7 +350,7 @@ class Connector:
 
     @property
     def client_devices(self) -> List[Device]:
-        return list(filter(lambda device: device['is_controller'], self.devices))
+        return list(filter(lambda device: device['is_client'], self.devices))
 
     @property
     def client_count(self) -> int:
@@ -398,7 +431,7 @@ class Connector:
         elif device_id not in self.data:
             return []
 
-        data = self.data_list if device_id is '__ALL_DEVICES__' else self.data[device_id]
+        data = self.data_list if device_id == '__ALL_DEVICES__' else self.data[device_id]
 
         if data_type is None:
             return data
@@ -434,7 +467,7 @@ class Connector:
         elif device_id not in self.data:
             return None
 
-        data = self.data_list if device_id is '__ALL_DEVICES__' else self.data[device_id]
+        data = self.data_list if device_id == '__ALL_DEVICES__' else self.data[device_id]
 
         for pkg in reversed(data):
             if data_type is None or ('type' in pkg and pkg['type'] == data_type):
@@ -559,6 +592,58 @@ class Connector:
             unicast_to=unicast_to
         )
 
+    def set_device_nr(self, new_device_nr: int, device_id: str = None, current_device_nr: int = None, max_wait: float = 5) -> bool:
+        '''
+        Parameters
+        ----------
+        new_device_nr : int
+            the new device number that is assigned to according device
+
+        Optional
+        --------
+        device_id : str (default: this.device_id)
+            assigns the new number to the first client device with the (currently) smallest device_nr
+
+        current_device_nr : int
+            sets the new device nr on this device.
+            When set, `device_id` has no effect.
+
+        max_wait : float (default: 5)
+            number of seconds to retry assignment
+
+        Return
+        ------
+        bool wheter the assignment was succesfull or not.
+        '''
+        ts = time.time()
+        self.__info_messages.clear()
+        self.emit(
+            SET_NEW_DEVICE_NR,
+            {
+                'time_stamp': ts,
+                'new_device_nr': new_device_nr,
+                'device_id': device_id or self.device_id,
+                'current_device_nr': current_device_nr
+            }
+        )
+        result_msg = None
+        while result_msg is None and (time.time() - ts) < max_wait:
+            info_cnt = len(self.__info_messages)
+
+            if info_cnt > 0 and self.__info_messages[info_cnt - 1].action['time_stamp'] == ts:
+                result_msg = self.__info_messages[info_cnt - 1]
+            else:
+                self.sleep(0.1)
+
+        if result_msg is not None and result_msg['message'] == 'Success':
+            return True
+
+        time_left = max_wait - (time.time() - ts)
+        if time_left > 0 and 'should_retry' in result_msg and result_msg['should_retry']:
+            return self.set_device_nr(new_device_nr, device_id=device_id, current_device_nr=current_device_nr, max_wait=time_left)
+
+        return False
+
     def clean_data(self):
         '''
         removes all gathered data
@@ -676,6 +761,9 @@ class Connector:
 
         self.__callback('on_error', err)
 
+    def __on_information(self, data: InformationMsg):
+        self.__info_messages.append(DictX(data))
+
     def __on_device(self, device: Device):
         device = DictX(device)
         if 'device_id' not in device or 'socket_id' not in device:
@@ -683,25 +771,33 @@ class Connector:
         if self.sio.sid == device['socket_id']:
             self.device = device
             self.emit(GET_ALL_DATA)
-            if device not in self.room_members:
-                self.room_members.append(device)
+            old_device_instance = first(lambda d: d['socket_id'] == device['socket_id'], self.room_members)
+            if old_device_instance:
+                self.room_members.remove(old_device_instance)
+            self.room_members.append(device)
             self.__callback('on_device', device)
 
-    def __on_devices(self, devices: List[Device]):
-        devices = list(map(lambda device: DictX(device), devices))
+    def __on_devices(self, data: DevicesMsg):
+        data = DictX(data)
+        data['devices'] = list(map(lambda device: DictX(device), data['devices']))
         had_client_device = self.client_device is not None
-        self.devices = devices
+        self.__devices = data
         if self.on_client_device:
             has_client_device = self.client_device is not None
             if (had_client_device and not has_client_device) or (has_client_device and not had_client_device):
                 self.__callback('on_client_device', self.client_device)
 
-        self.__callback('on_devices', devices)
+        self.__callback('on_devices', self.devices)
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    connector = Connector('https://io.lebalz.ch', 'FooBar')
+    # connector = Connector('https://io.lebalz.ch', 'FooBar')
+    connector = Connector('http://localhost:5000', 'FooBar')
+    t0 = time.time()
+    print('starting: ')
+    print('ok? ', connector.set_device_nr(13))
+    print('done: ', time.time() - t0)
 
     # draw a 3x3 checker board
     connector.set_grid([
