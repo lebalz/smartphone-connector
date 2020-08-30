@@ -49,6 +49,13 @@ EVENTS = Union[
 ]
 
 
+def time_s() -> float:
+    '''
+    returns the current time in seconds since epoche
+    '''
+    return (time.time_ns() // 1000000) / 1000.0
+
+
 class DictX(dict):
     '''
     dict with the ability to access keys over dot notation,
@@ -244,7 +251,7 @@ def first(filter_func: Callable[[T], bool], list_: List[T]) -> T:
 
 
 class Connector:
-    __start_time_ns: int = time.time_ns()
+    __start_time_ns: int = time_s()
     data: Dict[str, List[BaseMsg]] = DictX({})
     __devices: DevicesMsg = {'time_stamp': time.time(), 'devices': []}
     device: Device = DictX({})
@@ -326,7 +333,7 @@ class Connector:
             the device number to which this message is sent exclusively. When set, boradcast has no effect. 
         '''
         if 'time_stamp' not in data:
-            data['time_stamp'] = time.time_ns() // 1000000
+            data['time_stamp'] = time_s()
 
         if 'device_id' not in data:
             data['device_id'] = self.device_id
@@ -390,7 +397,7 @@ class Connector:
         unicast_to : int
             the device number to which this message is sent exclusively. When set, boradcast has no effect.
         '''
-        ts = time.time_ns() // 1000000
+        ts = time_s()
 
         self.emit(
             ADD_NEW_DATA,
@@ -435,7 +442,7 @@ class Connector:
 
             When the user canceled the prompt, None is returned 
         '''
-        ts = time.time_ns() // 1000000
+        ts = time_s()
 
         if input_type == 'datetime':
             input_type = 'datetime-local'
@@ -931,8 +938,8 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    # connector = Connector('http://localhost:5000', 'FooBar')
-    connector = Connector('https://io.lebalz.ch', 'FooBar')
+    connector = Connector('http://localhost:5000', 'FooBar')
+    # connector = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time.time()
     # print('set deivce nr: ', connector.set_device_nr(13))
 
