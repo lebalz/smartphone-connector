@@ -150,6 +150,16 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   - `data`: whatever data you want to send
   - `broadcast`: when set to true, the event is broadcasted to all currently connected devices. Defaults to `False`
   - `unicast_to`: the message is sent exclusively to the device with the specified number. Has precedence over the `boradcast` option.
+- `send(data={}, broadcast=False, unicast_to=None)`
+  - `data`: whatever data you want to send
+  - `broadcast`: when set to true, the event is broadcasted to all currently connected devices. Defaults to `False`
+  - `unicast_to`: the message is sent exclusively to the device with the specified number. Has precedence over the `boradcast` option.
+- `prompt(question, alert=False, input_type: 'text' | 'number' | 'datetime' | 'date'| 'time' = 'text')` prompts the user with the given question (str). The input type is used to set the correct html type of the input field.
+- `notify(message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None)`
+  - `message` the notification message
+  - `display_time` time in seconds to show the notification
+  - `alert` wheter the user must confirm the notification. If yes, this is a blocking call.
+- `alert(self, message: str, unicast_to: int = None)` alert the user and wait until he confirms the message.
 - `broadcast(data: {type: str})` broadcast's a `new_data` event. The data must contain the field `type`.
   e.g.
 
@@ -157,6 +167,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   connector.broadcast({'type': 'grid', 'grid': ['red']})
   connector.broadcast({'type': 'color', 'color': 'red'})
   ```
+
 - `unicast_to(data: {'type': str}, device_nr: int)` unicast's a `new_data` event to the specified device. The data must contain at least the field `type`.
   e.g.
 
@@ -164,6 +175,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   connector.unicast({'type': 'grid', 'grid': ['red']}, 2)
   connector.unicast({'type': 'color', 'color': 'red'}, 1)
   ```
+
 - `clear_data()` clears all data on the server related to this `device_id``
 - `all_broadcast_data(data_type: str = None) -> List[DataMsg]` returns all broadcasted data of the given type. When no type is provided, all broadcasted data is returned.
 - `latest_broadcast_data(data_type: str = None) -> DataMsg | None` returns the latest received data of the given type. None is returned when no data is present.
@@ -190,7 +202,6 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `latest_acceleration(device_id = '__ALL_DEVICES__')`
 - `latest_key(device_id = '__ALL_DEVICES__')`
 - `set_device_nr(new_device_nr: int, device_id: str = None, current_device_nr: int = None, max_wait: float = 5)`
-
 
 ## Example
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 import socketio
 import logging
 import time
-import datetime
+from datetime import datetime
 import math
 import random
 from inspect import signature
@@ -26,7 +26,10 @@ ERROR_MSG = 'error_msg'
 INFORMATION_MSG = 'information_msg'
 SET_NEW_DEVICE_NR = 'set_new_device_nr'
 
-EVENTS = Literal[
+INPUT_PROMPT = 'input_prompt'
+NOTIFICATION = 'notification'
+
+EVENTS = Union[
     DEVICE,
     DEVICES,
     ALL_DATA,
@@ -181,22 +184,31 @@ class InformationMsg(TimeStampedMsg):
     action: TypedDict
 
 
+class InputResponseMsg(DataMsg):
+    type: Literal['input_response']
+    response: str
+
+
+class AlertConfirmMsg(DataMsg):
+    type: Literal['alert_confirm']
+
+
 def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
 
-def to_datetime(data: TimeStampedMsg) -> datetime.datetime:
+def to_datetime(data: TimeStampedMsg) -> datetime:
     '''
     extracts the datetime from a data package. if the field `time_stamp` is not present,
     the current datetime will be returned
     '''
     if 'time_stamp' not in data:
-        return datetime.datetime.now()
+        return datetime.now()
     ts = data['time_stamp']
     # convert time_stamp from ms to seconds
     if ts > 1000000000000:
         ts = ts / 1000.0
-    return datetime.datetime.fromtimestamp(ts)
+    return datetime.fromtimestamp(ts)
 
 
 def random_color() -> str:
@@ -259,6 +271,9 @@ class Connector:
     on_error: Callable[[ErrorMsg, Optional[Connector]], None] = None
     on_room_joined: Callable[[DeviceJoinedMsg, Optional[Connector]], None] = None
     on_room_left: Callable[[DeviceLeftMsg, Optional[Connector]], None] = None
+
+    __responses: List[InputResponseMsg] = []
+    __alerts: List[AlertConfirmMsg] = []
 
     @property
     def devices(self) -> List[Device]:
@@ -325,6 +340,126 @@ class Connector:
             data['unicast_to'] = unicast_to
 
         self.sio.emit(event, data)
+
+    def send(self, data: DataMsg, broadcast: bool = False, unicast_to: int = None):
+        '''
+        Emits a new_data event
+        Parameters
+        ----------
+        data : DataMsg
+            the data to send, fields 'time_stamp' and 'device_id' are added when they are not present
+
+        Optional
+        --------
+        broadcast : bool
+            wheter to send this message to all connected devices
+
+        unicast_to : int
+            the device number to which this message is sent exclusively. When set, boradcast has no effect.
+        '''
+        self.emit(ADD_NEW_DATA, data=data, broadcast=broadcast, unicast_to=unicast_to)
+
+    def alert(self, message: str, unicast_to: int = None):
+        '''
+        alerts the user by an alert which the user must confirm. This is a blocking call, the 
+        script will not proceed until the user confirmed the message.
+        Parameters
+        ----------
+        message : str
+            notification message to show
+        '''
+        self.notify(message=message, alert=True, unicast_to=unicast_to)
+
+    def notify(self, message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None):
+        '''
+        Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately. 
+        Parameters
+        ----------
+        message : str
+            the notification message
+        display_time : int
+            time in seconds to show the notification, -1 show until dismiss, ignored when alert is True
+        alert : bool
+            user must confirm message, blocking call
+
+        Optional
+        --------
+        broadcast : bool
+            wheter to send this message to all connected devices
+
+        unicast_to : int
+            the device number to which this message is sent exclusively. When set, boradcast has no effect.
+        '''
+        ts = time.time_ns() // 1000000
+
+        self.emit(
+            ADD_NEW_DATA,
+            data={
+                'type': NOTIFICATION,
+                'time_stamp': ts,
+                'message': message,
+                'alert': alert,
+                'time': display_time * 1000
+            },
+            broadcast=broadcast,
+            unicast_to=unicast_to
+        )
+        if not alert:
+            return
+        alert_msg = False
+        while not alert_msg:
+            self.sleep(0.01)
+            alert_msg = next((res for res in self.__alerts if res['time_stamp'] == ts), False)
+        self.__alerts.remove(alert_msg)
+
+    def prompt(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time'] = 'text', unicast_to: int = None) -> Union[str, None]:
+        '''
+        Parameters
+        ----------
+        question : str
+            what should the user be prompted for?
+
+        input_type : 'text', 'number', 'datetime', 'date', 'time'
+            to use the correct html input type
+
+        Optional
+        --------
+        unicast_to : int
+            the device number to which this message is sent exclusively.
+
+        Return
+        ------
+        str, int, float, datetime, date, dtime, None
+
+            depending on what you specify at return_type. When the response can not be casted, the raw value will be returned.
+
+            When the user canceled the prompt, None is returned 
+        '''
+        ts = time.time_ns() // 1000000
+
+        if input_type == 'datetime':
+            input_type = 'datetime-local'
+
+        self.emit(
+            ADD_NEW_DATA,
+            {
+                'type': INPUT_PROMPT,
+                'question': question,
+                'input_type': input_type,
+                'time_stamp': ts
+            },
+            unicast_to=unicast_to
+        )
+        response = False
+
+        while not response:
+            self.sleep(0.01)
+            response = next((res for res in self.__responses if res['time_stamp'] == ts), False)
+
+        self.__responses.remove(response)
+
+        if 'response' in response:
+            return response['response']
 
     def broadcast(self, data: DataMsg):
         self.emit(ADD_NEW_DATA, data=data, broadcast=True)
@@ -720,6 +855,10 @@ class Connector:
                 self.__callback('on_gyro', data)
             if data['type'] == 'pointer':
                 self.__callback('on_pointer', data)
+            if data['type'] == 'input_response':
+                self.__responses.append(data)
+            if data['type'] == 'alert_confirm':
+                self.__alerts.append(data)
 
         if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
             self.__callback('on_broadcast_data', data)
@@ -792,9 +931,10 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+    # connector = Connector('http://localhost:5000', 'FooBar')
     connector = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time.time()
-    print('set deivce nr: ', connector.set_device_nr(13))
+    # print('set deivce nr: ', connector.set_device_nr(13))
 
     # draw a 3x3 checker board
     connector.set_grid([
@@ -818,7 +958,9 @@ if __name__ == '__main__':
     connector.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
     connector.on_error = lambda data: logging.info(f'on_error: {data}')
 
-    time.sleep(1)
+    time.sleep(2)
+    response = connector.prompt('Name? ')
+    connector.notify('notify hiii', alert=True)
     print(connector.joined_room_count)
     print(connector.client_count)
     print(connector.device_count)
