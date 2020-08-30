@@ -377,6 +377,28 @@ class Connector:
         '''
         self.notify(message=message, alert=True, unicast_to=unicast_to)
 
+    def print(self, message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None):
+        '''
+        Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately. 
+        Parameters
+        ----------
+        message : str
+            the notification message
+        display_time : int
+            time in seconds to show the notification, -1 show until dismiss, ignored when alert is True
+        alert : bool
+            user must confirm message, blocking call
+
+        Optional
+        --------
+        broadcast : bool
+            wheter to send this message to all connected devices
+
+        unicast_to : int
+            the device number to which this message is sent exclusively. When set, boradcast has no effect.
+        '''
+        return self.notify(message, display_time=display_time, alert=alert, broadcast=broadcast, unicast_to=unicast_to)
+
     def notify(self, message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None):
         '''
         Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately. 
@@ -418,6 +440,31 @@ class Connector:
             self.sleep(0.01)
             alert_msg = next((res for res in self.__alerts if res['time_stamp'] == ts), False)
         self.__alerts.remove(alert_msg)
+
+    def input(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time'] = 'text', unicast_to: int = None) -> Union[str, None]:
+        '''
+        Parameters
+        ----------
+        question : str
+            what should the user be prompted for?
+
+        input_type : 'text', 'number', 'datetime', 'date', 'time'
+            to use the correct html input type
+
+        Optional
+        --------
+        unicast_to : int
+            the device number to which this message is sent exclusively.
+
+        Return
+        ------
+        str, int, float, datetime, date, dtime, None
+
+            depending on what you specify at return_type. When the response can not be casted, the raw value will be returned.
+
+            When the user canceled the prompt, None is returned
+        '''
+        return self.prompt(question, input_type=input_type, unicast_to=unicast_to)
 
     def prompt(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time'] = 'text', unicast_to: int = None) -> Union[str, None]:
         '''
@@ -938,8 +985,8 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    connector = Connector('http://localhost:5000', 'FooBar')
-    # connector = Connector('https://io.lebalz.ch', 'FooBar')
+    # connector = Connector('http://localhost:5000', 'FooBar')
+    connector = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time.time()
     # print('set deivce nr: ', connector.set_device_nr(13))
 
@@ -966,7 +1013,8 @@ if __name__ == '__main__':
     connector.on_error = lambda data: logging.info(f'on_error: {data}')
 
     time.sleep(2)
-    response = connector.prompt('Name? ')
+    response = connector.input('Name? ')
+    connector.print(f'Name: {response} ')
     connector.notify('notify hiii', alert=True)
     print(connector.joined_room_count)
     print(connector.client_count)
