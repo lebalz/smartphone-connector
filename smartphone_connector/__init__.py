@@ -9,6 +9,8 @@ from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
 
 
+Any = object()
+
 DEVICE = 'device'
 DEVICES = 'devices'
 ALL_DATA = 'all_data'
@@ -263,21 +265,22 @@ class Connector:
     joined_rooms: List[str]
 
     # callback functions
-    on_key: Callable[[KeyMsg, Optional[Connector]], None] = None
-    on_pointer: Callable[[Union[ColorPointer, GridPointer], Optional[Connector]], None] = None
-    on_acceleration: Callable[[AccMsg, Optional[Connector]], None] = None
-    on_gyro: Callable[[GyroMsg, Optional[Connector]], None] = None
-    on_sensor: Callable[[Union[GyroMsg, AccMsg], Optional[Connector]], None] = None
 
-    on_data: Callable[[DataMsg, Optional[Connector]], None] = None
-    on_broadcast_data: Callable[[DataMsg, Optional[Connector]], None] = None
-    on_all_data: Callable[[List[DataMsg], Optional[Connector]], None] = None
-    on_device: Callable[[Device, Optional[Connector]], None] = None
-    on_client_device: Callable[[Union[Device, None], Optional[Connector]], None] = None
-    on_devices: Callable[[List[Device], Optional[Connector]], None] = None
-    on_error: Callable[[ErrorMsg, Optional[Connector]], None] = None
-    on_room_joined: Callable[[DeviceJoinedMsg, Optional[Connector]], None] = None
-    on_room_left: Callable[[DeviceLeftMsg, Optional[Connector]], None] = None
+    on_key: Callable[[Any, KeyMsg, Optional[Connector]], None] = None
+    on_pointer: Callable[[Any, Union[ColorPointer, GridPointer], Optional[Connector]], None] = None
+    on_acceleration: Callable[[Any, AccMsg, Optional[Connector]], None] = None
+    on_gyro: Callable[[Any, GyroMsg, Optional[Connector]], None] = None
+    on_sensor: Callable[[Any, Union[GyroMsg, AccMsg], Optional[Connector]], None] = None
+
+    on_data: Callable[[Any, DataMsg, Optional[Connector]], None] = None
+    on_broadcast_data: Callable[[Any, DataMsg, Optional[Connector]], None] = None
+    on_all_data: Callable[[Any, List[DataMsg], Optional[Connector]], None] = None
+    on_device: Callable[[Any, Device, Optional[Connector]], None] = None
+    on_client_device: Callable[[Any, Union[Device, None], Optional[Connector]], None] = None
+    on_devices: Callable[[Any, List[Device], Optional[Connector]], None] = None
+    on_error: Callable[[Any, ErrorMsg, Optional[Connector]], None] = None
+    on_room_joined: Callable[[Any, DeviceJoinedMsg, Optional[Connector]], None] = None
+    on_room_left: Callable[[Any, DeviceLeftMsg, Optional[Connector]], None] = None
 
     __responses: List[InputResponseMsg] = []
     __alerts: List[AlertConfirmMsg] = []
