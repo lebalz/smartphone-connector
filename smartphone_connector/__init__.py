@@ -6,7 +6,7 @@ from datetime import datetime
 import math
 import random
 from inspect import signature
-from typing import overload, Union, TypedDict, Literal, Callable, List, Dict, Optional, TypeVar
+from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
 
 
 DEVICE = 'device'
@@ -92,7 +92,7 @@ class DictX(dict):
         return '<DictX ' + dict.__repr__(self) + '>'
 
 
-class TimeStampedMsg(TypedDict):
+class TimeStampedMsg(DictX):
     time_stamp: int
 
 
@@ -101,7 +101,7 @@ class BaseMsg(TimeStampedMsg):
     device_nr: int
 
 
-class Device(TypedDict):
+class Device(DictX):
     device_id: str
     is_client: bool
     device_nr: int
@@ -112,17 +112,17 @@ class DevicesMsg(TimeStampedMsg):
     devices: List[Device]
 
 
-class DeviceJoinedMsg(TypedDict):
+class DeviceJoinedMsg(DictX):
     room: str
     device: Device
 
 
-class DeviceLeftMsg(TypedDict):
+class DeviceLeftMsg(DictX):
     room: str
     device: Device
 
 
-class BaseSendMsg(TypedDict):
+class BaseSendMsg(DictX):
     device_id: Optional[str]
     device_nr: Optional[int]
     time_stamp: Optional[int]
@@ -137,7 +137,7 @@ class KeyMsg(DataMsg):
     key: Literal['up', 'right', 'down', 'left', 'home']
 
 
-class PointerData(TypedDict):
+class PointerData(DictX):
     context: Literal['color', 'grid']
 
 
@@ -158,14 +158,14 @@ class GridPointer(PointerData):
     color: str
 
 
-class Acc(TypedDict):
+class Acc(DictX):
     x: float
     y: float
     z: float
     interval: float
 
 
-class Gyro(TypedDict):
+class Gyro(DictX):
     alpha: float
     beta: float
     gamma: float
@@ -180,7 +180,7 @@ class GyroMsg(Gyro):
     type: Literal['gyro']
 
 
-class ErrorMsg(TypedDict):
+class ErrorMsg(DictX):
     type: EVENTS
     msg: str
     err: Union[str, dict]
@@ -188,7 +188,7 @@ class ErrorMsg(TypedDict):
 
 class InformationMsg(TimeStampedMsg):
     message: str
-    action: TypedDict
+    action: BaseSendMsg
 
 
 class InputResponseMsg(DataMsg):
