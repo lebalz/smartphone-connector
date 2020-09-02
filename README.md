@@ -111,9 +111,9 @@ when a function is assigned to one of the following props, this function will be
 e.g.
 
 ```py
-connector = Connector('https://io.lebalz.ch')
-connector.on_key = lambda data: print('on key', data)
-connector.on_key = lambda data, conn: print('on key', data, 'data pakages', len(conn.all_data()))
+smartphone = Connector('https://io.lebalz.ch')
+smartphone.on_key = lambda data: print('on key', data)
+smartphone.on_key = lambda data, conn: print('on key', data, 'data pakages', len(conn.all_data()))
 ```
 
 will print each received key
@@ -169,16 +169,16 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   e.g.
 
   ```py
-  connector.broadcast({'type': 'grid', 'grid': ['red']})
-  connector.broadcast({'type': 'color', 'color': 'red'})
+  smartphone.broadcast({'type': 'grid', 'grid': ['red']})
+  smartphone.broadcast({'type': 'color', 'color': 'red'})
   ```
 
 - `unicast_to(data: {'type': str}, device_nr: int)` unicast's a `new_data` event to the specified device. The data must contain at least the field `type`.
   e.g.
 
   ```py
-  connector.unicast({'type': 'grid', 'grid': ['red']}, 2)
-  connector.unicast({'type': 'color', 'color': 'red'}, 1)
+  smartphone.unicast({'type': 'grid', 'grid': ['red']}, 2)
+  smartphone.unicast({'type': 'color', 'color': 'red'}, 1)
   ```
 
 - `clear_data()` clears all data on the server related to this `device_id``
@@ -212,10 +212,10 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 
 ```py
 from smartphone_connecter import Connector
-connector = Connector('https://io.lebalz.ch', 'FooBar')
+smartphone = Connector('https://io.lebalz.ch', 'FooBar')
 
 # draw a 3x3 checker board
-connector.set_grid([
+smartphone.set_grid([
     ['black','white','black'],
     ['white','black','white'],
     ['black','white','black']

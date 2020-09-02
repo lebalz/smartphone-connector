@@ -444,7 +444,7 @@ class Connector:
             alert_msg = next((res for res in self.__alerts if res['time_stamp'] == ts), False)
         self.__alerts.remove(alert_msg)
 
-    def input(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time'] = 'text', unicast_to: int = None) -> Union[str, None]:
+    def input(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time', 'select'] = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
         '''
         Parameters
         ----------
@@ -456,6 +456,8 @@ class Connector:
 
         Optional
         --------
+        options: List[str]
+            required when input_type is 'select' - a list with the selection-options
         unicast_to : int
             the device number to which this message is sent exclusively.
 
@@ -467,9 +469,9 @@ class Connector:
 
             When the user canceled the prompt, None is returned
         '''
-        return self.prompt(question, input_type=input_type, unicast_to=unicast_to)
+        return self.prompt(question, input_type=input_type, options=options, unicast_to=unicast_to)
 
-    def prompt(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time'] = 'text', unicast_to: int = None) -> Union[str, None]:
+    def prompt(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time'] = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
         '''
         Parameters
         ----------
@@ -481,6 +483,8 @@ class Connector:
 
         Optional
         --------
+        options: List[str]
+            required when input_type is 'select' - a list with the selection-options
         unicast_to : int
             the device number to which this message is sent exclusively.
 
@@ -503,6 +507,7 @@ class Connector:
                 'type': INPUT_PROMPT,
                 'question': question,
                 'input_type': input_type,
+                'options': options,
                 'time_stamp': ts
             },
             unicast_to=unicast_to
@@ -988,68 +993,69 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    # connector = Connector('http://localhost:5000', 'FooBar')
-    connector = Connector('https://io.lebalz.ch', 'FooBar')
+    smartphone = Connector('http://localhost:5000', 'FooBar')
+    # smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time.time()
-    # print('set deivce nr: ', connector.set_device_nr(13))
+    response = smartphone.input("Hallo", input_type="select", options=["+", ":", "-", "*"])
+    # print('set deivce nr: ', smartphone.set_device_nr(13))
 
     # draw a 3x3 checker board
-    connector.set_grid([
+    smartphone.set_grid([
         ['black', 'white', 'black'],
         ['white', 'black', 'white'],
         ['black', 'white', 'black'],
     ], broadcast=True)
 
-    connector.on_key = lambda data, c: logging.info(f'on_key: {data}, len: {len(c.all_data())}')
-    connector.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
-    connector.on_data = lambda data: logging.info(f'on_data: {data}')
-    connector.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
-    connector.on_device = lambda data: logging.info(f'on_device: {data}')
-    connector.on_devices = lambda data: logging.info(f'on_devices: {data}')
-    connector.on_acceleration = lambda data: logging.info(f'on_acceleration: {data}')
-    connector.on_gyro = lambda data: logging.info(f'on_gyro: {data}')
-    connector.on_sensor = lambda data: logging.info(f'on_sensor: {data}')
-    connector.on_room_joined = lambda data: logging.info(f'on_room_joined: {data}')
-    connector.on_room_left = lambda data: logging.info(f'on_room_left: {data}')
-    connector.on_pointer = lambda data: logging.info(f'on_pointer: {data}')
-    connector.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
-    connector.on_error = lambda data: logging.info(f'on_error: {data}')
+    smartphone.on_key = lambda data, c: logging.info(f'on_key: {data}, len: {len(c.all_data())}')
+    smartphone.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
+    smartphone.on_data = lambda data: logging.info(f'on_data: {data}')
+    smartphone.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
+    smartphone.on_device = lambda data: logging.info(f'on_device: {data}')
+    smartphone.on_devices = lambda data: logging.info(f'on_devices: {data}')
+    smartphone.on_acceleration = lambda data: logging.info(f'on_acceleration: {data}')
+    smartphone.on_gyro = lambda data: logging.info(f'on_gyro: {data}')
+    smartphone.on_sensor = lambda data: logging.info(f'on_sensor: {data}')
+    smartphone.on_room_joined = lambda data: logging.info(f'on_room_joined: {data}')
+    smartphone.on_room_left = lambda data: logging.info(f'on_room_left: {data}')
+    smartphone.on_pointer = lambda data: logging.info(f'on_pointer: {data}')
+    smartphone.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
+    smartphone.on_error = lambda data: logging.info(f'on_error: {data}')
 
     time.sleep(2)
-    response = connector.input('Name? ')
-    connector.print(f'Name: {response} ')
-    connector.notify('notify hiii', alert=True)
-    print(connector.joined_room_count)
-    print(connector.client_count)
-    print(connector.device_count)
+    response = smartphone.input('Name? ')
+    smartphone.print(f'Name: {response} ')
+    smartphone.notify('notify hiii', alert=True)
+    print(smartphone.joined_room_count)
+    print(smartphone.client_count)
+    print(smartphone.device_count)
 
     print('\n')
-    print('data: ', connector.all_data())
-    print('data: ', connector.all_data(data_type='grid'))
-    print('latest data: ', connector.latest_data())
-    print('time_stamp', to_datetime(connector.latest_data()))
-    print('latest data: ', connector.latest_data(data_type='key'))
-    print('broadcast data: ', connector.all_broadcast_data())
-    print('broadcast data: ', connector.all_broadcast_data(data_type='grid'))
-    print('latest broadcast data: ', connector.latest_broadcast_data())
-    print('latest broadcast data: ', connector.latest_broadcast_data(data_type='key'))
-    print('cnt device', connector.device_count)
-    print('cnt room', connector.room_member_count)
-    print('cnt clients', connector.client_count)
-    print('cnt joined rooms', connector.joined_room_count)
-    print('pointer_data', connector.pointer_data())
-    print('data_list', connector.data_list)
-    print('color_pointer_data', connector.color_pointer_data())
-    print('grid_pointer_data', connector.grid_pointer_data())
-    print('gyro_data', connector.gyro_data())
-    print('acceleration_data', connector.acceleration_data())
-    print('key_data', connector.key_data())
-    print('latest_pointer', connector.latest_pointer())
-    print('latest_color_pointer', connector.latest_color_pointer())
-    print('latest_grid_pointer', connector.latest_grid_pointer())
-    print('latest_gyro', connector.latest_gyro())
-    print('latest_acceleration', connector.latest_acceleration())
-    print('latest_key', connector.latest_key())
+    print('data: ', smartphone.all_data())
+    print('data: ', smartphone.all_data(data_type='grid'))
+    print('latest data: ', smartphone.latest_data())
+    print('time_stamp', to_datetime(smartphone.latest_data()))
+    print('latest data: ', smartphone.latest_data(data_type='key'))
+    print('broadcast data: ', smartphone.all_broadcast_data())
+    print('broadcast data: ', smartphone.all_broadcast_data(data_type='grid'))
+    print('latest broadcast data: ', smartphone.latest_broadcast_data())
+    print('latest broadcast data: ', smartphone.latest_broadcast_data(data_type='key'))
+    print('cnt device', smartphone.device_count)
+    print('cnt room', smartphone.room_member_count)
+    print('cnt clients', smartphone.client_count)
+    print('cnt joined rooms', smartphone.joined_room_count)
+    print('pointer_data', smartphone.pointer_data())
+    print('data_list', smartphone.data_list)
+    print('color_pointer_data', smartphone.color_pointer_data())
+    print('grid_pointer_data', smartphone.grid_pointer_data())
+    print('gyro_data', smartphone.gyro_data())
+    print('acceleration_data', smartphone.acceleration_data())
+    print('key_data', smartphone.key_data())
+    print('latest_pointer', smartphone.latest_pointer())
+    print('latest_color_pointer', smartphone.latest_color_pointer())
+    print('latest_grid_pointer', smartphone.latest_grid_pointer())
+    print('latest_gyro', smartphone.latest_gyro())
+    print('latest_acceleration', smartphone.latest_acceleration())
+    print('latest_key', smartphone.latest_key())
 
-    connector.sleep(2)
-    connector.disconnect()
+    smartphone.sleep(2)
+    smartphone.disconnect()
