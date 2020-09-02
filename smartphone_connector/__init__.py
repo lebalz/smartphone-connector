@@ -253,7 +253,8 @@ def first(filter_func: Callable[[T], bool], list_: List[T]) -> T:
 
 
 class Connector:
-    __start_time_ns: int = time_s()
+    __last_time_stamp: float = -1
+    __last_sub_time: float = 0
     data: Dict[str, List[BaseMsg]] = DictX({})
     __devices: DevicesMsg = {'time_stamp': time.time(), 'devices': []}
     device: Device = DictX({})
@@ -297,6 +298,16 @@ class Connector:
     def device_id(self):
         return self.__device_id
 
+    @property
+    def current_time_stamp(self):
+        ts = time_s()
+        if ts == self.__last_time_stamp:
+            self.__last_sub_time += 0.000001
+            return ts + self.__last_sub_time
+        self.__last_sub_time = 0
+        self.__last_time_stamp = ts
+        return ts
+
     def __init__(self, server_url: str, device_id: str):
         self.__server_url = server_url
         self.__device_id = device_id
@@ -336,7 +347,7 @@ class Connector:
             the device number to which this message is sent exclusively. When set, boradcast has no effect. 
         '''
         if 'time_stamp' not in data:
-            data['time_stamp'] = time_s()
+            data['time_stamp'] = self.current_time_stamp
 
         if 'device_id' not in data:
             data['device_id'] = self.device_id
@@ -422,7 +433,7 @@ class Connector:
         unicast_to : int
             the device number to which this message is sent exclusively. When set, boradcast has no effect.
         '''
-        ts = time_s()
+        ts = self.current_time_stamp
 
         self.emit(
             ADD_NEW_DATA,
@@ -496,7 +507,7 @@ class Connector:
 
             When the user canceled the prompt, None is returned 
         '''
-        ts = time_s()
+        ts = self.current_time_stamp
 
         if input_type == 'datetime':
             input_type = 'datetime-local'
@@ -996,7 +1007,22 @@ if __name__ == '__main__':
     smartphone = Connector('http://localhost:5000', 'FooBar')
     # smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time.time()
+    smartphone.print(
+        """Hiiii
+        mother fucker
+        """)
+    smartphone.print('aasd1')
+    smartphone.print('aasd2')
+    smartphone.print('aasd3')
+    smartphone.print('aasd4')
+    smartphone.print('aasd5')
+    smartphone.print('aasd6')
+    smartphone.print('aasd7')
+    smartphone.print('aasd8')
+    smartphone.print('aasd9')
+    smartphone.print('aasd10')
     response = smartphone.input("Hallo", input_type="select", options=["+", ":", "-", "*"])
+
     # print('set deivce nr: ', smartphone.set_device_nr(13))
 
     # draw a 3x3 checker board
