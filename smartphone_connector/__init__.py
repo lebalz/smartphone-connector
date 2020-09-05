@@ -3,7 +3,6 @@ import socketio
 import logging
 import time
 from datetime import datetime
-import math
 import random
 from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
@@ -95,7 +94,7 @@ class DictX(dict):
 
 
 class TimeStampedMsg(DictX):
-    time_stamp: int
+    time_stamp: float
 
 
 class BaseMsg(TimeStampedMsg):
@@ -127,7 +126,7 @@ class DeviceLeftMsg(DictX):
 class BaseSendMsg(DictX):
     device_id: Optional[str]
     device_nr: Optional[int]
-    time_stamp: Optional[int]
+    time_stamp: Optional[float]
 
 
 class DataMsg(BaseMsg):
@@ -150,6 +149,7 @@ class ColorPointer(PointerData):
     y: int
     width: int
     height: int
+    displayed_at: float
 
 
 class GridPointer(PointerData):
@@ -158,6 +158,7 @@ class GridPointer(PointerData):
     row: int
     column: int
     color: str
+    displayed_at: float
 
 
 class Acc(DictX):
@@ -196,10 +197,12 @@ class InformationMsg(TimeStampedMsg):
 class InputResponseMsg(DataMsg):
     type: Literal['input_response']
     response: str
+    displayed_at: float
 
 
 class AlertConfirmMsg(DataMsg):
     type: Literal['alert_confirm']
+    displayed_at: float
 
 
 def flatten(list_of_lists: List[List]) -> List:
@@ -256,7 +259,7 @@ class Connector:
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
     data: Dict[str, List[BaseMsg]] = DictX({})
-    __devices: DevicesMsg = {'time_stamp': time.time(), 'devices': []}
+    __devices: DevicesMsg = {'time_stamp': time_s(), 'devices': []}
     device: Device = DictX({})
     __server_url: str
     __device_id: str
@@ -823,7 +826,7 @@ class Connector:
         ------
         bool wheter the assignment was succesfull or not.
         '''
-        ts = time.time()
+        ts = time_s()
         self.__info_messages.clear()
         self.emit(
             SET_NEW_DEVICE_NR,
@@ -835,7 +838,7 @@ class Connector:
             }
         )
         result_msg = None
-        while result_msg is None and (time.time() - ts) < max_wait:
+        while result_msg is None and (time_s() - ts) < max_wait:
             info_cnt = len(self.__info_messages)
 
             if info_cnt > 0 and self.__info_messages[info_cnt - 1].action['time_stamp'] == ts:
@@ -846,7 +849,7 @@ class Connector:
         if result_msg is not None and result_msg['message'] == 'Success':
             return True
 
-        time_left = max_wait - (time.time() - ts)
+        time_left = max_wait - (time_s() - ts)
         if time_left > 0 and 'should_retry' in result_msg and result_msg['should_retry']:
             return self.set_device_nr(new_device_nr, device_id=device_id, current_device_nr=current_device_nr, max_wait=time_left)
 
@@ -1006,7 +1009,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     smartphone = Connector('http://localhost:5000', 'FooBar')
     # smartphone = Connector('https://io.lebalz.ch', 'FooBar')
-    t0 = time.time()
+    t0 = time_s()
     smartphone.print(
         """Hiiii
         mother fucker
