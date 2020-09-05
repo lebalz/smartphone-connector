@@ -233,7 +233,7 @@ When `broadcast` is set to `False` (default), only the `FooBar` devices display 
 @see [this tutorial](https://packaging.python.org/tutorials/packaging-projects/)
 
 ```sh
-rm -rf build/ dist/ smartphone_connector.egg-info/
-python3 setup.py sdist bdist_wheel
+rm -rf build/ dist/ smartphone_connector.egg-info/ && \
+python3 setup.py sdist bdist_wheel && \
 python3 -m twine upload dist/*
 ```
