@@ -113,12 +113,12 @@ class DevicesMsg(TimeStampedMsg):
     devices: List[Device]
 
 
-class DeviceJoinedMsg(DictX):
+class DeviceJoinedMsg(BaseMsg):
     room: str
     device: Device
 
 
-class DeviceLeftMsg(DictX):
+class DeviceLeftMsg(BaseMsg):
     room: str
     device: Device
 
@@ -138,7 +138,7 @@ class KeyMsg(DataMsg):
     key: Literal['up', 'right', 'down', 'left', 'home']
 
 
-class PointerData(DictX):
+class PointerData(BaseMsg):
     context: Literal['color', 'grid']
 
 
@@ -161,14 +161,14 @@ class GridPointer(PointerData):
     displayed_at: float
 
 
-class Acc(DictX):
+class Acc(BaseMsg):
     x: float
     y: float
     z: float
     interval: float
 
 
-class Gyro(DictX):
+class Gyro(BaseMsg):
     alpha: float
     beta: float
     gamma: float
@@ -183,7 +183,7 @@ class GyroMsg(Gyro):
     type: Literal['gyro']
 
 
-class ErrorMsg(DictX):
+class ErrorMsg(BaseMsg):
     type: EVENTS
     msg: str
     err: Union[str, dict]
