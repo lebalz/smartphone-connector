@@ -154,8 +154,9 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   - `data`: whatever data you want to send
   - `broadcast`: when set to true, the event is broadcasted to all currently connected devices. Defaults to `False`
   - `unicast_to`: the message is sent exclusively to the device with the specified number. Has precedence over the `boradcast` option.
-- `prompt(question, alert=False, input_type: 'text' | 'number' | 'datetime' | 'date'| 'time' = 'text')` prompts the user with the given question (str). The input type is used to set the correct html type of the input field.
-- `input(question, alert=False, input_type: 'text' | 'number' | 'datetime' | 'date'| 'time' = 'text')` prompts the user with the given question (str). The input type is used to set the correct html type of the input field.
+- `prompt(question, input_type: 'text' | 'number' | 'datetime' | 'date'| 'time' | 'select' = 'text')` prompts the user with the given question (str). The input type is used to set the correct html type of the input field.
+- `input(question, input_type: 'text' | 'number' | 'datetime' | 'date'| 'time' | 'select' = 'text')` prompts the user with the given question (str). The input type is used to set the correct html type of the input field.
+- `select(question, options: List[str])` prompts the user to select a value from the list
 - `print(message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None)`
   - `message` the notification message
   - `display_time` time in seconds to show the notification

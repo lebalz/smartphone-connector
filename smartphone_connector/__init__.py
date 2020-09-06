@@ -49,6 +49,8 @@ EVENTS = Union[
     SET_NEW_DEVICE_NR
 ]
 
+INPUT_TYPE = Literal['text', 'number', 'datetime', 'date', 'time', 'select']
+
 
 def time_s() -> float:
     '''
@@ -458,14 +460,14 @@ class Connector:
             alert_msg = next((res for res in self.__alerts if res['time_stamp'] == ts), False)
         self.__alerts.remove(alert_msg)
 
-    def input(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time', 'select'] = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
+    def input(self, question: str, input_type: INPUT_TYPE = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
         '''
         Parameters
         ----------
         question : str
             what should the user be prompted for?
 
-        input_type : 'text', 'number', 'datetime', 'date', 'time'
+        input_type : 'text', 'number', 'datetime', 'date', 'time', 'select'
             to use the correct html input type
 
         Optional
@@ -477,22 +479,42 @@ class Connector:
 
         Return
         ------
-        str, int, float, datetime, date, dtime, None
-
-            depending on what you specify at return_type. When the response can not be casted, the raw value will be returned.
+        str, None
 
             When the user canceled the prompt, None is returned
         '''
         return self.prompt(question, input_type=input_type, options=options, unicast_to=unicast_to)
 
-    def prompt(self, question: str, input_type: Literal['text', 'number', 'datetime', 'date', 'time'] = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
+    def select(self, question: str, options: List[str]):
+        '''
+        Parameters
+        ----------
+        question : str
+            what should the user be prompted for?
+        options: List[str]
+            a list with the options a user can select
+        
+        Optional
+        --------
+        unicast_to : int
+            the device number to which this message is sent exclusively.
+
+        Retrun
+        ------
+        str, None
+
+            the selected value. None is returned when the prompt is canceled
+        '''
+        return self.prompt(question, input_type='select', options=options)
+
+    def prompt(self, question: str, input_type: INPUT_TYPE = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
         '''
         Parameters
         ----------
         question : str
             what should the user be prompted for?
 
-        input_type : 'text', 'number', 'datetime', 'date', 'time'
+        input_type : 'text', 'number', 'datetime', 'date', 'time', 'select'
             to use the correct html input type
 
         Optional
@@ -504,9 +526,7 @@ class Connector:
 
         Return
         ------
-        str, int, float, datetime, date, dtime, None
-
-            depending on what you specify at return_type. When the response can not be casted, the raw value will be returned.
+        str, None
 
             When the user canceled the prompt, None is returned 
         '''
