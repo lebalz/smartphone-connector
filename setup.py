@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="smartphone-connector",
-    version="0.0.31",
+    name="smartphone_connector",
+    version="0.0.32",
     author="Balthasar Hofer",
     author_email="lebalz@outlook.com",
     description="Talk to a socketio server",
