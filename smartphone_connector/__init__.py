@@ -7,6 +7,7 @@ import random
 from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
 import threading
+from gbsl_turtle import *
 
 
 Any = object()
@@ -357,12 +358,19 @@ class ThreadJob(threading.Thread):
         self.callback = callback
         self.event = threading.Event()
         self.interval = interval
+        self.__running = False
         super(ThreadJob, self).__init__()
 
     def cancel(self):
+        self.__running = False
         self.event.set()
 
+    @property
+    def is_running(self):
+        return self.__running
+
     def run(self):
+        self.__running = True
         while not self.event.wait(self.interval):
             self.callback()
 
@@ -402,7 +410,7 @@ class Connector:
     on_room_joined: Callable[[Any, DeviceJoinedMsg, Optional[Connector]], None] = None
     on_room_left: Callable[[Any, DeviceLeftMsg, Optional[Connector]], None] = None
     __on_notify_subscribers: Callable[[DataFrame, Optional[Connector]], None] = None
-    __subscription_job: ThreadJob = None
+    __subscription_job: Union[ThreadJob, CancleSubscription] = None
 
     __responses: List[InputResponseMsg] = []
     __alerts: List[AlertConfirmMsg] = []
@@ -1024,16 +1032,24 @@ class Connector:
         elif arg_count == 2:
             self.__on_notify_subscribers(data, self)
 
-    def subscribe(self, callback: Callable[[Optional[DataFrame], Optional[Connector]], None], interval: float = 0.05) -> CancleSubscription:
+    def subscribe_async(self, callback: Callable[[Optional[DataFrame], Optional[Connector]], None], interval: float = 0.05) -> CancleSubscription:
+        return self.subscribe(callback, interval, blocking=False)
+
+    def subscribe(self, callback: Callable[[Optional[DataFrame], Optional[Connector]], None], interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
         self.__on_notify_subscribers = callback
-        self.__subscription_job = ThreadJob(self.__distribute_dataframe, interval)
-        self.__subscription_job.start()
-        return self.__subscription_job
+        if blocking:
+            self.__subscription_job = CancleSubscription()
+            while self.__subscription_job.is_running:
+                self.__distribute_dataframe()
+                self.sleep(interval)
+        else:
+            self.__subscription_job = ThreadJob(self.__distribute_dataframe, interval)
+            self.__subscription_job.start()
+            return self.__subscription_job
 
     def cancel_subscription(self):
         if self.__subscription_job is not None:
             self.__subscription_job.cancel()
-        self.__subscription_job = None
 
     def wait(self):
         '''
@@ -1186,8 +1202,16 @@ if __name__ == '__main__':
     # smartphone = Connector('http://localhost:5000', 'FooBar')
     smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time_s()
-    smartphone.subscribe(lambda data, c: logging.info(
-        f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'), 0.05)
+    smartphone.subscribe(
+        lambda data, c: c.cancel_subscription(),
+        0.05,
+        blocking=True
+    )
+    smartphone.subscribe(
+        lambda data, c: logging.info(f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'),
+        0.05,
+        blocking=False
+    )
     time.sleep(2)
     smartphone.cancel_subscription()
 
