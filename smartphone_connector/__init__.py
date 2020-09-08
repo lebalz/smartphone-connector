@@ -7,7 +7,7 @@ import random
 from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
 import threading
-from gbsl_turtle import *
+from copy import deepcopy
 
 
 Any = object()
@@ -1046,6 +1046,9 @@ class Connector:
         return self.subscribe(callback=callback, interval=interval, blocking=blocking)
 
     def subscribe(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
+        '''
+        blocked : bool wheter the main thread gets blocked or not. When blocking, only the latest data message of a type is called back to the subscribers!
+        '''
         self.__on_notify_subscribers = callback
         if blocking:
             self.__main_thread_blocked = True
@@ -1053,8 +1056,14 @@ class Connector:
             while self.__subscription_job.is_running:
                 t0 = time_s()
                 self.__distribute_dataframe()
-                while len(self.__blocked_data_msgs) > 0:
-                    self.__distribute_new_data_callback(self.__blocked_data_msgs.pop(0))
+                data = deepcopy(self.__blocked_data_msgs)
+                self.__blocked_data_msgs.clear()
+                data.reverse()
+                distributed_types = []
+                for d in data:
+                    if d.type not in distributed_types:
+                        self.__distribute_new_data_callback(d)
+                        distributed_types.append(d.type)
                 td = time_s() - t0
                 if td < interval:
                     self.sleep(interval - td)
@@ -1227,17 +1236,18 @@ if __name__ == '__main__':
     smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time_s()
 
-    Screen().tracer(0, 0)
+    # Screen().tracer(0, 0)
 
     def on_acc(data: AccMsg):
-        if data.x > 2:
-            left(2)
-        if data.x < -2:
-            right(2)
-        forward(2)
-        Screen().update()
+        print(data)
+        # if data.x > 2:
+        #     left(2)
+        # if data.x < -2:
+        #     right(2)
+        # forward(2)
+        # Screen().update()
     smartphone.on_acceleration = on_acc
-    smartphone.set_update_interval(0.01)
+    smartphone.set_update_interval(0.05)
     # smartphone.subscribe(
     #     lambda data, c: logging.info(f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'),
     #     0.05,
