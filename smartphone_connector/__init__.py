@@ -7,7 +7,6 @@ import random
 from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
 import threading
-from gbsl_turtle import *
 
 
 Any = object()
@@ -387,6 +386,8 @@ class Connector:
     sio: socketio.Client = socketio.Client()
     room_members: List[Device] = []
     joined_rooms: List[str]
+    __main_thread_blocked: bool = False
+    __blocked_data_msgs: List[DataMsg] = []
 
     # callback functions
 
@@ -1017,6 +1018,11 @@ class Connector:
         if self.__on_notify_subscribers is None:
             return
 
+        arg_count = len(signature(self.__on_notify_subscribers).parameters)
+        if arg_count == 0:
+            self.__on_notify_subscribers()
+            return
+
         data = DictX({
             'key': self.latest_key(device_id=self.__device_id) or default('key'),
             'acceleration': self.latest_acceleration(device_id=self.__device_id) or default('acceleration'),
@@ -1024,10 +1030,7 @@ class Connector:
             'color_pointer': self.latest_color_pointer(device_id=self.__device_id) or default('color_pointer'),
             'grid_pointer': self.latest_grid_pointer(device_id=self.__device_id) or default('grid_pointer')
         })
-        arg_count = len(signature(self.__on_notify_subscribers).parameters)
-        if arg_count == 0:
-            self.__on_notify_subscribers()
-        elif arg_count == 1:
+        if arg_count == 1:
             self.__on_notify_subscribers(data)
         elif arg_count == 2:
             self.__on_notify_subscribers(data, self)
@@ -1038,10 +1041,17 @@ class Connector:
     def subscribe(self, callback: Callable[[Optional[DataFrame], Optional[Connector]], None], interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
         self.__on_notify_subscribers = callback
         if blocking:
+            self.__main_thread_blocked = True
             self.__subscription_job = CancleSubscription()
             while self.__subscription_job.is_running:
+                t0 = time_s()
                 self.__distribute_dataframe()
-                self.sleep(interval)
+                while len(self.__blocked_data_msgs) > 0:
+                    self.__distribute_new_data_callback(self.__blocked_data_msgs.pop(0))
+                td = time_s() - t0
+                if td < interval:
+                    self.sleep(interval - td)
+            self.__main_thread_blocked = False
         else:
             self.__subscription_job = ThreadJob(self.__distribute_dataframe, interval)
             self.__subscription_job.start()
@@ -1103,7 +1113,12 @@ class Connector:
             self.data[data['device_id']] = []
 
         self.data[data['device_id']].append(data)
+        if self.__main_thread_blocked:
+            self.__blocked_data_msgs.append(data)
+        else:
+            self.__distribute_new_data_callback(data)
 
+    def __distribute_new_data_callback(self, data: DataMsg):
         if 'type' in data:
             if data['type'] == 'key':
                 self.__callback('on_key', data)
@@ -1202,18 +1217,13 @@ if __name__ == '__main__':
     # smartphone = Connector('http://localhost:5000', 'FooBar')
     smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time_s()
-    smartphone.subscribe(
-        lambda data, c: c.cancel_subscription(),
-        0.05,
-        blocking=True
-    )
-    smartphone.subscribe(
-        lambda data, c: logging.info(f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'),
-        0.05,
-        blocking=False
-    )
-    time.sleep(2)
-    smartphone.cancel_subscription()
+    # smartphone.subscribe(
+    #     lambda data, c: logging.info(f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'),
+    #     0.05,
+    #     blocking=False
+    # )
+    # time.sleep(2)
+    # smartphone.cancel_subscription()
 
     smartphone.print('aasd1')
     smartphone.print('aasd2')
@@ -1225,7 +1235,7 @@ if __name__ == '__main__':
     smartphone.print('aasd8')
     smartphone.print('aasd9')
     smartphone.print('aasd10')
-    response = smartphone.input("Hallo", input_type="select", options=["+", ":", "-", "*"])
+    # response = smartphone.input("Hallo", input_type="select", options=["+", ":", "-", "*"])
 
     # print('set deivce nr: ', smartphone.set_device_nr(13))
 
@@ -1255,11 +1265,13 @@ if __name__ == '__main__':
     smartphone.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
     smartphone.on_error = lambda data: logging.info(f'on_error: {data}')
 
-    time.sleep(2)
+    t0 = time_s()
+    print('slleeeeop')
+    smartphone.sleep(2)
 
-    response = smartphone.input('Name? ')
-    smartphone.print(f'Name: {response} ')
-    smartphone.notify('notify hiii', alert=True)
+    # response = smartphone.input('Name? ')
+    # smartphone.print(f'Name: {response} ')
+    # smartphone.notify('notify hiii', alert=True)
     print(smartphone.joined_room_count)
     print(smartphone.client_count)
     print(smartphone.device_count)
