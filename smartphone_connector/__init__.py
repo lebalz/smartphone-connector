@@ -137,7 +137,7 @@ class DataMsg(BaseMsg):
 
 class KeyMsg(DataMsg):
     type: Literal['key']
-    key: Literal['up', 'right', 'down', 'left', 'home']
+    key: Literal['up', 'right', 'down', 'left', 'home', 'f1', 'f2', 'f3', 'f4']
 
 
 class PointerData(BaseMsg):
@@ -493,7 +493,7 @@ class Connector:
             what should the user be prompted for?
         options: List[str]
             a list with the options a user can select
-        
+
         Optional
         --------
         unicast_to : int

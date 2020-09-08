@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="smartphone-connector",
-    version="0.0.29",
+    version="0.0.30",
     author="Balthasar Hofer",
     author_email="lebalz@outlook.com",
     description="Talk to a socketio server",
