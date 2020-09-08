@@ -137,7 +137,23 @@ class DataMsg(BaseMsg):
 
 class KeyMsg(DataMsg):
     type: Literal['key']
-    key: Literal['up', 'right', 'down', 'left', 'home', 'f1', 'f2', 'f3', 'f4']
+    key: Literal['up', 'right', 'down', 'left', 'home', 'F1', 'F2', 'F3', 'F4']
+
+
+class KeyMsgF1(KeyMsg):
+    key: Literal['F1']
+
+
+class KeyMsgF2(KeyMsg):
+    key: Literal['F2']
+
+
+class KeyMsgF3(KeyMsg):
+    key: Literal['F3']
+
+
+class KeyMsgF4(KeyMsg):
+    key: Literal['F4']
 
 
 class PointerData(BaseMsg):
@@ -273,6 +289,10 @@ class Connector:
     # callback functions
 
     on_key: Callable[[Any, KeyMsg, Optional[Connector]], None] = None
+    on_f1: Callable[[Any, Optional[KeyMsgF1], Optional[Connector]], None] = None
+    on_f2: Callable[[Any, Optional[KeyMsgF2], Optional[Connector]], None] = None
+    on_f3: Callable[[Any, Optional[KeyMsgF3], Optional[Connector]], None] = None
+    on_f4: Callable[[Any, Optional[KeyMsgF4], Optional[Connector]], None] = None
     on_pointer: Callable[[Any, Union[ColorPointer, GridPointer], Optional[Connector]], None] = None
     on_acceleration: Callable[[Any, AccMsg, Optional[Connector]], None] = None
     on_gyro: Callable[[Any, GyroMsg, Optional[Connector]], None] = None
@@ -923,7 +943,9 @@ class Connector:
             return
         try:
             arg_count = len(signature(callback).parameters)
-            if arg_count == 1:
+            if arg_count == 0:
+                callback()
+            elif arg_count == 1:
                 callback(data)
             elif arg_count == 2:
                 callback(data, self)
@@ -943,6 +965,14 @@ class Connector:
         if 'type' in data:
             if data['type'] == 'key':
                 self.__callback('on_key', data)
+                if data['key'] == 'F1':
+                    self.__callback('on_f1', data)
+                elif data['key'] == 'F2':
+                    self.__callback('on_f2', data)
+                elif data['key'] == 'F3':
+                    self.__callback('on_f3', data)
+                elif data['key'] == 'F4':
+                    self.__callback('on_f4', data)
             if data['type'] in ['acceleration', 'gyro']:
                 self.__callback('on_sensor', data)
             if data['type'] == 'acceleration':
@@ -1027,13 +1057,9 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    smartphone = Connector('http://localhost:5000', 'FooBar')
-    # smartphone = Connector('https://io.lebalz.ch', 'FooBar')
+    # smartphone = Connector('http://localhost:5000', 'FooBar')
+    smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time_s()
-    smartphone.print(
-        """Hiiii
-        mother fucker
-        """)
     smartphone.print('aasd1')
     smartphone.print('aasd2')
     smartphone.print('aasd3')
@@ -1056,6 +1082,10 @@ if __name__ == '__main__':
     ], broadcast=True)
 
     smartphone.on_key = lambda data, c: logging.info(f'on_key: {data}, len: {len(c.all_data())}')
+    smartphone.on_f1 = lambda: logging.info('F1')
+    smartphone.on_f2 = lambda: logging.info('F2')
+    smartphone.on_f3 = lambda: logging.info('F3')
+    smartphone.on_f4 = lambda: logging.info('F4')
     smartphone.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
     smartphone.on_data = lambda data: logging.info(f'on_data: {data}')
     smartphone.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
@@ -1106,5 +1136,5 @@ if __name__ == '__main__':
     print('latest_acceleration', smartphone.latest_acceleration())
     print('latest_key', smartphone.latest_key())
 
-    smartphone.sleep(2)
-    smartphone.disconnect()
+    # smartphone.sleep(2)
+    # smartphone.disconnect()
