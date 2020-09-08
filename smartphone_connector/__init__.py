@@ -7,6 +7,7 @@ import random
 from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
 import threading
+from gbsl_turtle import *
 
 
 Any = object()
@@ -1008,7 +1009,7 @@ class Connector:
 
     def sleep(self, seconds: float = 0) -> None:
         '''
-        Sleep for the requested amount of time using the appropriate async model.
+        Sleep for the requested amount of time (in seconds) using the appropriate async model.
 
         This is a utility function that applications can use to put a task to sleep without having to worry about using the correct call for the selected async mode.
         '''
@@ -1057,6 +1058,8 @@ class Connector:
                 td = time_s() - t0
                 if td < interval:
                     self.sleep(interval - td)
+                else:
+                    self.sleep(0.0001)
             self.__main_thread_blocked = False
         else:
             self.__subscription_job = ThreadJob(self.__distribute_dataframe, interval)
@@ -1223,6 +1226,18 @@ if __name__ == '__main__':
     # smartphone = Connector('http://localhost:5000', 'FooBar')
     smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time_s()
+
+    Screen().tracer(0, 0)
+
+    def on_acc(data: AccMsg):
+        if data.x > 2:
+            left(2)
+        if data.x < -2:
+            right(2)
+        forward(2)
+        Screen().update()
+    smartphone.on_acceleration = on_acc
+    smartphone.set_update_interval(0.01)
     # smartphone.subscribe(
     #     lambda data, c: logging.info(f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'),
     #     0.05,
