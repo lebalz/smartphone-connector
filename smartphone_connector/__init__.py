@@ -1035,10 +1035,16 @@ class Connector:
         elif arg_count == 2:
             self.__on_notify_subscribers(data, self)
 
-    def subscribe_async(self, callback: Callable[[Optional[DataFrame], Optional[Connector]], None], interval: float = 0.05) -> CancleSubscription:
+    def subscribe_async(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05) -> CancleSubscription:
         return self.subscribe(callback, interval, blocking=False)
 
-    def subscribe(self, callback: Callable[[Optional[DataFrame], Optional[Connector]], None], interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
+    def set_update_interval(self, interval: float):
+        return self.subscribe(interval=interval, blocking=True)
+
+    def set_timeout(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
+        return self.subscribe(callback=callback, interval=interval, blocking=blocking)
+
+    def subscribe(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
         self.__on_notify_subscribers = callback
         if blocking:
             self.__main_thread_blocked = True
