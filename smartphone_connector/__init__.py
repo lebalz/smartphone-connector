@@ -145,56 +145,56 @@ def default(type: Literal['key', 'acceleration', 'gyro', 'pointer', 'notificatio
     if type == 'key':
         return DictX({
             'type': 'key',
-            'time_stamp': None,
-            'device_id': None,
-            'device_nr': None,
-            'key': None
+            'time_stamp': 0,
+            'device_id': '',
+            'device_nr': -999,
+            'key': ''
         })
     if type == 'acceleration':
         return DictX({
-            'time_stamp': None,
-            'device_id': None,
-            'device_nr': None,
-            'x': None,
-            'y': None,
-            'z': None,
-            'interval': None
+            'time_stamp': 0,
+            'device_id': '',
+            'device_nr': -999,
+            'x': 0,
+            'y': 0,
+            'z': 0,
+            'interval': 16
         })
     if type == 'gyro':
         return DictX({
-            'time_stamp': None,
-            'device_id': None,
-            'device_nr': None,
-            'alpha': None,
-            'beta': None,
-            'gamma': None,
-            'absolute': None
+            'time_stamp': 0,
+            'device_id': '',
+            'device_nr': -999,
+            'alpha': 0,
+            'beta': 0,
+            'gamma': 0,
+            'absolute': False
         })
     if type == 'color_pointer':
         return DictX({
-            'time_stamp': None,
-            'device_id': None,
-            'device_nr': None,
+            'time_stamp': 0,
+            'device_id': '',
+            'device_nr': -999,
             'type': 'pointer',
             'context': 'color',
-            'x': None,
-            'y': None,
-            'width': None,
-            'height': None,
-            'displayed_at': None
+            'x': 0,
+            'y': 0,
+            'width': -1,
+            'height': -1,
+            'displayed_at': 0
         })
     if type == 'grid_pointer':
         return DictX({
-            'time_stamp': None,
-            'device_id': None,
-            'device_nr': None,
+            'time_stamp': 0,
+            'device_id': '',
+            'device_nr': -999,
             'type': 'pointer',
             'context': 'grid',
-            'x': None,
-            'y': None,
-            'width': None,
-            'height': None,
-            'displayed_at': None
+            'x': 0,
+            'y': 0,
+            'width': -1,
+            'height': -1,
+            'displayed_at': 0
         })
     return DictX({})
 
