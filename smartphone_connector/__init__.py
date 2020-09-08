@@ -1047,7 +1047,7 @@ class Connector:
 
     def subscribe(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
         '''
-        blocked : bool wheter the main thread gets blocked or not. When blocking, only the latest data message of a type is called back to the subscribers!
+        blocked : bool wheter the main thread gets blocked or not.
         '''
         self.__on_notify_subscribers = callback
         if blocking:
@@ -1058,17 +1058,11 @@ class Connector:
                 self.__distribute_dataframe()
                 data = deepcopy(self.__blocked_data_msgs)
                 self.__blocked_data_msgs.clear()
-                data.reverse()
-                distributed_types = []
                 for d in data:
-                    if d.type not in distributed_types:
-                        self.__distribute_new_data_callback(d)
-                        distributed_types.append(d.type)
+                    self.__distribute_new_data_callback(d)
                 td = time_s() - t0
                 if td < interval:
                     self.sleep(interval - td)
-                else:
-                    self.sleep(0.0001)
             self.__main_thread_blocked = False
         else:
             self.__subscription_job = ThreadJob(self.__distribute_dataframe, interval)
