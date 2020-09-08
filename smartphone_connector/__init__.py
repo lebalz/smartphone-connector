@@ -6,6 +6,7 @@ from datetime import datetime
 import random
 from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
+import threading
 
 
 Any = object()
@@ -140,6 +141,64 @@ class KeyMsg(DataMsg):
     key: Literal['up', 'right', 'down', 'left', 'home', 'F1', 'F2', 'F3', 'F4']
 
 
+def default(type: Literal['key', 'acceleration', 'gyro', 'pointer', 'notification']):
+    if type == 'key':
+        return DictX({
+            'type': 'key',
+            'time_stamp': None,
+            'device_id': None,
+            'device_nr': None,
+            'key': None
+        })
+    if type == 'acceleration':
+        return DictX({
+            'time_stamp': None,
+            'device_id': None,
+            'device_nr': None,
+            'x': None,
+            'y': None,
+            'z': None,
+            'interval': None
+        })
+    if type == 'gyro':
+        return DictX({
+            'time_stamp': None,
+            'device_id': None,
+            'device_nr': None,
+            'alpha': None,
+            'beta': None,
+            'gamma': None,
+            'absolute': None
+        })
+    if type == 'color_pointer':
+        return DictX({
+            'time_stamp': None,
+            'device_id': None,
+            'device_nr': None,
+            'type': 'pointer',
+            'context': 'color',
+            'x': None,
+            'y': None,
+            'width': None,
+            'height': None,
+            'displayed_at': None
+        })
+    if type == 'grid_pointer':
+        return DictX({
+            'time_stamp': None,
+            'device_id': None,
+            'device_nr': None,
+            'type': 'pointer',
+            'context': 'grid',
+            'x': None,
+            'y': None,
+            'width': None,
+            'height': None,
+            'displayed_at': None
+        })
+    return DictX({})
+
+
 class KeyMsgF1(KeyMsg):
     key: Literal['F1']
 
@@ -199,6 +258,14 @@ class AccMsg(Acc):
 
 class GyroMsg(Gyro):
     type: Literal['gyro']
+
+
+class DataFrame(DictX):
+    key: KeyMsg
+    acceleration: AccMsg
+    gyro: GyroMsg
+    color_pointer: ColorPointer
+    grid_pointer: GridPointer
 
 
 class ErrorMsg(BaseMsg):
@@ -273,6 +340,33 @@ def first(filter_func: Callable[[T], bool], list_: List[T]) -> T:
     return next((item for item in list_ if try_or(lambda: filter_func(item), False)), None)
 
 
+class CancleSubscription:
+    __running = True
+
+    @property
+    def is_running(self):
+        return self.__running
+
+    def cancel(self):
+        self.__running = False
+
+
+class ThreadJob(threading.Thread):
+    def __init__(self, callback: Callable, interval: float):
+        '''runs the callback function after interval seconds'''
+        self.callback = callback
+        self.event = threading.Event()
+        self.interval = interval
+        super(ThreadJob, self).__init__()
+
+    def cancel(self):
+        self.event.set()
+
+    def run(self):
+        while not self.event.wait(self.interval):
+            self.callback()
+
+
 class Connector:
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
@@ -307,6 +401,8 @@ class Connector:
     on_error: Callable[[Any, ErrorMsg, Optional[Connector]], None] = None
     on_room_joined: Callable[[Any, DeviceJoinedMsg, Optional[Connector]], None] = None
     on_room_left: Callable[[Any, DeviceLeftMsg, Optional[Connector]], None] = None
+    __on_notify_subscribers: Callable[[DataFrame, Optional[Connector]], None] = None
+    __subscription_job: ThreadJob = None
 
     __responses: List[InputResponseMsg] = []
     __alerts: List[AlertConfirmMsg] = []
@@ -909,6 +1005,36 @@ class Connector:
         '''
         self.sio.sleep(seconds)
 
+    def __distribute_dataframe(self):
+        if self.__on_notify_subscribers is None:
+            return
+
+        data = DictX({
+            'key': self.latest_key(device_id=self.__device_id) or default('key'),
+            'acceleration': self.latest_acceleration(device_id=self.__device_id) or default('acceleration'),
+            'gyro': self.latest_gyro(device_id=self.__device_id) or default('gyro'),
+            'color_pointer': self.latest_color_pointer(device_id=self.__device_id) or default('color_pointer'),
+            'grid_pointer': self.latest_grid_pointer(device_id=self.__device_id) or default('grid_pointer')
+        })
+        arg_count = len(signature(self.__on_notify_subscribers).parameters)
+        if arg_count == 0:
+            self.__on_notify_subscribers()
+        elif arg_count == 1:
+            self.__on_notify_subscribers(data)
+        elif arg_count == 2:
+            self.__on_notify_subscribers(data, self)
+
+    def subscribe(self, callback: Callable[[Optional[DataFrame], Optional[Connector]], None], interval: float = 0.05) -> CancleSubscription:
+        self.__on_notify_subscribers = callback
+        self.__subscription_job = ThreadJob(self.__distribute_dataframe, interval)
+        self.__subscription_job.start()
+        return self.__subscription_job
+
+    def cancel_subscription(self):
+        if self.__subscription_job is not None:
+            self.__subscription_job.cancel()
+        self.__subscription_job = None
+
     def wait(self):
         '''
         Wait until the connection with the server ends.
@@ -1060,6 +1186,11 @@ if __name__ == '__main__':
     # smartphone = Connector('http://localhost:5000', 'FooBar')
     smartphone = Connector('https://io.lebalz.ch', 'FooBar')
     t0 = time_s()
+    smartphone.subscribe(lambda data, c: logging.info(
+        f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'), 0.05)
+    time.sleep(2)
+    smartphone.cancel_subscription()
+
     smartphone.print('aasd1')
     smartphone.print('aasd2')
     smartphone.print('aasd3')
@@ -1101,6 +1232,7 @@ if __name__ == '__main__':
     smartphone.on_error = lambda data: logging.info(f'on_error: {data}')
 
     time.sleep(2)
+
     response = smartphone.input('Name? ')
     smartphone.print(f'Name: {response} ')
     smartphone.notify('notify hiii', alert=True)

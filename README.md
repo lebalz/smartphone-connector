@@ -182,6 +182,8 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   smartphone.unicast({'type': 'color', 'color': 'red'}, 1)
   ```
 
+- `subscribe(callback, interval)` notifys the subscriber after each interval with the current dataframe.
+- `cancel_subscription()` cancels the subscription of data frames
 - `clear_data()` clears all data on the server related to this `device_id``
 - `all_broadcast_data(data_type: str = None) -> List[DataMsg]` returns all broadcasted data of the given type. When no type is provided, all broadcasted data is returned.
 - `latest_broadcast_data(data_type: str = None) -> DataMsg | None` returns the latest received data of the given type. None is returned when no data is present.
