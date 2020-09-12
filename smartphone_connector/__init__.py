@@ -1326,19 +1326,19 @@ if __name__ == '__main__':
     # phone = Connector('http://localhost:5000', 'FooBar')
     phone = Connector('https://io.lebalz.ch', 'FooBar')
     phone.set_grid(
-        [[0]]
+        [[0]], base_color=(255, 255, 0)
     )
     grid = []
-    for i in range(100):
+    for i in range(10):
         row = []
-        for j in range(100):
-            row.append((j + i) // 20)
+        for j in range(10):
+            row.append((j + i) // 2)
         grid.append(row)
-    phone.set_grid(grid)
-    phone.sleep()
-    phone.set_grid_at(5, 5, 'red')
+    phone.set_grid(grid, base_color=(255, 255, 0))
+    phone.sleep(3)
+    phone.set_grid_at(5, 5, 7)
     phone.sleep(1)
-    phone.set_grid_at(2, 5, 'red')
+    phone.set_grid_at(2, 5, 3)
     t0 = time_s()
 
     # Screen().tracer(0, 0)
