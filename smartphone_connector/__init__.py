@@ -322,7 +322,7 @@ def to_css_color(color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]], ba
         if base_color is None or len(base_color) < 3:
             base_color = (255, 0, 0)
 
-        return f'rgba({base_color[0]},{base_color[1]},{base_color[2]},{color / 10})'
+        return f'rgba({base_color[0]},{base_color[1]},{base_color[2]},{color / 9})'
     color = list(color)
     if len(color) == 3:
         return f'rgb({color[0]},{color[1]},{color[2]})'
