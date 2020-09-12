@@ -930,7 +930,7 @@ class Connector:
         '''
         is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
         if is_2d:
-            grid = list(map(lambda row: list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color))), grid))
+            grid = list(map(lambda row: list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color), row)), grid))
         elif len(grid) > 0:
             grid = list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color), grid))
 
