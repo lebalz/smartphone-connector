@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 import random
 from inspect import signature
-from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar
+from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar, Tuple
 import threading
 from copy import deepcopy
 
@@ -307,6 +307,29 @@ def to_datetime(data: TimeStampedMsg) -> datetime:
     if ts > 1000000000000:
         ts = ts / 1000.0
     return datetime.fromtimestamp(ts)
+
+
+R = int
+G = int
+B = int
+HUE = int
+
+
+def to_css_color(color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]], base_color: Optional[Tuple[R, G, B]] = (255, 0, 0)) -> str:
+    if type(color) == str:
+        return color
+    if type(color) == int:
+        if base_color is None or len(base_color) < 3:
+            base_color = (255, 0, 0)
+
+        return f'rgba({base_color[0]},{base_color[1]},{base_color[2]},{color / 10})'
+    color = list(color)
+    if len(color) == 3:
+        return f'rgb({color[0]},{color[1]},{color[2]})'
+    elif len(color) > 3:
+        return f'rgba({color[0]},{color[1]},{color[2]},{color[3]})'
+    else:
+        raise AttributeError(color)
 
 
 def random_color() -> str:
@@ -878,11 +901,12 @@ class Connector:
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
         return self.latest_data('key', device_id=device_id)
 
-    def set_grid(self, grid: Union[List[str], List[List[str]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def set_grid(self, grid: Union[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
         '''
         Parameters
         ----------
-        grid : List<List<str>> a 2d array containing the color of each cell
+        grid : List<List<str>> a 2d array containing the color of each cell, an rgb, rgba tuple or an integer between 0 and 9
+                representing the brightness of the base color 
 
         Optional
         --------
@@ -891,6 +915,8 @@ class Connector:
         unicast_to : int control the device with the given number
 
         broadcast : bool wheter to send this message to all connected devices
+
+        base_color : Tuple[r, g, b] representing the base rgb color 0-255
 
         Example
         -------
@@ -902,6 +928,12 @@ class Connector:
         ])
         ```
         '''
+        is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
+        if is_2d:
+            grid = list(map(lambda row: list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color))), grid))
+        elif len(grid) > 0:
+            grid = list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color), grid))
+
         self.emit(
             ADD_NEW_DATA,
             {
@@ -912,12 +944,12 @@ class Connector:
             unicast_to=unicast_to
         )
 
-    def set_color(self, color: str, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def set_color(self, color: Union[str, Tuple[R, G, B], Tuple[R, G, B, HUE]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         '''
         Parameters
         ----------
-        color : str
-            the color of the panel background, can be any valid css color
+        color : str, Tuple
+            the color of the panel background, can be any valid css color or rgb values in range 0-255 and optionally the brightness 0-9 
 
         Optional
         --------
@@ -939,6 +971,7 @@ class Connector:
         set_panel('hsl(0, 100%, 50%)')        # => hsl
         ```
         '''
+        color = to_css_color(color)
         self.emit(
             ADD_NEW_DATA,
             {
@@ -1226,8 +1259,16 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    # smartphone = Connector('http://localhost:5000', 'FooBar')
-    smartphone = Connector('https://io.lebalz.ch', 'FooBar')
+    # phone = Connector('http://localhost:5000', 'FooBar')
+    phone = Connector('https://io.lebalz.ch', 'FooBar')
+    phone.set_color('red')
+    phone.sleep(1)
+    phone.set_color([0, 255, 0])
+    phone.sleep(1)
+    phone.set_color((255, 0, 0))
+    phone.sleep(1)
+
+    phone.sleep(10)
     t0 = time_s()
 
     # Screen().tracer(0, 0)
@@ -1240,94 +1281,94 @@ if __name__ == '__main__':
         #     right(2)
         # forward(2)
         # Screen().update()
-    smartphone.on_acceleration = on_acc
-    smartphone.set_update_interval(0.05)
-    # smartphone.subscribe(
+    phone.on_acceleration = on_acc
+    phone.set_update_interval(0.05)
+    # phone.subscribe(
     #     lambda data, c: logging.info(f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'),
     #     0.05,
     #     blocking=False
     # )
     # time.sleep(2)
-    # smartphone.cancel_subscription()
+    # phone.cancel_subscription()
 
-    smartphone.print('aasd1')
-    smartphone.print('aasd2')
-    smartphone.print('aasd3')
-    smartphone.print('aasd4')
-    smartphone.print('aasd5')
-    smartphone.print('aasd6')
-    smartphone.print('aasd7')
-    smartphone.print('aasd8')
-    smartphone.print('aasd9')
-    smartphone.print('aasd10')
-    # response = smartphone.input("Hallo", input_type="select", options=["+", ":", "-", "*"])
+    phone.print('aasd1')
+    phone.print('aasd2')
+    phone.print('aasd3')
+    phone.print('aasd4')
+    phone.print('aasd5')
+    phone.print('aasd6')
+    phone.print('aasd7')
+    phone.print('aasd8')
+    phone.print('aasd9')
+    phone.print('aasd10')
+    # response = phone.input("Hallo", input_type="select", options=["+", ":", "-", "*"])
 
-    # print('set deivce nr: ', smartphone.set_device_nr(13))
+    # print('set deivce nr: ', phone.set_device_nr(13))
 
     # draw a 3x3 checker board
-    smartphone.set_grid([
+    phone.set_grid([
         ['black', 'white', 'black'],
         ['white', 'black', 'white'],
         ['black', 'white', 'black'],
     ], broadcast=True)
 
-    smartphone.on_key = lambda data, c: logging.info(f'on_key: {data}, len: {len(c.all_data())}')
-    smartphone.on_f1 = lambda: logging.info('F1')
-    smartphone.on_f2 = lambda: logging.info('F2')
-    smartphone.on_f3 = lambda: logging.info('F3')
-    smartphone.on_f4 = lambda: logging.info('F4')
-    smartphone.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
-    smartphone.on_data = lambda data: logging.info(f'on_data: {data}')
-    smartphone.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
-    smartphone.on_device = lambda data: logging.info(f'on_device: {data}')
-    smartphone.on_devices = lambda data: logging.info(f'on_devices: {data}')
-    smartphone.on_acceleration = lambda data: logging.info(f'on_acceleration: {data}')
-    smartphone.on_gyro = lambda data: logging.info(f'on_gyro: {data}')
-    smartphone.on_sensor = lambda data: logging.info(f'on_sensor: {data}')
-    smartphone.on_room_joined = lambda data: logging.info(f'on_room_joined: {data}')
-    smartphone.on_room_left = lambda data: logging.info(f'on_room_left: {data}')
-    smartphone.on_pointer = lambda data: logging.info(f'on_pointer: {data}')
-    smartphone.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
-    smartphone.on_error = lambda data: logging.info(f'on_error: {data}')
+    phone.on_key = lambda data, c: logging.info(f'on_key: {data}, len: {len(c.all_data())}')
+    phone.on_f1 = lambda: logging.info('F1')
+    phone.on_f2 = lambda: logging.info('F2')
+    phone.on_f3 = lambda: logging.info('F3')
+    phone.on_f4 = lambda: logging.info('F4')
+    phone.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
+    phone.on_data = lambda data: logging.info(f'on_data: {data}')
+    phone.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
+    phone.on_device = lambda data: logging.info(f'on_device: {data}')
+    phone.on_devices = lambda data: logging.info(f'on_devices: {data}')
+    phone.on_acceleration = lambda data: logging.info(f'on_acceleration: {data}')
+    phone.on_gyro = lambda data: logging.info(f'on_gyro: {data}')
+    phone.on_sensor = lambda data: logging.info(f'on_sensor: {data}')
+    phone.on_room_joined = lambda data: logging.info(f'on_room_joined: {data}')
+    phone.on_room_left = lambda data: logging.info(f'on_room_left: {data}')
+    phone.on_pointer = lambda data: logging.info(f'on_pointer: {data}')
+    phone.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
+    phone.on_error = lambda data: logging.info(f'on_error: {data}')
 
     t0 = time_s()
     print('slleeeeop')
-    smartphone.sleep(2)
+    phone.sleep(2)
 
-    # response = smartphone.input('Name? ')
-    # smartphone.print(f'Name: {response} ')
-    # smartphone.notify('notify hiii', alert=True)
-    print(smartphone.joined_room_count)
-    print(smartphone.client_count)
-    print(smartphone.device_count)
+    # response = phone.input('Name? ')
+    # phone.print(f'Name: {response} ')
+    # phone.notify('notify hiii', alert=True)
+    print(phone.joined_room_count)
+    print(phone.client_count)
+    print(phone.device_count)
 
     print('\n')
-    print('data: ', smartphone.all_data())
-    print('data: ', smartphone.all_data(data_type='grid'))
-    print('latest data: ', smartphone.latest_data())
-    print('time_stamp', to_datetime(smartphone.latest_data()))
-    print('latest data: ', smartphone.latest_data(data_type='key'))
-    print('broadcast data: ', smartphone.all_broadcast_data())
-    print('broadcast data: ', smartphone.all_broadcast_data(data_type='grid'))
-    print('latest broadcast data: ', smartphone.latest_broadcast_data())
-    print('latest broadcast data: ', smartphone.latest_broadcast_data(data_type='key'))
-    print('cnt device', smartphone.device_count)
-    print('cnt room', smartphone.room_member_count)
-    print('cnt clients', smartphone.client_count)
-    print('cnt joined rooms', smartphone.joined_room_count)
-    print('pointer_data', smartphone.pointer_data())
-    print('data_list', smartphone.data_list)
-    print('color_pointer_data', smartphone.color_pointer_data())
-    print('grid_pointer_data', smartphone.grid_pointer_data())
-    print('gyro_data', smartphone.gyro_data())
-    print('acceleration_data', smartphone.acceleration_data())
-    print('key_data', smartphone.key_data())
-    print('latest_pointer', smartphone.latest_pointer())
-    print('latest_color_pointer', smartphone.latest_color_pointer())
-    print('latest_grid_pointer', smartphone.latest_grid_pointer())
-    print('latest_gyro', smartphone.latest_gyro())
-    print('latest_acceleration', smartphone.latest_acceleration())
-    print('latest_key', smartphone.latest_key())
+    print('data: ', phone.all_data())
+    print('data: ', phone.all_data(data_type='grid'))
+    print('latest data: ', phone.latest_data())
+    print('time_stamp', to_datetime(phone.latest_data()))
+    print('latest data: ', phone.latest_data(data_type='key'))
+    print('broadcast data: ', phone.all_broadcast_data())
+    print('broadcast data: ', phone.all_broadcast_data(data_type='grid'))
+    print('latest broadcast data: ', phone.latest_broadcast_data())
+    print('latest broadcast data: ', phone.latest_broadcast_data(data_type='key'))
+    print('cnt device', phone.device_count)
+    print('cnt room', phone.room_member_count)
+    print('cnt clients', phone.client_count)
+    print('cnt joined rooms', phone.joined_room_count)
+    print('pointer_data', phone.pointer_data())
+    print('data_list', phone.data_list)
+    print('color_pointer_data', phone.color_pointer_data())
+    print('grid_pointer_data', phone.grid_pointer_data())
+    print('gyro_data', phone.gyro_data())
+    print('acceleration_data', phone.acceleration_data())
+    print('key_data', phone.key_data())
+    print('latest_pointer', phone.latest_pointer())
+    print('latest_color_pointer', phone.latest_color_pointer())
+    print('latest_grid_pointer', phone.latest_grid_pointer())
+    print('latest_gyro', phone.latest_gyro())
+    print('latest_acceleration', phone.latest_acceleration())
+    print('latest_key', phone.latest_key())
 
-    # smartphone.sleep(2)
-    # smartphone.disconnect()
+    # phone.sleep(2)
+    # phone.disconnect()
