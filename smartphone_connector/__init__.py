@@ -951,6 +951,52 @@ class Connector:
             device_id=self.__last_sent_grid.device_id
         )
 
+    def set_image(self, image: List[str], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
+        '''
+        Parameters
+        ----------
+        image : List<str> a list containing strings build up with spaces or values between 0 and 9. When other characters
+                    are used, 9 (full color) is used instead
+
+        Optional
+        --------
+        base_color : Tuple[r, g, b] representing the base rgb color 0-255
+
+        device_id : str control the device with this id
+
+        unicast_to : int control the device with the given number
+
+        broadcast : bool wheter to send this message to all connected devices
+
+
+        Example
+        -------
+        write HELLO
+        ```py
+        image = [
+            '9  9 9999 9     9     99999',
+            '9  9 9    9     9     9   9',
+            '9999 9999 9     9     9   9',
+            '9  9 9    9     9     9   9',
+            '9  9 9999 99999 99999 99999'
+        ]
+        phone.set_image(image)
+        ```
+        '''
+        grid = []
+        for char_row in image:
+            row = []
+            for char in char_row:
+                try:
+                    row.append(int(char))
+                except ValueError:
+                    if char == ' ':
+                        row.append(0)
+                    else:
+                        row.append(9)
+            grid.append(row)
+        return self.set_grid(grid, device_id=device_id, unicast_to=unicast_to, broadcast=broadcast, base_color=base_color)
+
     def set_grid(self, grid: Union[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
         '''
         Parameters
@@ -1325,6 +1371,17 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     # phone = Connector('http://localhost:5000', 'FooBar')
     phone = Connector('https://io.lebalz.ch', 'FooBar')
+
+    image = [
+        '9  9 9999 9     9     99999',
+        '9  9 9    9     9     9   9',
+        '9999 9999 9     9     9   9',
+        '9  9 9    9     9     9   9',
+        '9  9 9999 99999 99999 99999'
+    ]
+
+    phone.set_image(image, base_color=(255, 255, 0))
+    phone.sleep(5)
     phone.set_grid(
         [[0]], base_color=(255, 255, 0)
     )

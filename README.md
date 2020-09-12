@@ -193,6 +193,17 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `latest_data(data_type: str = None, device_id: str = None) -> DataMsg | None` returns the latest data (last received) with the given type and from the given device_id.
 - `set_grid(grid, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sends a `new_data` event with the given grid. the grid can be either a `1D` or `2D` array containing css colors.
 - `set_grid_at(row: int, column: int, color: str | int | rgb | rgba)` sets the color at the given position. The same props are used as on the last set_grid call (base_color etc...).
+- `set_image(image, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sends a string image to the phone. Transforms the provided image to a grid and uses internally `set_grid`. So subsequent calls to `set_grid_at` are valid.
+  ```py
+  image = [
+      '9  9 9999 9     9     99999',
+      '9  9 9    9     9     9   9',
+      '9999 9999 9     9     9   9',
+      '9  9 9    9     9     9   9',
+      '9  9 9999 99999 99999 99999'
+  ]
+  phone.set_image(image)
+  ```
 - `set_color(color: str, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sets the color of the color panel
 - `disconnect()`
 - `sleep(seconds=0)`
