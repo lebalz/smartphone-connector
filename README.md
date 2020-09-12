@@ -142,6 +142,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `room_member_count` count of other clients/scripts connected to this room. All these clients will receive the events of this room too.
 - `client_device` the first found device connected over a webbrowser with the same `device_id`
 - `client_devices` all devices connected over a webbrowser to the server
+- `get_grid` returns the last sent grid
 
 ## Methods
 
@@ -191,6 +192,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `all_data(data_type: str = None, device_id: str = None) -> List[DataMsg]` returns all data with the given type and from the given device_id.
 - `latest_data(data_type: str = None, device_id: str = None) -> DataMsg | None` returns the latest data (last received) with the given type and from the given device_id.
 - `set_grid(grid, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sends a `new_data` event with the given grid. the grid can be either a `1D` or `2D` array containing css colors.
+- `set_grid_at(row: int, column: int, color: str | int | rgb | rgba)` sets the color at the given position. The same props are used as on the last set_grid call (base_color etc...).
 - `set_color(color: str, device_id: str = None, device_nr: int = None, broadcast: bool = False)` sets the color of the color panel
 - `disconnect()`
 - `sleep(seconds=0)`

@@ -8,6 +8,7 @@ from inspect import signature
 from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar, Tuple
 import threading
 from copy import deepcopy
+from itertools import repeat
 
 
 Any = object()
@@ -291,6 +292,15 @@ class AlertConfirmMsg(DataMsg):
     displayed_at: float
 
 
+class GridMsg(DataMsg):
+    grid: Union[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]],
+                List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]]
+    unicast_to: Union[int, None]
+    device_id: Union[str, None]
+    broadcast: Union[bool, None]
+    base_color: Tuple[R, G, B]
+
+
 def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
@@ -412,6 +422,13 @@ class Connector:
     joined_rooms: List[str]
     __main_thread_blocked: bool = False
     __blocked_data_msgs: List[DataMsg] = []
+    __last_sent_grid: GridMsg = DictX({
+        'grid': [[]],
+        'unicast_to': None,
+        'device_id': None,
+        'broadcast': False,
+        'base_color': (255, 0, 0)
+    })
 
     # callback functions
 
@@ -482,7 +499,7 @@ class Connector:
     def client_device(self):
         return first(lambda device: device['is_client'] and device['device_id'] == self.device_id, self.devices)
 
-    def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False, unicast_to: int = None):
+    def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False, unicast_to: int = None, device_id: str = None):
         '''
         Parameters
         ----------
@@ -504,7 +521,7 @@ class Connector:
             data['time_stamp'] = self.current_time_stamp
 
         if 'device_id' not in data:
-            data['device_id'] = self.device_id
+            data['device_id'] = device_id or self.device_id
 
         if broadcast:
             data['broadcast'] = True
@@ -901,6 +918,39 @@ class Connector:
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
         return self.latest_data('key', device_id=device_id)
 
+    @property
+    def get_grid(self) -> List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]:
+        grid = self.__last_sent_grid.grid
+        is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
+        if is_2d:
+            return deepcopy(grid)
+        return [deepcopy(grid)]
+
+    def set_grid_at(self, row: int, column: int, color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]):
+        '''
+        sets the color of the current grid at the given row and column
+        '''
+        grid = self.get_grid
+
+        rows = len(grid)
+        if rows == 0:
+            grid = [[]]
+
+        while len(grid[0]) <= column:
+            for col in grid:
+                col.append(0)
+        while len(grid) <= row:
+            grid.append(list(repeat(0, len(grid[0]))))
+
+        grid[row][column] = color
+        return self.set_grid(
+            grid,
+            base_color=self.__last_sent_grid.base_color,
+            broadcast=self.__last_sent_grid.broadcast,
+            unicast_to=self.__last_sent_grid.unicast_to,
+            device_id=self.__last_sent_grid.device_id
+        )
+
     def set_grid(self, grid: Union[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
         '''
         Parameters
@@ -928,20 +978,33 @@ class Connector:
         ])
         ```
         '''
+        raw_grid = grid
         is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
         if is_2d:
             grid = list(map(lambda row: list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color), row)), grid))
         elif len(grid) > 0:
             grid = list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color), grid))
 
+        grid_msg = {
+            'type': 'grid',
+            'grid': grid,
+            'time_stamp': self.current_time_stamp
+        }
+        self.__last_sent_grid = DictX({
+            **grid_msg,
+            'grid': raw_grid,
+            'base_color': base_color,
+            'broadcast': broadcast,
+            'unicast_to': unicast_to,
+            'device_id': device_id
+
+        })
         self.emit(
             ADD_NEW_DATA,
-            {
-                'type': 'grid',
-                'grid': grid
-            },
+            grid_msg,
             broadcast=broadcast,
-            unicast_to=unicast_to
+            unicast_to=unicast_to,
+            device_id=device_id
         )
 
     def set_color(self, color: Union[str, Tuple[R, G, B], Tuple[R, G, B, HUE]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
@@ -979,7 +1042,8 @@ class Connector:
                 'color': color
             },
             broadcast=broadcast,
-            unicast_to=unicast_to
+            unicast_to=unicast_to,
+            device_id=device_id
         )
 
     def set_device_nr(self, new_device_nr: int, device_id: str = None, current_device_nr: int = None, max_wait: float = 5) -> bool:
@@ -1261,14 +1325,20 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     # phone = Connector('http://localhost:5000', 'FooBar')
     phone = Connector('https://io.lebalz.ch', 'FooBar')
-    phone.set_color('red')
+    phone.set_grid(
+        [[0]]
+    )
+    grid = []
+    for i in range(100):
+        row = []
+        for j in range(100):
+            row.append((j + i) // 20)
+        grid.append(row)
+    phone.set_grid(grid)
+    phone.sleep()
+    phone.set_grid_at(5, 5, 'red')
     phone.sleep(1)
-    phone.set_color([0, 255, 0])
-    phone.sleep(1)
-    phone.set_color((255, 0, 0))
-    phone.sleep(1)
-
-    phone.sleep(10)
+    phone.set_grid_at(2, 5, 'red')
     t0 = time_s()
 
     # Screen().tracer(0, 0)
