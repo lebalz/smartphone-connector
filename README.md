@@ -111,9 +111,9 @@ when a function is assigned to one of the following props, this function will be
 e.g.
 
 ```py
-smartphone = Connector('https://io.lebalz.ch')
-smartphone.on_key = lambda data: print('on key', data)
-smartphone.on_key = lambda data, conn: print('on key', data, 'data pakages', len(conn.all_data()))
+phone = Connector('https://io.lebalz.ch')
+phone.on_key = lambda data: print('on key', data)
+phone.on_key = lambda data, conn: print('on key', data, 'data pakages', len(conn.all_data()))
 ```
 
 will print each received key
@@ -170,16 +170,16 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
   e.g.
 
   ```py
-  smartphone.broadcast({'type': 'grid', 'grid': ['red']})
-  smartphone.broadcast({'type': 'color', 'color': 'red'})
+  phone.broadcast({'type': 'grid', 'grid': ['red']})
+  phone.broadcast({'type': 'color', 'color': 'red'})
   ```
 
 - `unicast_to(data: {'type': str}, device_nr: int)` unicast's a `new_data` event to the specified device. The data must contain at least the field `type`.
   e.g.
 
   ```py
-  smartphone.unicast({'type': 'grid', 'grid': ['red']}, 2)
-  smartphone.unicast({'type': 'color', 'color': 'red'}, 1)
+  phone.unicast({'type': 'grid', 'grid': ['red']}, 2)
+  phone.unicast({'type': 'color', 'color': 'red'}, 1)
   ```
 
 - `subscribe_async(callback, interval)` notifys the subscriber after each interval with the current dataframe without blocking the main thread.
@@ -216,14 +216,23 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 
 ```py
 from smartphone_connecter import Connector
-smartphone = Connector('https://io.lebalz.ch', 'FooBar')
+phone = Connector('https://io.lebalz.ch', 'FooBar')
 
 # draw a 3x3 checker board
-smartphone.set_grid([
+phone.set_grid([
     ['black','white','black'],
     ['white','black','white'],
     ['black','white','black']
 ], broadcast=True)
+
+# print the letter A
+phone.set_grid([
+  [9,9,9,9],
+  [9,0,0,9],
+  [9,9,9,9],
+  [9,0,0,9],
+  [9,0,0,9],
+])
 ```
 
 results on all devices in the following screen.
