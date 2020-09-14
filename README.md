@@ -228,7 +228,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 ## Example
 
 ```py
-from smartphone_connecter import Connector
+from smartphone_connector import Connector
 phone = Connector('https://io.lebalz.ch', 'FooBar')
 
 # draw a 3x3 checker board
