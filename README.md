@@ -284,7 +284,7 @@ while True:
 plt.show()
 ```
 Displays gyroscope data from the smartphone on a Matplotlib-Plot.
-
+![checker board](gyroscope.png)
 
 ## Package and upload to pip
 
