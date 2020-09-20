@@ -640,6 +640,8 @@ class Connector:
         --------
         options: List[str]
             required when input_type is 'select' - a list with the selection-options
+            options can be a numpy array too (or any other object implementing `tolist() -> List[List[]]`)
+
         unicast_to : int
             the device number to which this message is sent exclusively.
 
@@ -659,6 +661,7 @@ class Connector:
             what should the user be prompted for?
         options: List[str]
             a list with the options a user can select
+            options can be a numpy array too (or any other object implementing `tolist() -> List[List[]]`)
 
         Optional
         --------
@@ -687,6 +690,8 @@ class Connector:
         --------
         options: List[str]
             required when input_type is 'select' - a list with the selection-options
+            options can be a numpy array too (or any other object implementing `tolist() -> List[List[]]`)
+
         unicast_to : int
             the device number to which this message is sent exclusively.
 
@@ -697,6 +702,9 @@ class Connector:
             When the user canceled the prompt, None is returned 
         '''
         ts = self.current_time_stamp
+
+        if callable(getattr(options, 'tolist', None)):
+            options = options.tolist()
 
         if input_type == 'datetime':
             input_type = 'datetime-local'
@@ -1002,7 +1010,9 @@ class Connector:
         Parameters
         ----------
         grid : List<List<str>> a 2d array containing the color of each cell, an rgb, rgba tuple or an integer between 0 and 9
-                representing the brightness of the base color 
+                representing the brightness of the base color
+
+                grid can be a numpy array too (or any other object implementing `tolist() -> List[List[]]`)
 
         Optional
         --------
@@ -1024,6 +1034,9 @@ class Connector:
         ])
         ```
         '''
+        if callable(getattr(grid, 'tolist', None)):
+            grid = grid.tolist()
+
         raw_grid = grid
         is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
         if is_2d:
@@ -1369,8 +1382,9 @@ class Connector:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    # phone = Connector('http://localhost:5000', 'FooBar')
-    phone = Connector('https://io.lebalz.ch', 'FooBar')
+    phone = Connector('http://localhost:5000', 'FooBar')
+    # phone = Connector('https://io.lebalz.ch', 'FooBar')
+    response = phone.input("Hallo")
 
     image = [
         '9  9 9999 9     9     99999',
