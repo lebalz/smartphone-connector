@@ -257,34 +257,36 @@ When `broadcast` is set to `False` (default), only the `FooBar` devices display 
 
 ### Stream & display gyroscope data
 ```py
-from smartphone_connector import Connector
+from smartphone_connector import Connector, GyroMsg
 import matplotlib.pyplot as plt
-import time
-phone = Connector('https://io.lebalz.ch', 'FooBar')
+phone = Connector('https://io.gsbl.website', 'FooBar')
+MAX_SAMPLES = 300
 
-phone.subscribe_async(phone.on_sensor, 1)
-y = [[0, 0, 0]]
-x = [time.time()]
-maxsamples = 300
-while True:
-    time.sleep(0.1)
-    accels = phone.gyro_data()
-    phone.clean_data()
-    for accel in accels:
-        if len(x) > maxsamples:
-            del y[0]
-            del x[0]
-        if accel.time_stamp > x[-1]: # avoid spikes in graph
-            x.append(accel.time_stamp)
-            y.append([accel.alpha, accel.beta, accel.gamma])
+y = []
+x = []
+plt.show()
+
+
+def on_gyro(data: GyroMsg):
+    if len(x) > MAX_SAMPLES:
+        x.pop(0)
+        y.pop(0)
+
+    x.append(data.time_stamp)
+    y.append([data.alpha, data.beta, data.gamma])
+
+
+def on_intervall():
     plt.clf()
     plt.plot(x, y)
     plt.pause(0.01)
 
-plt.show()
+
+phone.on_gyro = on_gyro
+phone.subscribe(on_intervall, interval=0)
 ```
 Displays gyroscope data from the smartphone on a Matplotlib-Plot.
-![checker board](gyroscope.png)
+![Gyroscope-Plot](gyroscope.png)
 
 ## Package and upload to pip
 
