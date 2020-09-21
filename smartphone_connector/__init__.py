@@ -135,7 +135,7 @@ class BaseSendMsg(DictX):
 
 
 class DataMsg(BaseMsg):
-    type: Literal['key', 'acceleration', 'gyro', 'pointer', 'notification']
+    type: Literal['key', 'acceleration', 'gyro', 'pointer', 'notification', 'sprite_collision', 'sprite_out']
 
 
 class KeyMsg(DataMsg):
@@ -301,6 +301,49 @@ class GridMsg(DataMsg):
     base_color: Tuple[R, G, B]
 
 
+class PlaygroundConfiguration:
+    unicast_to: Optional[Union[int, None]]
+    device_id: Optional[Union[str, None]]
+    broadcast: Optional[Union[bool, None]]
+    width: Optional[int]
+    height: Optional[int]
+    shift_x: Optional[int]
+    shift_y: Optional[int]
+
+
+class Sprite(DataMsg):
+    id: str
+    pos_x: int
+    pos_y: int
+    width: int
+    height: int
+    form: Literal['round', 'rectangle']
+    color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]
+    movement: Literal['controlled', 'uncontrolled']
+
+
+class UpdateSprite(DataMsg):
+    pos_x: int
+    pos_y: int
+    width: int
+    height: int
+    form: Literal['round', 'rectangle']
+    color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]
+
+
+class SpriteCollision(DataMsg):
+    type: Literal['sprite_collision']
+    sprite_ids: Tuple[str, str]
+    time_stamp: float
+    overlap: Literal['in', 'out']
+
+
+class SpriteOut(DataMsg):
+    type: Literal['sprite_out']
+    sprite_id: str
+    time_stamp: float
+
+
 def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
@@ -430,6 +473,8 @@ class Connector:
         'base_color': (255, 0, 0)
     })
 
+    __sprites: List[Sprite] = []
+
     # callback functions
 
     on_key: Callable[[Any, KeyMsg, Optional[Connector]], None] = None
@@ -451,6 +496,9 @@ class Connector:
     on_error: Callable[[Any, ErrorMsg, Optional[Connector]], None] = None
     on_room_joined: Callable[[Any, DeviceJoinedMsg, Optional[Connector]], None] = None
     on_room_left: Callable[[Any, DeviceLeftMsg, Optional[Connector]], None] = None
+
+    on_sprite_out: Callable[[Any, SpriteOut, Optional[Connector]], None] = None
+    on_sprite_collision: Callable[[Any, SpriteCollision, Optional[Connector]], None] = None
     __on_notify_subscribers: Callable[[DataFrame, Optional[Connector]], None] = None
     __subscription_job: Union[ThreadJob, CancleSubscription] = None
 
@@ -926,6 +974,56 @@ class Connector:
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
         return self.latest_data('key', device_id=device_id)
 
+    def configure_playground(self, configuration: PlaygroundConfiguration, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+        configuration['type'] = 'playground_config'
+        self.emit(ADD_NEW_DATA, configuration, unicast_to=unicast_to, broadcast=broadcast, device_id=device_id)
+
+    def add_sprites(self, sprites: List[Sprite], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+        self.__sprites.extend(map(lambda sprite: DictX(sprite), sprites))
+        self.emit(
+            ADD_NEW_DATA,
+            {
+                'type': 'sprites',
+                'sprites': sprites
+            },
+            broadcast=broadcast,
+            unicast_to=unicast_to,
+            device_id=device_id
+        )
+
+    def add_sprite(self, sprite: Sprite, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+        self.__sprites.append(DictX(sprite))
+        self.emit(
+            ADD_NEW_DATA,
+            {
+                'type': 'sprite',
+                'sprite': sprite
+            },
+            broadcast=broadcast,
+            unicast_to=unicast_to,
+            device_id=device_id
+        )
+
+    def update_sprite(self, id: str, update: UpdateSprite, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+        sprite = first(lambda s: s.id == id, self.__sprites)
+        if sprite:
+            sprite.update(update)
+        update.update({
+            'id': id,
+            'movement': 'controlled'
+        })
+
+        self.emit(
+            ADD_NEW_DATA,
+            {
+                'type': 'sprite',
+                'sprite': update
+            },
+            broadcast=broadcast,
+            unicast_to=unicast_to,
+            device_id=device_id
+        )
+
     @property
     def get_grid(self) -> List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]:
         grid = self.__last_sent_grid.grid
@@ -1310,6 +1408,15 @@ class Connector:
                 self.__responses.append(data)
             if data['type'] == 'alert_confirm':
                 self.__alerts.append(data)
+            if data['type'] == 'sprite_out':
+                data = DictX(data)
+                sprite = first(lambda s: s.id == data.sprite_id, self.__sprites)
+                if sprite:
+                    print('sprite out', sprite.id)
+                    del self.__sprites[self.__sprites.index(sprite)]
+                self.__callback('on_sprite_out', data)
+            if data['type'] == 'sprite_collision':
+                self.__callback('on_sprite_collision', data)
 
         if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
             self.__callback('on_broadcast_data', data)
@@ -1383,6 +1490,51 @@ class Connector:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     phone = Connector('http://localhost:5000', 'FooBar')
+
+    phone.configure_playground({
+        'width': 200,
+        'height': 100
+    })
+
+    phone.add_sprites([
+        {
+            'color': 'red',
+            'direction': [1, 1],
+            'form': 'round',
+            'height': 5,
+            'width': 5,
+            'id': 'asdfa1',
+            'movement': 'uncontrolled',
+            'pos_x': 0,
+            'pos_y': 0,
+            'speed': 2
+        },
+        {
+            'color': 'blue',
+            'direction': [1, 1],
+            'form': 'round',
+            'height': 5,
+            'width': 5,
+            'id': 'asdfa1',
+            'movement': 'uncontrolled',
+            'pos_x': 0,
+            'pos_y': 0,
+            'speed': 1
+        },
+        {
+            'color': 'green',
+            'direction': [1, 1],
+            'form': 'round',
+            'height': 5,
+            'width': 5,
+            'id': 'asdfa1',
+            'movement': 'uncontrolled',
+            'pos_x': 0,
+            'pos_y': 0,
+            'speed': 0.5
+        }
+    ])
+
     # phone = Connector('https://io.lebalz.ch', 'FooBar')
     response = phone.input("Hallo")
 
