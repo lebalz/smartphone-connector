@@ -1024,10 +1024,32 @@ class Connector:
             device_id=device_id
         )
 
+    @property
+    def get_grid(self) -> List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]:
+        grid = self.__last_sent_grid.grid
+        is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
+        if is_2d:
+            return deepcopy(grid)
+        return [deepcopy(grid)]
+
     def set_grid_at(self, row: int, column: int, color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Union[str, Tuple[int, int, int]]] = None):
         '''
         sets the color of the current grid at the given row and column
         '''
+        grid = self.get_grid
+
+        rows = len(grid)
+        if rows == 0:
+            grid = [[]]
+
+        while len(grid[0]) <= column:
+            for col in grid:
+                col.append(0)
+        while len(grid) <= row:
+            grid.append(list(repeat(0, len(grid[0]))))
+
+        grid[row][column] = color
+        self.__last_sent_grid.grid = grid
 
         grid_msg = {
             'type': 'grid_update',
@@ -1082,6 +1104,48 @@ class Connector:
     def reset_grid(self, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         self.set_grid([['white']], device_id=device_id, unicast_to=unicast_to, broadcast=broadcast)
 
+    def __set_local_grid(self, grid):
+        raw_grid = deepcopy(grid)
+        is_str = type(raw_grid) == str
+        if is_str:
+            raw_grid = list(
+                map(
+                    lambda line: line.strip(),
+                    list(
+                        filter(
+                            lambda l: len(l.strip()) > 0,
+                            raw_grid.splitlines(False)
+                        )
+                    )
+                )
+            )
+        if len(raw_grid) < 1:
+            return
+        if type(raw_grid[0]) == str:
+            for i in range(len(raw_grid)):
+                raw_grid[i] = [*raw_grid[i]]
+
+        is_2d = len(raw_grid) > 0 and type(raw_grid[0]) != str and hasattr(raw_grid[0], "__getitem__")
+        if is_2d:
+            self.__last_sent_grid.grid = list(
+                map(
+                    lambda row: list(
+                        map(
+                            lambda raw_color: to_css_color(raw_color),
+                            row
+                        )
+                    ),
+                    raw_grid
+                )
+            )
+        elif len(raw_grid) > 0:
+            self.__last_sent_grid.grid = list(
+                map(
+                    lambda raw_color: to_css_color(raw_color),
+                    raw_grid
+                )
+            )
+
     def set_grid(self, grid: Union[str, List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
         '''
         Parameters
@@ -1113,6 +1177,8 @@ class Connector:
         '''
         if callable(getattr(grid, 'tolist', None)):
             grid = grid.tolist()
+
+        self.__set_local_grid(grid)
 
         grid_msg = {
             'type': 'grid',

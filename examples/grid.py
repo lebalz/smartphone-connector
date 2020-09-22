@@ -26,6 +26,10 @@ device.set_grid(
     base_color='red'
 )
 device.sleep(1)
+print(device.get_grid)
+device.set_grid_at(0, 0, 'red')
+print(device.get_grid)
+
 device.set_grid(
     [
         '99999999999999',
