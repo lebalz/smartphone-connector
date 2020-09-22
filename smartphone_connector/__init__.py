@@ -1131,7 +1131,7 @@ class Connector:
                 map(
                     lambda row: list(
                         map(
-                            lambda raw_color: to_css_color(raw_color),
+                            lambda raw_color: raw_color,
                             row
                         )
                     ),
@@ -1141,7 +1141,7 @@ class Connector:
         elif len(raw_grid) > 0:
             self.__last_sent_grid.grid = list(
                 map(
-                    lambda raw_color: to_css_color(raw_color),
+                    lambda raw_color: raw_color,
                     raw_grid
                 )
             )
