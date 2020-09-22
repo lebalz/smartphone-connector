@@ -1024,40 +1024,28 @@ class Connector:
             device_id=device_id
         )
 
-    @property
-    def get_grid(self) -> List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]:
-        grid = self.__last_sent_grid.grid
-        is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
-        if is_2d:
-            return deepcopy(grid)
-        return [deepcopy(grid)]
-
-    def set_grid_at(self, row: int, column: int, color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]):
+    def set_grid_at(self, row: int, column: int, color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Union[str, Tuple[int, int, int]]] = None):
         '''
         sets the color of the current grid at the given row and column
         '''
-        grid = self.get_grid
 
-        rows = len(grid)
-        if rows == 0:
-            grid = [[]]
-
-        while len(grid[0]) <= column:
-            for col in grid:
-                col.append(0)
-        while len(grid) <= row:
-            grid.append(list(repeat(0, len(grid[0]))))
-
-        grid[row][column] = color
-        return self.set_grid(
-            grid,
-            base_color=self.__last_sent_grid.base_color,
-            broadcast=self.__last_sent_grid.broadcast,
-            unicast_to=self.__last_sent_grid.unicast_to,
-            device_id=self.__last_sent_grid.device_id
+        grid_msg = {
+            'type': 'grid_update',
+            'row': row,
+            'column': column,
+            'color': color,
+            'base_color': base_color,
+            'time_stamp': self.current_time_stamp
+        }
+        self.emit(
+            ADD_NEW_DATA,
+            grid_msg,
+            broadcast=broadcast,
+            unicast_to=unicast_to,
+            device_id=device_id
         )
 
-    def set_image(self, image: List[str], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
+    def set_image(self, image: Union[List[str], str], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Union[Tuple[int, int, int], str]] = None):
         '''
         Parameters
         ----------
@@ -1089,21 +1077,9 @@ class Connector:
         phone.set_image(image)
         ```
         '''
-        grid = []
-        for char_row in image:
-            row = []
-            for char in char_row:
-                try:
-                    row.append(int(char))
-                except ValueError:
-                    if char == ' ':
-                        row.append(0)
-                    else:
-                        row.append(9)
-            grid.append(row)
-        return self.set_grid(grid, device_id=device_id, unicast_to=unicast_to, broadcast=broadcast, base_color=base_color)
+        return self.set_grid(image, device_id=device_id, unicast_to=unicast_to, broadcast=broadcast, base_color=base_color)
 
-    def set_grid(self, grid: Union[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
+    def set_grid(self, grid: Union[str, List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
         '''
         Parameters
         ----------
@@ -1135,27 +1111,12 @@ class Connector:
         if callable(getattr(grid, 'tolist', None)):
             grid = grid.tolist()
 
-        raw_grid = grid
-        is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
-        if is_2d:
-            grid = list(map(lambda row: list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color), row)), grid))
-        elif len(grid) > 0:
-            grid = list(map(lambda raw_color: to_css_color(raw_color, base_color=base_color), grid))
-
         grid_msg = {
             'type': 'grid',
             'grid': grid,
+            'base_color': base_color,
             'time_stamp': self.current_time_stamp
         }
-        self.__last_sent_grid = DictX({
-            **grid_msg,
-            'grid': raw_grid,
-            'base_color': base_color,
-            'broadcast': broadcast,
-            'unicast_to': unicast_to,
-            'device_id': device_id
-
-        })
         self.emit(
             ADD_NEW_DATA,
             grid_msg,
