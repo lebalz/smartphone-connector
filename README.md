@@ -259,7 +259,7 @@ When `broadcast` is set to `False` (default), only the `FooBar` devices display 
 ```py
 from smartphone_connector import Connector, GyroMsg
 import matplotlib.pyplot as plt
-phone = Connector('https://io.gsbl.website', 'FooBar')
+phone = Connector('https://io.lebalz.ch', 'FooBar')
 MAX_SAMPLES = 300
 
 y = []
