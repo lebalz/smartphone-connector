@@ -1079,6 +1079,9 @@ class Connector:
         '''
         return self.set_grid(image, device_id=device_id, unicast_to=unicast_to, broadcast=broadcast, base_color=base_color)
 
+    def reset_grid(self, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+        self.set_grid([['white']], device_id=device_id, unicast_to=unicast_to, broadcast=broadcast)
+
     def set_grid(self, grid: Union[str, List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
         '''
         Parameters
