@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from smartphone_connector import Connector, DictX, KeyMsg
 
 
-device = Connector('http://localhost:5000', 'FooBar')
+device = Connector('https://io.lebalz.ch', 'FooBar')
 player = DictX({
   'color': 'yellow',
   'form': 'round',
