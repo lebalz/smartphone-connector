@@ -225,10 +225,10 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `latest_key(device_id = '__ALL_DEVICES__')`
 - `set_device_nr(new_device_nr: int, device_id: str = None, current_device_nr: int = None, max_wait: float = 5)`
 
-## Example
-
+## Examples
+### Draw 3x3 checker board
 ```py
-from smartphone_connecter import Connector
+from smartphone_connector import Connector
 phone = Connector('https://io.lebalz.ch', 'FooBar')
 
 # draw a 3x3 checker board
@@ -254,7 +254,41 @@ When `broadcast` is set to `False` (default), only the `FooBar` devices display 
 
 ![checker board](checker_demo.png)
 
-### Package and upload to pip
+
+### Stream & display gyroscope data
+```py
+from smartphone_connector import Connector, GyroMsg
+import matplotlib.pyplot as plt
+phone = Connector('https://io.lebalz.ch', 'FooBar')
+MAX_SAMPLES = 300
+
+y = []
+x = []
+plt.show()
+
+
+def on_gyro(data: GyroMsg):
+    if len(x) > MAX_SAMPLES:
+        x.pop(0)
+        y.pop(0)
+
+    x.append(data.time_stamp)
+    y.append([data.alpha, data.beta, data.gamma])
+
+
+def on_intervall():
+    plt.clf()
+    plt.plot(x, y)
+    plt.pause(0.01)
+
+
+phone.on_gyro = on_gyro
+phone.subscribe(on_intervall, interval=0)
+```
+Displays gyroscope data from the smartphone on a Matplotlib-Plot.
+![Gyroscope-Plot](gyroscope.png)
+
+## Package and upload to pip
 
 @see [this tutorial](https://packaging.python.org/tutorials/packaging-projects/)
 
