@@ -5,54 +5,63 @@ import time
 from datetime import datetime
 import random
 from inspect import signature
-from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar, Tuple
+from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar, Tuple, Any, Final
 import threading
 from copy import deepcopy
 from itertools import repeat
+from dataclasses import dataclass
 
 
-Any = object()
+class SocketEvents:
+    DEVICE: Final = 'device'
+    DEVICES: Final = 'devices'
+    ALL_DATA: Final = 'all_data'
+    ADD_NEW_DATA: Final = 'new_data'
+    NEW_DATA: Final = 'new_data'
+    CLEAR_DATA: Final = 'clear_data'
+    NEW_DEVICE: Final = 'new_device'
+    GET_ALL_DATA: Final = 'get_all_data'
+    GET_DEVICES: Final = 'get_devices'
+    JOIN_ROOM: Final = 'join_room'
+    LEAVE_ROOM: Final = 'leave_room'
+    ROOM_LEFT: Final = 'room_left'
+    ROOM_JOINED: Final = 'room_joined'
+    ERROR_MSG: Final = 'error_msg'
+    INFORMATION_MSG: Final = 'information_msg'
+    SET_NEW_DEVICE_NR: Final = 'set_new_device_nr'
 
-DEVICE = 'device'
-DEVICES = 'devices'
-ALL_DATA = 'all_data'
-ADD_NEW_DATA = 'new_data'
-NEW_DATA = 'new_data'
-CLEAR_DATA = 'clear_data'
-NEW_DEVICE = 'new_device'
-GET_ALL_DATA = 'get_all_data'
-GET_DEVICES = 'get_devices'
-JOIN_ROOM = 'join_room'
-LEAVE_ROOM = 'leave_room'
-ROOM_LEFT = 'room_left'
-ROOM_JOINED = 'room_joined'
-ERROR_MSG = 'error_msg'
-INFORMATION_MSG = 'information_msg'
-SET_NEW_DEVICE_NR = 'set_new_device_nr'
 
-INPUT_PROMPT = 'input_prompt'
-NOTIFICATION = 'notification'
+SocketEvents.ADD_NEW_DATA = 12
 
-EVENTS = Union[
-    DEVICE,
-    DEVICES,
-    ALL_DATA,
-    ADD_NEW_DATA,
-    NEW_DATA,
-    CLEAR_DATA,
-    NEW_DEVICE,
-    GET_ALL_DATA,
-    GET_DEVICES,
-    JOIN_ROOM,
-    LEAVE_ROOM,
-    ROOM_LEFT,
-    ROOM_JOINED,
-    ERROR_MSG,
-    INFORMATION_MSG,
-    SET_NEW_DEVICE_NR
-]
 
-INPUT_TYPE = Literal['text', 'number', 'datetime', 'date', 'time', 'select']
+class DataType:
+    KEY: Final = 'key'
+    GRID: Final = 'grid'
+    GRIDUPDATE: Final = 'grid_update'
+    COLOR: Final = 'color'
+    ACCELERATION: Final = 'acceleration'
+    GYRO: Final = 'gyro'
+    POINTER: Final = 'pointer'
+    NOTIFICATION: Final = 'notification'
+    INPUTPROMPT: Final = 'input_prompt'
+    INPUTRESPONSE: Final = 'input_response'
+    UNKNOWN: Final = 'unknown'
+    ALLDATA: Final = 'all_data'
+    ALERTCONFIRM: Final = 'alert_confirm'
+    SPRITE: Final = 'sprite'
+    SPRITES: Final = 'sprites'
+    SPRITECOLLISION: Final = 'sprite_collision'
+    SPRITEOUT: Final = 'sprite_out'
+    PLAYGROUNDCONFIG: Final = 'playground_config'
+
+
+class INPUT_TYPE:
+    TEXT: Final = 'text'
+    NUMBER: Final = 'number'
+    DATETIME: Final = 'datetime'
+    DATE: Final = 'date'
+    TIME: Final = 'time'
+    SELECT: Final = 'select'
 
 
 def time_s() -> float:
@@ -271,7 +280,7 @@ class DataFrame(DictX):
 
 
 class ErrorMsg(BaseMsg):
-    type: EVENTS
+    type: SocketEvents
     msg: str
     err: Union[str, dict]
 
