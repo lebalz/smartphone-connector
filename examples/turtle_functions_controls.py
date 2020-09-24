@@ -4,9 +4,9 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import Connector
-from smartphone_connector.api_types import KeyMsg
+from smartphone_connector.types import KeyMsg
 
-phone = Connector("https://io.lebalz.ch", "FooBar")
+device = Connector("https://io.lebalz.ch", "FooBar")
 
 turtle.home()
 
@@ -55,10 +55,10 @@ def on_key(key: KeyMsg):
             turtle.pendown()
 
 
-phone.on_f1 = on_f1
-phone.on_f2 = on_f2
-phone.on_f3 = on_f3
-phone.on_f4 = on_f4
-phone.on_key = on_key
+device.on_f1 = on_f1
+device.on_f2 = on_f2
+device.on_f3 = on_f3
+device.on_f4 = on_f4
+device.on_key = on_key
 
 turtle.Screen().mainloop()

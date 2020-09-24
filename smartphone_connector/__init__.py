@@ -1,471 +1,72 @@
 from __future__ import annotations
-import socketio
 import logging
-import time
-from datetime import datetime
-import random
+from build.lib.smartphone_connector import PlaygroundConfiguration
+from .timings import CancleSubscription, ThreadJob
+from .helpers import *
+import socketio
 from inspect import signature
-from typing import Union, Literal, Callable, List, Dict, Optional, TypeVar, Tuple, Any, Final
-import threading
+from typing import overload, cast, Any, Union, Literal, Callable, List, Optional, Tuple, Any, Final
 from copy import deepcopy
 from itertools import repeat
 from dataclasses import dataclass
+from .types import *
 
 
 class SocketEvents:
-    DEVICE: Final = 'device'
-    DEVICES: Final = 'devices'
-    ALL_DATA: Final = 'all_data'
-    ADD_NEW_DATA: Final = 'new_data'
-    NEW_DATA: Final = 'new_data'
-    CLEAR_DATA: Final = 'clear_data'
-    NEW_DEVICE: Final = 'new_device'
-    GET_ALL_DATA: Final = 'get_all_data'
-    GET_DEVICES: Final = 'get_devices'
-    JOIN_ROOM: Final = 'join_room'
-    LEAVE_ROOM: Final = 'leave_room'
-    ROOM_LEFT: Final = 'room_left'
-    ROOM_JOINED: Final = 'room_joined'
-    ERROR_MSG: Final = 'error_msg'
-    INFORMATION_MSG: Final = 'information_msg'
-    SET_NEW_DEVICE_NR: Final = 'set_new_device_nr'
-
-
-SocketEvents.ADD_NEW_DATA = 12
+    DEVICE: Final[str] = 'device'
+    DEVICES: Final[str] = 'devices'
+    ALL_DATA: Final[str] = 'all_data'
+    ADD_NEW_DATA: Final[str] = 'new_data'
+    NEW_DATA: Final[str] = 'new_data'
+    CLEAR_DATA: Final[str] = 'clear_data'
+    NEW_DEVICE: Final[str] = 'new_device'
+    GET_ALL_DATA: Final[str] = 'get_all_data'
+    GET_DEVICES: Final[str] = 'get_devices'
+    JOIN_ROOM: Final[str] = 'join_room'
+    LEAVE_ROOM: Final[str] = 'leave_room'
+    ROOM_LEFT: Final[str] = 'room_left'
+    ROOM_JOINED: Final[str] = 'room_joined'
+    ERROR_MSG: Final[str] = 'error_msg'
+    INFORMATION_MSG: Final[str] = 'information_msg'
+    SET_NEW_DEVICE_NR: Final[str] = 'set_new_device_nr'
 
 
 class DataType:
-    KEY: Final = 'key'
-    GRID: Final = 'grid'
-    GRIDUPDATE: Final = 'grid_update'
-    COLOR: Final = 'color'
-    ACCELERATION: Final = 'acceleration'
-    GYRO: Final = 'gyro'
-    POINTER: Final = 'pointer'
-    NOTIFICATION: Final = 'notification'
-    INPUTPROMPT: Final = 'input_prompt'
-    INPUTRESPONSE: Final = 'input_response'
-    UNKNOWN: Final = 'unknown'
-    ALLDATA: Final = 'all_data'
-    ALERTCONFIRM: Final = 'alert_confirm'
-    SPRITE: Final = 'sprite'
-    SPRITES: Final = 'sprites'
-    SPRITECOLLISION: Final = 'sprite_collision'
-    SPRITEOUT: Final = 'sprite_out'
-    PLAYGROUNDCONFIG: Final = 'playground_config'
+    KEY: Final[str] = 'key'
+    GRID: Final[str] = 'grid'
+    GRIDUPDATE: Final[str] = 'grid_update'
+    COLOR: Final[str] = 'color'
+    ACCELERATION: Final[str] = 'acceleration'
+    GYRO: Final[str] = 'gyro'
+    POINTER: Final[str] = 'pointer'
+    NOTIFICATION: Final[str] = 'notification'
+    INPUT_PROMPT: Final[str] = 'input_prompt'
+    INPUTRESPONSE: Final[str] = 'input_response'
+    UNKNOWN: Final[str] = 'unknown'
+    ALLDATA: Final[str] = 'all_data'
+    ALERTCONFIRM: Final[str] = 'alert_confirm'
+    SPRITE: Final[str] = 'sprite'
+    SPRITES: Final[str] = 'sprites'
+    SPRITECOLLISION: Final[str] = 'sprite_collision'
+    SPRITEOUT: Final[str] = 'sprite_out'
+    PLAYGROUNDCONFIG: Final[str] = 'playground_config'
 
 
 class INPUT_TYPE:
-    TEXT: Final = 'text'
-    NUMBER: Final = 'number'
-    DATETIME: Final = 'datetime'
-    DATE: Final = 'date'
-    TIME: Final = 'time'
-    SELECT: Final = 'select'
-
-
-def time_s() -> float:
-    '''
-    returns the current time in seconds since epoche
-    '''
-    return (time.time_ns() // 1000000) / 1000.0
-
-
-class DictX(dict):
-    '''
-    dict with the ability to access keys over dot notation,
-    e.g.
-
-    ```py
-    data = DictX({
-        "foo": "bar"
-    })
-
-    print(data.foo)     # use dot to get
-    data.foo = 'blaa'   # use dot to assign
-    del data.foo        # use dot to delete
-    ```
-    credits: https://dev.to/0xbf/use-dot-syntax-to-access-dictionary-key-python-tips-10ec
-    '''
-
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError as k:
-            raise AttributeError(k)
-
-    def __setattr__(self, key, value):
-        self[key] = value
-
-    def __delattr__(self, key):
-        try:
-            del self[key]
-        except KeyError as k:
-            raise AttributeError(k)
-
-    def __repr__(self):
-        return '<DictX ' + dict.__repr__(self) + '>'
-
-
-class TimeStampedMsg(DictX):
-    time_stamp: float
-
-
-class BaseMsg(TimeStampedMsg):
-    device_id: str
-    device_nr: int
-
-
-class Device(DictX):
-    device_id: str
-    is_client: bool
-    device_nr: int
-    socket_id: str
-
-
-class DevicesMsg(TimeStampedMsg):
-    devices: List[Device]
-
-
-class DeviceJoinedMsg(BaseMsg):
-    room: str
-    device: Device
-
-
-class DeviceLeftMsg(BaseMsg):
-    room: str
-    device: Device
-
-
-class BaseSendMsg(DictX):
-    device_id: Optional[str]
-    device_nr: Optional[int]
-    time_stamp: Optional[float]
-
-
-class DataMsg(BaseMsg):
-    type: Literal['key', 'acceleration', 'gyro', 'pointer', 'notification', 'sprite_collision', 'sprite_out']
-
-
-class KeyMsg(DataMsg):
-    type: Literal['key']
-    key: Literal['up', 'right', 'down', 'left', 'home', 'F1', 'F2', 'F3', 'F4']
-
-
-def default(type: Literal['key', 'acceleration', 'gyro', 'pointer', 'notification']):
-    if type == 'key':
-        return DictX({
-            'type': 'key',
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
-            'key': ''
-        })
-    if type == 'acceleration':
-        return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
-            'x': 0,
-            'y': 0,
-            'z': 0,
-            'interval': 16
-        })
-    if type == 'gyro':
-        return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
-            'alpha': 0,
-            'beta': 0,
-            'gamma': 0,
-            'absolute': False
-        })
-    if type == 'color_pointer':
-        return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
-            'type': 'pointer',
-            'context': 'color',
-            'x': 0,
-            'y': 0,
-            'width': -1,
-            'height': -1,
-            'displayed_at': 0
-        })
-    if type == 'grid_pointer':
-        return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
-            'type': 'pointer',
-            'context': 'grid',
-            'x': 0,
-            'y': 0,
-            'width': -1,
-            'height': -1,
-            'displayed_at': 0
-        })
-    return DictX({})
-
-
-class KeyMsgF1(KeyMsg):
-    key: Literal['F1']
-
-
-class KeyMsgF2(KeyMsg):
-    key: Literal['F2']
-
-
-class KeyMsgF3(KeyMsg):
-    key: Literal['F3']
-
-
-class KeyMsgF4(KeyMsg):
-    key: Literal['F4']
-
-
-class PointerData(BaseMsg):
-    context: Literal['color', 'grid']
-
-
-class ColorPointer(PointerData):
-    type: Literal['pointer']
-    context: Literal['color']
-    x: int
-    y: int
-    width: int
-    height: int
-    displayed_at: float
-
-
-class GridPointer(PointerData):
-    type: Literal['pointer']
-    context: Literal['grid']
-    row: int
-    column: int
-    color: str
-    displayed_at: float
-
-
-class Acc(BaseMsg):
-    x: float
-    y: float
-    z: float
-    interval: float
-
-
-class Gyro(BaseMsg):
-    alpha: float
-    beta: float
-    gamma: float
-    absolute: bool
-
-
-class AccMsg(Acc):
-    type: Literal['acceleration']
-
-
-class GyroMsg(Gyro):
-    type: Literal['gyro']
-
-
-class DataFrame(DictX):
-    key: KeyMsg
-    acceleration: AccMsg
-    gyro: GyroMsg
-    color_pointer: ColorPointer
-    grid_pointer: GridPointer
-
-
-class ErrorMsg(BaseMsg):
-    type: SocketEvents
-    msg: str
-    err: Union[str, dict]
-
-
-class InformationMsg(TimeStampedMsg):
-    message: str
-    action: BaseSendMsg
-
-
-class InputResponseMsg(DataMsg):
-    type: Literal['input_response']
-    response: str
-    displayed_at: float
-
-
-class AlertConfirmMsg(DataMsg):
-    type: Literal['alert_confirm']
-    displayed_at: float
-
-
-class GridMsg(DataMsg):
-    grid: Union[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]],
-                List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]]
-    unicast_to: Union[int, None]
-    device_id: Union[str, None]
-    broadcast: Union[bool, None]
-    base_color: Tuple[R, G, B]
-
-
-class PlaygroundConfiguration:
-    unicast_to: Optional[Union[int, None]]
-    device_id: Optional[Union[str, None]]
-    broadcast: Optional[Union[bool, None]]
-    width: Optional[int]
-    height: Optional[int]
-    shift_x: Optional[int]
-    shift_y: Optional[int]
-
-
-class Sprite(DataMsg):
-    id: str
-    pos_x: int
-    pos_y: int
-    width: int
-    height: int
-    form: Literal['round', 'rectangle']
-    color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]
-    movement: Literal['controlled', 'uncontrolled']
-
-
-class UpdateSprite(DataMsg):
-    pos_x: int
-    pos_y: int
-    width: int
-    height: int
-    form: Literal['round', 'rectangle']
-    color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]
-
-
-class SpriteCollision(DataMsg):
-    type: Literal['sprite_collision']
-    sprite_ids: Tuple[str, str]
-    time_stamp: float
-    overlap: Literal['in', 'out']
-
-
-class SpriteOut(DataMsg):
-    type: Literal['sprite_out']
-    sprite_id: str
-    time_stamp: float
-
-
-def flatten(list_of_lists: List[List]) -> List:
-    return [y for x in list_of_lists for y in x]
-
-
-def to_datetime(data: TimeStampedMsg) -> datetime:
-    '''
-    extracts the datetime from a data package. if the field `time_stamp` is not present,
-    the current datetime will be returned
-    '''
-    if 'time_stamp' not in data:
-        return datetime.now()
-    ts = data['time_stamp']
-    # convert time_stamp from ms to seconds
-    if ts > 1000000000000:
-        ts = ts / 1000.0
-    return datetime.fromtimestamp(ts)
-
-
-R = int
-G = int
-B = int
-HUE = int
-
-
-def to_css_color(color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]], base_color: Optional[Tuple[R, G, B]] = (255, 0, 0)) -> str:
-    if type(color) == str:
-        return color
-    if type(color) == int:
-        if base_color is None or len(base_color) < 3:
-            base_color = (255, 0, 0)
-
-        return f'rgba({base_color[0]},{base_color[1]},{base_color[2]},{color / 9})'
-    color = list(color)
-    if len(color) == 3:
-        return f'rgb({color[0]},{color[1]},{color[2]})'
-    elif len(color) > 3:
-        return f'rgba({color[0]},{color[1]},{color[2]},{color[3]})'
-    else:
-        raise AttributeError(color)
-
-
-def random_color() -> str:
-    '''
-    Returns
-    -------
-    str
-        random rgb color, colors ranging between 0 and 255
-
-    Example
-    -------
-        rgb(127, 1, 36)
-    '''
-    r = random.randint(0, 255)
-    g = random.randint(0, 255)
-    b = random.randint(0, 255)
-
-    return f'rgb({r}, {g}, {b})'
-
-
-def try_or(func, default=None, expected_exc=(Exception,)):
-    try:
-        return func()
-    except expected_exc:
-        return default
-
-
-T = TypeVar('T')
-
-
-def first(filter_func: Callable[[T], bool], list_: List[T]) -> T:
-    return next((item for item in list_ if try_or(lambda: filter_func(item), False)), None)
-
-
-class CancleSubscription:
-    __running = True
-
-    @property
-    def is_running(self):
-        return self.__running
-
-    def cancel(self):
-        self.__running = False
-
-
-class ThreadJob(threading.Thread):
-    def __init__(self, callback: Callable, interval: float):
-        '''runs the callback function after interval seconds'''
-        self.callback = callback
-        self.event = threading.Event()
-        self.interval = interval
-        self.__running = False
-        super(ThreadJob, self).__init__()
-
-    def cancel(self):
-        self.__running = False
-        self.event.set()
-
-    @property
-    def is_running(self):
-        return self.__running
-
-    def run(self):
-        self.__running = True
-        while not self.event.wait(self.interval):
-            self.callback()
+    TEXT: Final[str] = 'text'
+    NUMBER: Final[str] = 'number'
+    DATETIME: Final[str] = 'datetime'
+    DATE: Final[str] = 'date'
+    TIME: Final[str] = 'time'
+    SELECT: Final[str] = 'select'
 
 
 class Connector:
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
-    data: Dict[str, List[BaseMsg]] = DictX({})
-    __devices: DevicesMsg = {'time_stamp': time_s(), 'devices': []}
-    device: Device = DictX({})
+    data: dict[str, list[ClientMsg]] = DictX({})
+    __devices = {'time_stamp': time_s(), 'devices': []}
+    device: Optional[Device] = None
     __server_url: str
     __device_id: str
     __info_messages: List[InformationMsg] = []
@@ -474,7 +75,7 @@ class Connector:
     joined_rooms: List[str]
     __main_thread_blocked: bool = False
     __blocked_data_msgs: List[DataMsg] = []
-    __last_sent_grid: GridMsg = DictX({
+    __last_sent_grid = DictX({
         'grid': [[]],
         'unicast_to': None,
         'device_id': None,
@@ -482,51 +83,54 @@ class Connector:
         'base_color': (255, 0, 0)
     })
 
-    __sprites: List[Sprite] = []
+    __sprites = []
 
     # callback functions
 
-    on_key: Callable[[Any, KeyMsg, Optional[Connector]], None] = None
-    on_f1: Callable[[Any, Optional[KeyMsgF1], Optional[Connector]], None] = None
-    on_f2: Callable[[Any, Optional[KeyMsgF2], Optional[Connector]], None] = None
-    on_f3: Callable[[Any, Optional[KeyMsgF3], Optional[Connector]], None] = None
-    on_f4: Callable[[Any, Optional[KeyMsgF4], Optional[Connector]], None] = None
-    on_pointer: Callable[[Any, Union[ColorPointer, GridPointer], Optional[Connector]], None] = None
-    on_acceleration: Callable[[Any, AccMsg, Optional[Connector]], None] = None
-    on_gyro: Callable[[Any, GyroMsg, Optional[Connector]], None] = None
-    on_sensor: Callable[[Any, Union[GyroMsg, AccMsg], Optional[Connector]], None] = None
+    on_key: Union[Callable[[], None], Callable[[KeyMsg], None], Callable[[KeyMsg, Connector], None]]
+    on_f1: Union[Callable[[], None], Callable[[KeyMsgF1], None], Callable[[KeyMsgF1, Connector], None]]
+    on_f2: Union[Callable[[], None], Callable[[KeyMsgF2], None], Callable[[KeyMsgF2, Connector], None]]
+    on_f3: Union[Callable[[], None], Callable[[KeyMsgF3], None], Callable[[KeyMsgF3, Connector], None]]
+    on_f4: Union[Callable[[], None], Callable[[KeyMsgF4], None], Callable[[KeyMsgF4, Connector], None]]
 
-    on_data: Callable[[Any, DataMsg, Optional[Connector]], None] = None
-    on_broadcast_data: Callable[[Any, DataMsg, Optional[Connector]], None] = None
-    on_all_data: Callable[[Any, List[DataMsg], Optional[Connector]], None] = None
-    on_device: Callable[[Any, Device, Optional[Connector]], None] = None
-    on_client_device: Callable[[Any, Union[Device, None], Optional[Connector]], None] = None
-    on_devices: Callable[[Any, List[Device], Optional[Connector]], None] = None
-    on_error: Callable[[Any, ErrorMsg, Optional[Connector]], None] = None
-    on_room_joined: Callable[[Any, DeviceJoinedMsg, Optional[Connector]], None] = None
-    on_room_left: Callable[[Any, DeviceLeftMsg, Optional[Connector]], None] = None
+    on_pointer: Union[Callable[[Union[ColorPointer, GridPointer]], None],
+                      Callable[[Union[ColorPointer, GridPointer], Connector], None]]
+    on_acceleration: Union[Callable[[AccMsg], None], Callable[[AccMsg, Connector], None]]
+    on_gyro: Union[Callable[[GyroMsg], None], Callable[[GyroMsg, Connector], None]]
+    on_sensor: Union[Callable[[Union[GyroMsg, AccMsg]], None],
+                     Callable[[Union[GyroMsg, AccMsg], Connector], None]]
 
-    on_sprite_out: Callable[[Any, SpriteOut, Optional[Connector]], None] = None
-    on_sprite_collision: Callable[[Any, SpriteCollision, Optional[Connector]], None] = None
-    __on_notify_subscribers: Callable[[DataFrame, Optional[Connector]], None] = None
-    __subscription_job: Union[ThreadJob, CancleSubscription] = None
+    on_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]]
+    on_broadcast_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]]
+    on_all_data: Union[Callable[[List[DataMsg]], None], Callable[[List[DataMsg], Connector], None]]
+    on_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]]
+    on_client_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]]
+    on_devices: Union[Callable[[List[Device]], None], Callable[[List[Device], Connector], None]]
+    on_error: Union[Callable[[ErrorMsg], None], Callable[[ErrorMsg, Connector], None]]
+    on_room_joined: Union[Callable[[DeviceJoinedMsg], None], Callable[[DeviceJoinedMsg, Connector], None]]
+    on_room_left: Union[Callable[[DeviceLeftMsg], None], Callable[[DeviceLeftMsg, Connector], None]]
+
+    on_sprite_out: Union[Callable[[SpriteOut], None], Callable[[SpriteOut, Connector], None]]
+    on_sprite_collision: Union[Callable[[SpriteCollision], None], Callable[[SpriteCollision, Connector], None]]
+    __on_notify_subscribers: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]]
+    __subscription_job: Union[ThreadJob, CancleSubscription]
 
     __responses: List[InputResponseMsg] = []
     __alerts: List[AlertConfirmMsg] = []
 
-    @property
+    @ property
     def devices(self) -> List[Device]:
         return self.__devices['devices']
 
-    @property
+    @ property
     def server_url(self):
         return self.__server_url
 
-    @property
+    @ property
     def device_id(self):
         return self.__device_id
 
-    @property
+    @ property
     def current_time_stamp(self):
         ts = time_s()
         if ts == self.__last_time_stamp:
@@ -541,27 +145,27 @@ class Connector:
         self.__device_id = device_id
         self.sio.on('connect', self.__on_connect)
         self.sio.on('disconnect', self.__on_disconnect)
-        self.sio.on(NEW_DATA, self.__on_new_data)
-        self.sio.on(ALL_DATA, self.__on_all_data)
-        self.sio.on(DEVICE, self.__on_device)
-        self.sio.on(DEVICES, self.__on_devices)
-        self.sio.on(ERROR_MSG, self.__on_error)
-        self.sio.on(INFORMATION_MSG, self.__on_information)
-        self.sio.on(ROOM_JOINED, self.__on_room_joined)
-        self.sio.on(ROOM_LEFT, self.__on_room_left)
+        self.sio.on(SocketEvents.NEW_DATA, self.__on_new_data)
+        self.sio.on(SocketEvents.ALL_DATA, self.__on_all_data)
+        self.sio.on(SocketEvents.DEVICE, self.__on_device)
+        self.sio.on(SocketEvents.DEVICES, self.__on_devices)
+        self.sio.on(SocketEvents.ERROR_MSG, self.__on_error)
+        self.sio.on(SocketEvents.INFORMATION_MSG, self.__on_information)
+        self.sio.on(SocketEvents.ROOM_JOINED, self.__on_room_joined)
+        self.sio.on(SocketEvents.ROOM_LEFT, self.__on_room_left)
         self.joined_rooms = [device_id]
         self.connect()
 
-    @property
+    @ property
     def client_device(self):
         return first(lambda device: device['is_client'] and device['device_id'] == self.device_id, self.devices)
 
-    def emit(self, event: str, data: BaseSendMsg = {}, broadcast: bool = False, unicast_to: int = None, device_id: str = None):
+    def emit(self, event: str, data: dict = {}, broadcast: bool = False, unicast_to: int = None, device_id: str = None):
         '''
         Parameters
         ----------
         event : str
-            the event name 
+            the event name
 
         data : BaseSendMsg
             the data to send, fields 'time_stamp' and 'device_id' are added when they are not present
@@ -572,7 +176,7 @@ class Connector:
             wheter to send this message to all connected devices
 
         unicast_to : int
-            the device number to which this message is sent exclusively. When set, boradcast has no effect. 
+            the device number to which this message is sent exclusively. When set, boradcast has no effect.
         '''
         if 'time_stamp' not in data:
             data['time_stamp'] = self.current_time_stamp
@@ -606,11 +210,11 @@ class Connector:
         unicast_to : int
             the device number to which this message is sent exclusively. When set, boradcast has no effect.
         '''
-        self.emit(ADD_NEW_DATA, data=data, broadcast=broadcast, unicast_to=unicast_to)
+        self.emit(SocketEvents.ADD_NEW_DATA, data=data, broadcast=broadcast, unicast_to=unicast_to)
 
     def alert(self, message: str, unicast_to: int = None):
         '''
-        alerts the user by an alert which the user must confirm. This is a blocking call, the 
+        alerts the user by an alert which the user must confirm. This is a blocking call, the
         script will not proceed until the user confirmed the message.
         Parameters
         ----------
@@ -621,7 +225,7 @@ class Connector:
 
     def print(self, message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None):
         '''
-        Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately. 
+        Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately.
         Parameters
         ----------
         message : str
@@ -643,7 +247,7 @@ class Connector:
 
     def notify(self, message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None):
         '''
-        Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately. 
+        Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately.
         Parameters
         ----------
         message : str
@@ -664,9 +268,9 @@ class Connector:
         ts = self.current_time_stamp
 
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             data={
-                'type': NOTIFICATION,
+                'type': DataType.NOTIFICATION,
                 'time_stamp': ts,
                 'message': message,
                 'alert': alert,
@@ -683,7 +287,7 @@ class Connector:
             alert_msg = next((res for res in self.__alerts if res['time_stamp'] == ts), False)
         self.__alerts.remove(alert_msg)
 
-    def input(self, question: str, input_type: INPUT_TYPE = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
+    def input(self, question: str, input_type: str = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
         '''
         Parameters
         ----------
@@ -733,7 +337,7 @@ class Connector:
         '''
         return self.prompt(question, input_type='select', options=options)
 
-    def prompt(self, question: str, input_type: INPUT_TYPE = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
+    def prompt(self, question: str, input_type: str = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
         '''
         Parameters
         ----------
@@ -756,20 +360,20 @@ class Connector:
         ------
         str, None
 
-            When the user canceled the prompt, None is returned 
+            When the user canceled the prompt, None is returned
         '''
         ts = self.current_time_stamp
 
         if callable(getattr(options, 'tolist', None)):
-            options = options.tolist()
+            options = cast(Any, options).tolist()
 
         if input_type == 'datetime':
             input_type = 'datetime-local'
 
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             {
-                'type': INPUT_PROMPT,
+                'type': DataType.INPUT_PROMPT,
                 'question': question,
                 'input_type': input_type,
                 'options': options,
@@ -789,10 +393,10 @@ class Connector:
             return response['response']
 
     def broadcast(self, data: DataMsg):
-        self.emit(ADD_NEW_DATA, data=data, broadcast=True)
+        self.emit(SocketEvents.ADD_NEW_DATA, data=data, broadcast=True)
 
     def unicast_to(self, data: DataMsg, device_nr: int):
-        self.emit(ADD_NEW_DATA, data=data, unicast_to=device_nr)
+        self.emit(SocketEvents.ADD_NEW_DATA, data=data, unicast_to=device_nr)
 
     def connect(self):
         if self.sio.connected:
@@ -804,7 +408,7 @@ class Connector:
         '''
         clears all data of this device
         '''
-        self.emit(CLEAR_DATA)
+        self.emit(SocketEvents.CLEAR_DATA)
 
     @property
     def device_count(self) -> int:
@@ -836,7 +440,7 @@ class Connector:
         -------
         List[DataMsg] a list of all received messages (inlcuding messages to other device id's), ordered by time_stamp ascending (first element = oldest)
         '''
-        data = flatten(self.data.values())
+        data = flatten(list(self.data.values()))
         data = sorted(
             data,
             key=lambda item: item['time_stamp'] if 'time_stamp' in item else 0,
@@ -870,6 +474,26 @@ class Connector:
 
         return None
 
+    @overload
+    def all_data(self, data_type: Literal['pointer'], device_id: str = None) -> Union[List[ColorPointer], List[GridPointer]]:
+        ...
+
+    @overload
+    def all_data(self, data_type: Literal['gyro'], device_id: str = None) -> List[GyroMsg]:
+        ...
+
+    @overload
+    def all_data(self, data_type: Literal['acceleration'], device_id: str = None) -> List[AccMsg]:
+        ...
+
+    @overload
+    def all_data(self, data_type: Literal['key'], device_id: str = None) -> List[KeyMsg]:
+        ...
+
+    @overload
+    def all_data(self, data_type: Literal['key'], device_id: str = None) -> List[KeyMsg]:
+        ...
+
     def all_data(self, data_type: str = None, device_id: str = None) -> List[DataMsg]:
         '''
         Returns all data with the given type and from the given device_id.
@@ -896,12 +520,48 @@ class Connector:
         data = self.data_list if device_id == '__ALL_DEVICES__' else self.data[device_id]
 
         if data_type is None:
-            return data
+            return cast(list[DataMsg], data)
 
         data = filter(lambda pkg: 'type' in pkg and pkg['type'] == data_type, data)
-        return list(data)
+        return cast(list[DataMsg], list(data))
 
-    def latest_data(self, data_type: str = None, device_id: str = None) -> Union[DataMsg, None]:
+    def pointer_data(self, device_id: str = '__ALL_DEVICES__') -> Union[List[ColorPointer], List[GridPointer]]:
+        return self.all_data('pointer', device_id=device_id)
+
+    def color_pointer_data(self, device_id: str = '__ALL_DEVICES__') -> List[ColorPointer]:
+        data = list(filter(lambda pkg: pkg['context'] == 'color', self.pointer_data(device_id=device_id)))
+        return cast(List[ColorPointer], data)
+
+    def grid_pointer_data(self, device_id: str = '__ALL_DEVICES__') -> List[GridPointer]:
+        data = list(filter(lambda pkg: pkg['context'] == 'grid', self.pointer_data(device_id=device_id)))
+        return cast(List[GridPointer], data)
+
+    def gyro_data(self, device_id: str = '__ALL_DEVICES__') -> List[GyroMsg]:
+        return self.all_data('gyro', device_id=device_id)
+
+    def acceleration_data(self, device_id: str = '__ALL_DEVICES__') -> List[AccMsg]:
+        return self.all_data('acceleration', device_id=device_id)
+
+    def key_data(self, device_id: str = '__ALL_DEVICES__') -> List[KeyMsg]:
+        return self.all_data('key', device_id=device_id)
+
+    @overload
+    def latest_data(self, data_type: Literal['pointer'], device_id: str = None) -> Union[ColorPointer, GridPointer, None]:
+        ...
+
+    @overload
+    def latest_data(self, data_type: Literal['gyro'], device_id: str = None) -> Union[None, GyroMsg]:
+        ...
+
+    @overload
+    def latest_data(self, data_type: Literal['acceleration'], device_id: str = None) -> Union[None, AccMsg]:
+        ...
+
+    @overload
+    def latest_data(self, data_type: Literal['key'], device_id: str = None) -> Union[None, KeyMsg]:
+        ...
+
+    def latest_data(self, data_type: str = None, device_id: str = None) -> Union[dict, None]:
         '''
         Returns the latest data (last received) with the given type and from the given device_id.
 
@@ -937,24 +597,6 @@ class Connector:
 
         return None
 
-    def pointer_data(self, device_id: str = '__ALL_DEVICES__') -> Union[List[ColorPointer], List[GridPointer]]:
-        return self.all_data('pointer', device_id=device_id)
-
-    def color_pointer_data(self, device_id: str = '__ALL_DEVICES__') -> List[ColorPointer]:
-        return list(filter(lambda pkg: pkg['context'] == 'color', self.pointer_data(device_id=device_id)))
-
-    def grid_pointer_data(self, device_id: str = '__ALL_DEVICES__') -> List[GridPointer]:
-        return list(filter(lambda pkg: pkg['context'] == 'grid', self.pointer_data(device_id=device_id)))
-
-    def gyro_data(self, device_id: str = '__ALL_DEVICES__') -> List[GyroMsg]:
-        return self.all_data('gyro', device_id=device_id)
-
-    def acceleration_data(self, device_id: str = '__ALL_DEVICES__') -> List[AccMsg]:
-        return self.all_data('acceleration', device_id=device_id)
-
-    def key_data(self, device_id: str = '__ALL_DEVICES__') -> List[KeyMsg]:
-        return self.all_data('key', device_id=device_id)
-
     def latest_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, GridPointer, None]:
         return self.latest_data('pointer', device_id=device_id)
 
@@ -964,7 +606,7 @@ class Connector:
             is_device = device_id == '__ALL_DEVICES__' or ('device_id' in pkg and device_id == pkg['device_id'])
 
             if has_type and is_device:
-                return pkg
+                return cast(ColorPointer, pkg)
 
     def latest_grid_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[GridPointer, None]:
         for pkg in reversed(self.data_list):
@@ -972,7 +614,7 @@ class Connector:
             is_device = device_id == '__ALL_DEVICES__' or ('device_id' in pkg and device_id == pkg['device_id'])
 
             if has_type and is_device:
-                return pkg
+                return cast(GridPointer, pkg)
 
     def latest_gyro(self, device_id: str = '__ALL_DEVICES__') -> Union[None, GyroMsg]:
         return self.latest_data('gyro', device_id=device_id)
@@ -983,14 +625,16 @@ class Connector:
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
         return self.latest_data('key', device_id=device_id)
 
-    def configure_playground(self, configuration: PlaygroundConfiguration, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
-        configuration['type'] = 'playground_config'
-        self.emit(ADD_NEW_DATA, configuration, unicast_to=unicast_to, broadcast=broadcast, device_id=device_id)
+    def configure_playground(self, config: Union[dict, PlaygroundConfiguration], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+        conf = cast(PlaygroundConfigMsg, config)
+        conf['type'] = 'playground_config'
+        self.emit(SocketEvents.ADD_NEW_DATA, conf,
+                  unicast_to=unicast_to, broadcast=broadcast, device_id=device_id)
 
-    def add_sprites(self, sprites: List[Sprite], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def add_sprites(self, sprites: List[Union[dict, Sprite]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         self.__sprites.extend(map(lambda sprite: DictX(sprite), sprites))
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             {
                 'type': 'sprites',
                 'sprites': sprites
@@ -1003,7 +647,7 @@ class Connector:
     def add_sprite(self, sprite: Sprite, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         self.__sprites.append(DictX(sprite))
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             {
                 'type': 'sprite',
                 'sprite': sprite
@@ -1013,7 +657,7 @@ class Connector:
             device_id=device_id
         )
 
-    def update_sprite(self, id: str, update: UpdateSprite, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def update_sprite(self, id: str, update: Union[dict, UpdateSprite], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         sprite = first(lambda s: s.id == id, self.__sprites)
         if sprite:
             sprite.update(update)
@@ -1023,7 +667,7 @@ class Connector:
         })
 
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             {
                 'type': 'sprite',
                 'sprite': update
@@ -1034,14 +678,14 @@ class Connector:
         )
 
     @property
-    def get_grid(self) -> List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]:
+    def get_grid(self) -> List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, A]]]]:
         grid = self.__last_sent_grid.grid
         is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
         if is_2d:
             return deepcopy(grid)
         return [deepcopy(grid)]
 
-    def set_grid_at(self, row: int, column: int, color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Union[str, Tuple[int, int, int]]] = None):
+    def set_grid_at(self, row: int, column: int, color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, A]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Union[str, RgbColor]] = None):
         '''
         sets the color of the current grid at the given row and column
         '''
@@ -1069,14 +713,14 @@ class Connector:
             'time_stamp': self.current_time_stamp
         }
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             grid_msg,
             broadcast=broadcast,
             unicast_to=unicast_to,
             device_id=device_id
         )
 
-    def set_image(self, image: Union[List[str], str], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Union[Tuple[int, int, int], str]] = None):
+    def set_image(self, image: Union[List[str], str], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Union[str, RgbColor] = None):
         '''
         Parameters
         ----------
@@ -1155,7 +799,7 @@ class Connector:
                 )
             )
 
-    def set_grid(self, grid: Union[str, List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]], List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, HUE]]]]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Tuple[int, int, int]] = None):
+    def set_grid(self, grid: ColorGrid, device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Union[RgbColor, str] = None):
         '''
         Parameters
         ----------
@@ -1185,7 +829,7 @@ class Connector:
         ```
         '''
         if callable(getattr(grid, 'tolist', None)):
-            grid = grid.tolist()
+            grid = cast(Any, grid).tolist()
 
         self.__set_local_grid(grid)
 
@@ -1196,19 +840,19 @@ class Connector:
             'time_stamp': self.current_time_stamp
         }
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             grid_msg,
             broadcast=broadcast,
             unicast_to=unicast_to,
             device_id=device_id
         )
 
-    def set_color(self, color: Union[str, Tuple[R, G, B], Tuple[R, G, B, HUE]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def set_color(self, color: CssColorType, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         '''
         Parameters
         ----------
         color : str, Tuple
-            the color of the panel background, can be any valid css color or rgb values in range 0-255 and optionally the brightness 0-9 
+            the color of the panel background, can be any valid css color or rgb values in range 0-255 and optionally the brightness 0-9
 
         Optional
         --------
@@ -1232,7 +876,7 @@ class Connector:
         '''
         color = to_css_color(color)
         self.emit(
-            ADD_NEW_DATA,
+            SocketEvents.ADD_NEW_DATA,
             {
                 'type': 'color',
                 'color': color
@@ -1268,7 +912,7 @@ class Connector:
         ts = time_s()
         self.__info_messages.clear()
         self.emit(
-            SET_NEW_DEVICE_NR,
+            SocketEvents.SET_NEW_DEVICE_NR,
             {
                 'time_stamp': ts,
                 'new_device_nr': new_device_nr,
@@ -1278,18 +922,16 @@ class Connector:
         )
         result_msg = None
         while result_msg is None and (time_s() - ts) < max_wait:
-            info_cnt = len(self.__info_messages)
+            result_msg = first(lambda m: m.action['time_stamp'] == ts, self.__info_messages)
 
-            if info_cnt > 0 and self.__info_messages[info_cnt - 1].action['time_stamp'] == ts:
-                result_msg = self.__info_messages[info_cnt - 1]
-            else:
+            if result_msg is None:
                 self.sleep(0.1)
 
         if result_msg is not None and result_msg['message'] == 'Success':
             return True
 
         time_left = max_wait - (time_s() - ts)
-        if time_left > 0 and 'should_retry' in result_msg and result_msg['should_retry']:
+        if time_left > 0 and 'should_retry' in cast(dict, result_msg) and result_msg['should_retry']:
             return self.set_device_nr(new_device_nr, device_id=device_id, current_device_nr=current_device_nr, max_wait=time_left)
 
         return False
@@ -1313,36 +955,42 @@ class Connector:
             return
 
         arg_count = len(signature(self.__on_notify_subscribers).parameters)
-        if arg_count == 0:
-            self.__on_notify_subscribers()
-            return
-
-        data = DictX({
+        data: DataFrame = DataFrame({
             'key': self.latest_key(device_id=self.__device_id) or default('key'),
             'acceleration': self.latest_acceleration(device_id=self.__device_id) or default('acceleration'),
             'gyro': self.latest_gyro(device_id=self.__device_id) or default('gyro'),
             'color_pointer': self.latest_color_pointer(device_id=self.__device_id) or default('color_pointer'),
             'grid_pointer': self.latest_grid_pointer(device_id=self.__device_id) or default('grid_pointer')
         })
+        clbk = cast(Callable, self.__on_notify_subscribers)
         if arg_count == 1:
-            self.__on_notify_subscribers(data)
+            clbk(data)
         elif arg_count == 2:
-            self.__on_notify_subscribers(data, self)
+            clbk(data, self)
 
-    def subscribe_async(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05) -> CancleSubscription:
-        return self.subscribe(callback, interval, blocking=False)
+    def subscribe_async(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05) -> Union[ThreadJob, CancleSubscription]:
+        return self.subscribe(callback=callback, interval=interval, blocking=False)
 
     def set_update_interval(self, interval: float):
         return self.subscribe(interval=interval, blocking=True)
 
-    def set_timeout(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
+    def set_timeout(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
         return self.subscribe(callback=callback, interval=interval, blocking=blocking)
 
-    def subscribe(self, callback: Optional[Callable[[Optional[DataFrame], Optional[Connector]], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, CancleSubscription]:
+    @ overload
+    def subscribe(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None,
+                  interval: float = 0.05, blocking=True) -> Union[ThreadJob, CancleSubscription]:
+        ...
+
+    @ overload
+    def subscribe(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05, blocking=False) -> None:
+        ...
+
+    def subscribe(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05, blocking: bool = True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
         '''
         blocked : bool wheter the main thread gets blocked or not.
         '''
-        self.__on_notify_subscribers = callback
+        self.__on_notify_subscribers = cast(Callable, callback)
         if blocking:
             self.__main_thread_blocked = True
             self.__subscription_job = CancleSubscription()
@@ -1380,10 +1028,10 @@ class Connector:
         self.sio.disconnect()
 
     def join_room(self, device_id: str):
-        self.emit(JOIN_ROOM, DictX({'room': device_id}))
+        self.emit(SocketEvents.JOIN_ROOM, DictX({'room': device_id}))
 
     def leave_room(self, device_id: str):
-        self.emit(LEAVE_ROOM, DictX({'room': device_id}))
+        self.emit(SocketEvents.LEAVE_ROOM, DictX({'room': device_id}))
 
     def __on_connect(self):
         logging.info('SocketIO connected')
@@ -1392,7 +1040,7 @@ class Connector:
         logging.info('SocketIO disconnected')
 
     def __register(self):
-        self.emit(NEW_DEVICE)
+        self.emit(SocketEvents.NEW_DEVICE)
 
     def __callback(self, name, data):
         callback = getattr(self, name)
@@ -1409,7 +1057,7 @@ class Connector:
         except Exception:
             pass
 
-    def __on_new_data(self, data: DataMsg):
+    def __on_new_data(self, data: dict):
         data = DictX(data)
         if 'device_id' not in data:
             return
@@ -1417,11 +1065,11 @@ class Connector:
         if data['device_id'] not in self.data:
             self.data[data['device_id']] = []
 
-        self.data[data['device_id']].append(data)
+        self.data[data['device_id']].append(cast(ClientMsg, data))
         if self.__main_thread_blocked:
-            self.__blocked_data_msgs.append(data)
+            self.__blocked_data_msgs.append(cast(DataMsg, data))
         else:
-            self.__distribute_new_data_callback(data)
+            self.__distribute_new_data_callback(cast(DataMsg, data))
 
     def __distribute_new_data_callback(self, data: DataMsg):
         if 'type' in data:
@@ -1444,11 +1092,10 @@ class Connector:
             if data['type'] == 'pointer':
                 self.__callback('on_pointer', data)
             if data['type'] == 'input_response':
-                self.__responses.append(data)
+                self.__responses.append(cast(InputResponseMsg, data))
             if data['type'] == 'alert_confirm':
-                self.__alerts.append(data)
+                self.__alerts.append(cast(AlertConfirmMsg, data))
             if data['type'] == 'sprite_out':
-                data = DictX(data)
                 sprite = first(lambda s: s.id == data.sprite_id, self.__sprites)
                 if sprite:
                     print('sprite out', sprite.id)
@@ -1462,7 +1109,7 @@ class Connector:
         else:
             self.__callback('on_data', data)
 
-    def __on_all_data(self, data: List[DataMsg]):
+    def __on_all_data(self, data: dict):
         if 'device_id' not in data:
             return
 
@@ -1470,7 +1117,7 @@ class Connector:
         self.data[data['device_id']] = data['all_data']
         self.__callback('on_all_data', data)
 
-    def __on_room_left(self, device: DeviceLeftMsg):
+    def __on_room_left(self, device: dict):
         device = DictX(device)
         if device['room'] == self.device_id:
             if device['device'] in self.room_members:
@@ -1481,7 +1128,7 @@ class Connector:
             if device['device'] in self.joined_rooms:
                 self.joined_rooms.remove(device['device'])
 
-    def __on_room_joined(self, device: DeviceJoinedMsg):
+    def __on_room_joined(self, device: dict):
         device = DictX(device)
         if device['room'] == self.device_id:
             if device['device'] not in self.room_members:
@@ -1491,29 +1138,29 @@ class Connector:
             if device['device'] not in self.joined_rooms:
                 self.joined_rooms.append(device['device'])
 
-    def __on_error(self, err: ErrorMsg):
+    def __on_error(self, err: DictX):
         err = DictX(err)
         logging.warn(f'Error on Event {err.type}: {err.msg}')
 
         self.__callback('on_error', err)
 
-    def __on_information(self, data: InformationMsg):
-        self.__info_messages.append(DictX(data))
+    def __on_information(self, data: dict):
+        self.__info_messages.append(cast(InformationMsg, DictX(data)))
 
-    def __on_device(self, device: Device):
+    def __on_device(self, device: dict):
         device = DictX(device)
         if 'device_id' not in device or 'socket_id' not in device:
             return
         if self.sio.sid == device['socket_id']:
-            self.device = device
-            self.emit(GET_ALL_DATA)
+            self.device = cast(Device, device)
+            self.emit(SocketEvents.GET_ALL_DATA)
             old_device_instance = first(lambda d: d['socket_id'] == device['socket_id'], self.room_members)
             if old_device_instance:
                 self.room_members.remove(old_device_instance)
-            self.room_members.append(device)
+            self.room_members.append(cast(Device, device))
             self.__callback('on_device', device)
 
-    def __on_devices(self, data: DevicesMsg):
+    def __on_devices(self, data: dict):
         data = DictX(data)
         data['devices'] = list(map(lambda device: DictX(device), data['devices']))
         had_client_device = self.client_device is not None
@@ -1529,178 +1176,4 @@ class Connector:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     phone = Connector('http://localhost:5000', 'FooBar')
-
-    phone.configure_playground({
-        'width': 200,
-        'height': 100
-    })
-
-    phone.add_sprites([
-        {
-            'color': 'red',
-            'direction': [1, 1],
-            'form': 'round',
-            'height': 5,
-            'width': 5,
-            'id': 'asdfa1',
-            'movement': 'uncontrolled',
-            'pos_x': 0,
-            'pos_y': 0,
-            'speed': 2
-        },
-        {
-            'color': 'blue',
-            'direction': [1, 1],
-            'form': 'round',
-            'height': 5,
-            'width': 5,
-            'id': 'asdfa1',
-            'movement': 'uncontrolled',
-            'pos_x': 0,
-            'pos_y': 0,
-            'speed': 1
-        },
-        {
-            'color': 'green',
-            'direction': [1, 1],
-            'form': 'round',
-            'height': 5,
-            'width': 5,
-            'id': 'asdfa1',
-            'movement': 'uncontrolled',
-            'pos_x': 0,
-            'pos_y': 0,
-            'speed': 0.5
-        }
-    ])
-
-    # phone = Connector('https://io.lebalz.ch', 'FooBar')
-    response = phone.input("Hallo")
-
-    image = [
-        '9  9 9999 9     9     99999',
-        '9  9 9    9     9     9   9',
-        '9999 9999 9     9     9   9',
-        '9  9 9    9     9     9   9',
-        '9  9 9999 99999 99999 99999'
-    ]
-
-    phone.set_image(image, base_color=(255, 255, 0))
-    phone.sleep(5)
-    phone.set_grid(
-        [[0]], base_color=(255, 255, 0)
-    )
-    grid = []
-    for i in range(10):
-        row = []
-        for j in range(10):
-            row.append((j + i) // 2)
-        grid.append(row)
-    phone.set_grid(grid, base_color=(255, 255, 0))
-    phone.sleep(3)
-    phone.set_grid_at(5, 5, 7)
-    phone.sleep(1)
-    phone.set_grid_at(2, 5, 3)
-    t0 = time_s()
-
-    # Screen().tracer(0, 0)
-
-    def on_acc(data: AccMsg):
-        print(data)
-        # if data.x > 2:
-        #     left(2)
-        # if data.x < -2:
-        #     right(2)
-        # forward(2)
-        # Screen().update()
-    phone.on_acceleration = on_acc
-    phone.set_update_interval(0.05)
-    # phone.subscribe(
-    #     lambda data, c: logging.info(f'subscribed {time_s()}: {data.acceleration.time_stamp}: {data.acceleration.x}'),
-    #     0.05,
-    #     blocking=False
-    # )
-    # time.sleep(2)
-    # phone.cancel_subscription()
-
-    phone.print('aasd1')
-    phone.print('aasd2')
-    phone.print('aasd3')
-    phone.print('aasd4')
-    phone.print('aasd5')
-    phone.print('aasd6')
-    phone.print('aasd7')
-    phone.print('aasd8')
-    phone.print('aasd9')
-    phone.print('aasd10')
-    # response = phone.input("Hallo", input_type="select", options=["+", ":", "-", "*"])
-
-    # print('set deivce nr: ', phone.set_device_nr(13))
-
-    # draw a 3x3 checker board
-    phone.set_grid([
-        ['black', 'white', 'black'],
-        ['white', 'black', 'white'],
-        ['black', 'white', 'black'],
-    ], broadcast=True)
-
-    phone.on_key = lambda data, c: logging.info(f'on_key: {data}, len: {len(c.all_data())}')
-    phone.on_f1 = lambda: logging.info('F1')
-    phone.on_f2 = lambda: logging.info('F2')
-    phone.on_f3 = lambda: logging.info('F3')
-    phone.on_f4 = lambda: logging.info('F4')
-    phone.on_broadcast_data = lambda data: logging.info(f'on_broadcast_data: {data}')
-    phone.on_data = lambda data: logging.info(f'on_data: {data}')
-    phone.on_all_data = lambda data: logging.info(f'on_all_data: {data}')
-    phone.on_device = lambda data: logging.info(f'on_device: {data}')
-    phone.on_devices = lambda data: logging.info(f'on_devices: {data}')
-    phone.on_acceleration = lambda data: logging.info(f'on_acceleration: {data}')
-    phone.on_gyro = lambda data: logging.info(f'on_gyro: {data}')
-    phone.on_sensor = lambda data: logging.info(f'on_sensor: {data}')
-    phone.on_room_joined = lambda data: logging.info(f'on_room_joined: {data}')
-    phone.on_room_left = lambda data: logging.info(f'on_room_left: {data}')
-    phone.on_pointer = lambda data: logging.info(f'on_pointer: {data}')
-    phone.on_client_device = lambda data: logging.info(f'on_client_device: {data}')
-    phone.on_error = lambda data: logging.info(f'on_error: {data}')
-
-    t0 = time_s()
-    print('slleeeeop')
-    phone.sleep(2)
-
-    # response = phone.input('Name? ')
-    # phone.print(f'Name: {response} ')
-    # phone.notify('notify hiii', alert=True)
-    print(phone.joined_room_count)
-    print(phone.client_count)
-    print(phone.device_count)
-
-    print('\n')
-    print('data: ', phone.all_data())
-    print('data: ', phone.all_data(data_type='grid'))
-    print('latest data: ', phone.latest_data())
-    print('time_stamp', to_datetime(phone.latest_data()))
-    print('latest data: ', phone.latest_data(data_type='key'))
-    print('broadcast data: ', phone.all_broadcast_data())
-    print('broadcast data: ', phone.all_broadcast_data(data_type='grid'))
-    print('latest broadcast data: ', phone.latest_broadcast_data())
-    print('latest broadcast data: ', phone.latest_broadcast_data(data_type='key'))
-    print('cnt device', phone.device_count)
-    print('cnt room', phone.room_member_count)
-    print('cnt clients', phone.client_count)
-    print('cnt joined rooms', phone.joined_room_count)
-    print('pointer_data', phone.pointer_data())
-    print('data_list', phone.data_list)
-    print('color_pointer_data', phone.color_pointer_data())
-    print('grid_pointer_data', phone.grid_pointer_data())
-    print('gyro_data', phone.gyro_data())
-    print('acceleration_data', phone.acceleration_data())
-    print('key_data', phone.key_data())
-    print('latest_pointer', phone.latest_pointer())
-    print('latest_color_pointer', phone.latest_color_pointer())
-    print('latest_grid_pointer', phone.latest_grid_pointer())
-    print('latest_gyro', phone.latest_gyro())
-    print('latest_acceleration', phone.latest_acceleration())
-    print('latest_key', phone.latest_key())
-
-    # phone.sleep(2)
-    # phone.disconnect()
+    phone.disconnect()

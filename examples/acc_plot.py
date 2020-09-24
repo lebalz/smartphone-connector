@@ -2,9 +2,9 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import Connector
-from smartphone_connector.api_types import AccMsg
+from smartphone_connector.types import AccMsg
 import matplotlib.pyplot as plt
-phone = Connector('https://io.lebalz.ch', 'FooBar')
+device = Connector('https://io.lebalz.ch', 'FooBar')
 
 MAX_SAMPLES = 300
 
@@ -29,5 +29,5 @@ def on_intervall():
     plt.pause(0.005)
 
 
-phone.on_acceleration = on_acc
-phone.subscribe(on_intervall, interval=0.0)
+device.on_acceleration = on_acc
+device.subscribe(on_intervall, interval=0.0)
