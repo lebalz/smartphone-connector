@@ -1,6 +1,5 @@
 from __future__ import annotations
 import logging
-from build.lib.smartphone_connector import PlaygroundConfiguration
 from .timings import CancleSubscription, ThreadJob
 from .helpers import *
 import socketio
@@ -625,7 +624,7 @@ class Connector:
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
         return self.latest_data('key', device_id=device_id)
 
-    def configure_playground(self, config: Union[dict, PlaygroundConfiguration], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def configure_playground(self, config: Union[dict, PlaygroundConfig], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
         conf = cast(PlaygroundConfigMsg, config)
         conf['type'] = 'playground_config'
         self.emit(SocketEvents.ADD_NEW_DATA, conf,
