@@ -1,5 +1,6 @@
 import os
 import sys
+from pprint import pprint
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import Connector
 
@@ -26,9 +27,11 @@ device.set_grid(
     base_color='red'
 )
 device.sleep(1)
-print(device.get_grid)
+pprint(device.get_grid)
 device.set_grid_at(0, 0, 'red')
-print(device.get_grid)
+pprint(device.get_grid)
+device.set_grid_at(0, 14, 'red')
+pprint(device.get_grid)
 
 device.set_grid(
     [
@@ -49,6 +52,8 @@ device.set_grid(
     ],
     base_color='blue'
 )
+pprint(device.get_grid)
+
 device.sleep(1)
 device.set_grid(
     [
@@ -58,6 +63,10 @@ device.set_grid(
         ['rgba(122,255,233,0.3)', 'rgba(122,255,233, 0.6)', 'rgba(122,255,233, 1)']
     ]
 )
+pprint(device.get_grid)
+
+
+device.set_grid_at(1, 2, (255, 2, 2))
 device.sleep(1)
 
 device.disconnect()

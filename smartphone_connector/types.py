@@ -62,6 +62,7 @@ A = float
 
 RgbColor = Union[Tuple[R, G, B], List[int]]
 CssColorType = Union[int, str, RgbColor, Tuple[R, G, B, A], List[float], List[Union[int, float]]]
+BaseColor = Union[str, RgbColor]
 
 
 @dataclass

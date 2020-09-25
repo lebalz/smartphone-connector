@@ -4,10 +4,9 @@ from .timings import CancleSubscription, ThreadJob
 from .helpers import *
 import socketio
 from inspect import signature
-from typing import overload, cast, Any, Union, Literal, Callable, List, Optional, Tuple, Any, Final
+from typing import overload, cast, Any, Union, Literal, Callable, List, Optional, Any, Final
 from copy import deepcopy
 from itertools import repeat
-from dataclasses import dataclass
 from .types import *
 
 
@@ -60,6 +59,9 @@ class INPUT_TYPE:
     SELECT: Final[str] = 'select'
 
 
+def noop(x): return None
+
+
 class Connector:
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
@@ -86,32 +88,32 @@ class Connector:
 
     # callback functions
 
-    on_key: Union[Callable[[], None], Callable[[KeyMsg], None], Callable[[KeyMsg, Connector], None]]
-    on_f1: Union[Callable[[], None], Callable[[KeyMsgF1], None], Callable[[KeyMsgF1, Connector], None]]
-    on_f2: Union[Callable[[], None], Callable[[KeyMsgF2], None], Callable[[KeyMsgF2, Connector], None]]
-    on_f3: Union[Callable[[], None], Callable[[KeyMsgF3], None], Callable[[KeyMsgF3, Connector], None]]
-    on_f4: Union[Callable[[], None], Callable[[KeyMsgF4], None], Callable[[KeyMsgF4, Connector], None]]
+    on_key: Union[Callable[[], None], Callable[[KeyMsg], None], Callable[[KeyMsg, Connector], None]] = noop
+    on_f1: Union[Callable[[], None], Callable[[KeyMsgF1], None], Callable[[KeyMsgF1, Connector], None]] = noop
+    on_f2: Union[Callable[[], None], Callable[[KeyMsgF2], None], Callable[[KeyMsgF2, Connector], None]] = noop
+    on_f3: Union[Callable[[], None], Callable[[KeyMsgF3], None], Callable[[KeyMsgF3, Connector], None]] = noop
+    on_f4: Union[Callable[[], None], Callable[[KeyMsgF4], None], Callable[[KeyMsgF4, Connector], None]] = noop
 
     on_pointer: Union[Callable[[Union[ColorPointer, GridPointer]], None],
-                      Callable[[Union[ColorPointer, GridPointer], Connector], None]]
-    on_acceleration: Union[Callable[[AccMsg], None], Callable[[AccMsg, Connector], None]]
-    on_gyro: Union[Callable[[GyroMsg], None], Callable[[GyroMsg, Connector], None]]
+                      Callable[[Union[ColorPointer, GridPointer], Connector], None]] = noop
+    on_acceleration: Union[Callable[[AccMsg], None], Callable[[AccMsg, Connector], None]] = noop
+    on_gyro: Union[Callable[[GyroMsg], None], Callable[[GyroMsg, Connector], None]] = noop
     on_sensor: Union[Callable[[Union[GyroMsg, AccMsg]], None],
-                     Callable[[Union[GyroMsg, AccMsg], Connector], None]]
+                     Callable[[Union[GyroMsg, AccMsg], Connector], None]] = noop
 
-    on_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]]
-    on_broadcast_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]]
-    on_all_data: Union[Callable[[List[DataMsg]], None], Callable[[List[DataMsg], Connector], None]]
-    on_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]]
-    on_client_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]]
-    on_devices: Union[Callable[[List[Device]], None], Callable[[List[Device], Connector], None]]
-    on_error: Union[Callable[[ErrorMsg], None], Callable[[ErrorMsg, Connector], None]]
-    on_room_joined: Union[Callable[[DeviceJoinedMsg], None], Callable[[DeviceJoinedMsg, Connector], None]]
-    on_room_left: Union[Callable[[DeviceLeftMsg], None], Callable[[DeviceLeftMsg, Connector], None]]
+    on_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]] = noop
+    on_broadcast_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]] = noop
+    on_all_data: Union[Callable[[List[DataMsg]], None], Callable[[List[DataMsg], Connector], None]] = noop
+    on_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]] = noop
+    on_client_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]] = noop
+    on_devices: Union[Callable[[List[Device]], None], Callable[[List[Device], Connector], None]] = noop
+    on_error: Union[Callable[[ErrorMsg], None], Callable[[ErrorMsg, Connector], None]] = noop
+    on_room_joined: Union[Callable[[DeviceJoinedMsg], None], Callable[[DeviceJoinedMsg, Connector], None]] = noop
+    on_room_left: Union[Callable[[DeviceLeftMsg], None], Callable[[DeviceLeftMsg, Connector], None]] = noop
 
-    on_sprite_out: Union[Callable[[SpriteOut], None], Callable[[SpriteOut, Connector], None]]
-    on_sprite_collision: Union[Callable[[SpriteCollision], None], Callable[[SpriteCollision, Connector], None]]
-    __on_notify_subscribers: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]]
+    on_sprite_out: Union[Callable[[SpriteOut], None], Callable[[SpriteOut, Connector], None]] = noop
+    on_sprite_collision: Union[Callable[[SpriteCollision], None], Callable[[SpriteCollision, Connector], None]] = noop
+    __on_notify_subscribers: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = noop
     __subscription_job: Union[ThreadJob, CancleSubscription]
 
     __responses: List[InputResponseMsg] = []
@@ -159,7 +161,7 @@ class Connector:
     def client_device(self):
         return first(lambda device: device['is_client'] and device['device_id'] == self.device_id, self.devices)
 
-    def emit(self, event: str, data: dict = {}, broadcast: bool = False, unicast_to: int = None, device_id: str = None):
+    def emit(self, event: str, data: dict = {}, **delivery_opts):
         '''
         Parameters
         ----------
@@ -171,6 +173,9 @@ class Connector:
 
         Optional
         --------
+        device_id : str
+            if you want to change the receiver device_id explicitely
+
         broadcast : bool
             wheter to send this message to all connected devices
 
@@ -180,20 +185,23 @@ class Connector:
         if 'time_stamp' not in data:
             data['time_stamp'] = self.current_time_stamp
 
-        if 'device_id' not in data:
-            data['device_id'] = device_id or self.device_id
+        if 'device_id' in delivery_opts:
+            data['device_id'] = delivery_opts['device_id']
 
-        if broadcast:
+        if 'device_id' not in data:
+            data['device_id'] = self.device_id
+
+        if 'broadcast' in delivery_opts and delivery_opts['broadcast']:
             data['broadcast'] = True
 
-        if type(unicast_to) == int:
+        if 'unicast_to' in delivery_opts and type(delivery_opts['unicast_to']) == int:
             if 'broadcast' in data:
                 del data['broadcast']
-            data['unicast_to'] = unicast_to
+            data['unicast_to'] = delivery_opts['unicast_to']
 
         self.sio.emit(event, data)
 
-    def send(self, data: DataMsg, broadcast: bool = False, unicast_to: int = None):
+    def send(self, data: DataMsg, **delivery_opts):
         '''
         Emits a new_data event
         Parameters
@@ -209,7 +217,7 @@ class Connector:
         unicast_to : int
             the device number to which this message is sent exclusively. When set, boradcast has no effect.
         '''
-        self.emit(SocketEvents.ADD_NEW_DATA, data=data, broadcast=broadcast, unicast_to=unicast_to)
+        self.emit(SocketEvents.ADD_NEW_DATA, data=data, **delivery_opts)
 
     def alert(self, message: str, unicast_to: int = None):
         '''
@@ -222,7 +230,7 @@ class Connector:
         '''
         self.notify(message=message, alert=True, unicast_to=unicast_to)
 
-    def print(self, message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None):
+    def print(self, message: str, display_time: float = -1, alert: bool = False, **delivery_opts):
         '''
         Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately.
         Parameters
@@ -242,9 +250,9 @@ class Connector:
         unicast_to : int
             the device number to which this message is sent exclusively. When set, boradcast has no effect.
         '''
-        return self.notify(message, display_time=display_time, alert=alert, broadcast=broadcast, unicast_to=unicast_to)
+        return self.notify(message, display_time=display_time, alert=alert, **delivery_opts)
 
-    def notify(self, message: str, display_time: float = -1, alert: bool = False, broadcast: bool = False, unicast_to: int = None):
+    def notify(self, message: str, display_time: float = -1, alert: bool = False, **delivery_opts):
         '''
         Notify the device - when not alerting, the call is non-blocking and the next command will be executed immediately.
         Parameters
@@ -275,15 +283,14 @@ class Connector:
                 'alert': alert,
                 'time': display_time * 1000
             },
-            broadcast=broadcast,
-            unicast_to=unicast_to
+            **delivery_opts
         )
         if not alert:
             return
         alert_msg = False
         while not alert_msg:
             self.sleep(0.01)
-            alert_msg = next((res for res in self.__alerts if res['time_stamp'] == ts), False)
+            alert_msg = first(lambda msg: msg['time_stamp'] == ts, self.__alerts)
         self.__alerts.remove(alert_msg)
 
     def input(self, question: str, input_type: str = 'text', options: List[str] = None, unicast_to: int = None) -> Union[str, None]:
@@ -624,13 +631,12 @@ class Connector:
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
         return self.latest_data('key', device_id=device_id)
 
-    def configure_playground(self, config: Union[dict, PlaygroundConfig], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def configure_playground(self, config: Union[dict, PlaygroundConfig], **delivery_opts):
         conf = cast(PlaygroundConfigMsg, config)
         conf['type'] = 'playground_config'
-        self.emit(SocketEvents.ADD_NEW_DATA, conf,
-                  unicast_to=unicast_to, broadcast=broadcast, device_id=device_id)
+        self.emit(SocketEvents.ADD_NEW_DATA, conf, **delivery_opts)
 
-    def add_sprites(self, sprites: List[Union[dict, Sprite]], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def add_sprites(self, sprites: List[Union[dict, Sprite]], **delivery_opts):
         self.__sprites.extend(map(lambda sprite: DictX(sprite), sprites))
         self.emit(
             SocketEvents.ADD_NEW_DATA,
@@ -638,12 +644,10 @@ class Connector:
                 'type': 'sprites',
                 'sprites': sprites
             },
-            broadcast=broadcast,
-            unicast_to=unicast_to,
-            device_id=device_id
+            **delivery_opts
         )
 
-    def add_sprite(self, sprite: Sprite, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def add_sprite(self, sprite: Sprite, **delivery_opts):
         self.__sprites.append(DictX(sprite))
         self.emit(
             SocketEvents.ADD_NEW_DATA,
@@ -651,12 +655,10 @@ class Connector:
                 'type': 'sprite',
                 'sprite': sprite
             },
-            broadcast=broadcast,
-            unicast_to=unicast_to,
-            device_id=device_id
+            **delivery_opts
         )
 
-    def update_sprite(self, id: str, update: Union[dict, UpdateSprite], device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def update_sprite(self, id: str, update: Union[dict, UpdateSprite], **delivery_opts):
         sprite = first(lambda s: s.id == id, self.__sprites)
         if sprite:
             sprite.update(update)
@@ -671,38 +673,22 @@ class Connector:
                 'type': 'sprite',
                 'sprite': update
             },
-            broadcast=broadcast,
-            unicast_to=unicast_to,
-            device_id=device_id
+            **delivery_opts
         )
 
     @property
-    def get_grid(self) -> List[List[Union[str, int, Tuple[R, G, B], Tuple[R, G, B, A]]]]:
+    def get_grid(self) -> List[List[CssColorType]]:
         grid = self.__last_sent_grid.grid
         is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
         if is_2d:
             return deepcopy(grid)
         return [deepcopy(grid)]
 
-    def set_grid_at(self, row: int, column: int, color: Union[str, int, Tuple[R, G, B], Tuple[R, G, B, A]], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Optional[Union[str, RgbColor]] = None):
+    def set_grid_at(self, row: int, column: int, color: CssColorType, base_color: Optional[BaseColor] = None, **delivery_opts):
         '''
         sets the color of the current grid at the given row and column
         '''
-        grid = self.get_grid
-
-        rows = len(grid)
-        if rows == 0:
-            grid = [[]]
-
-        while len(grid[0]) <= column:
-            for col in grid:
-                col.append(0)
-        while len(grid) <= row:
-            grid.append(list(repeat(0, len(grid[0]))))
-
-        grid[row][column] = color
-        self.__last_sent_grid.grid = grid
-
+        self.__set_local_grid_at(row, column, color)
         grid_msg = {
             'type': 'grid_update',
             'row': row,
@@ -714,12 +700,10 @@ class Connector:
         self.emit(
             SocketEvents.ADD_NEW_DATA,
             grid_msg,
-            broadcast=broadcast,
-            unicast_to=unicast_to,
-            device_id=device_id
+            **delivery_opts
         )
 
-    def set_image(self, image: Union[List[str], str], device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Union[str, RgbColor] = None):
+    def set_image(self, image: Union[List[str], str], base_color: Union[BaseColor] = None, **delivery_opts):
         '''
         Parameters
         ----------
@@ -751,54 +735,40 @@ class Connector:
         phone.set_image(image)
         ```
         '''
-        return self.set_grid(image, device_id=device_id, unicast_to=unicast_to, broadcast=broadcast, base_color=base_color)
+        return self.set_grid(image, base_color=base_color, **delivery_opts)
 
-    def reset_grid(self, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
-        self.set_grid([['white']], device_id=device_id, unicast_to=unicast_to, broadcast=broadcast)
+    def reset_grid(self, **delivery_opts):
+        self.set_grid([['white']], **delivery_opts)
+
+    def __set_local_grid_at(self, row: int, column: int, color: CssColorType):
+        grid = self.get_grid
+
+        rows = len(grid)
+        if rows == 0:
+            grid = [[]]
+
+        while len(grid[0]) <= column:
+            for col in grid:
+                col.append(0)
+        while len(grid) <= row:
+            grid.append(list(repeat(0, len(grid[0]))))
+
+        grid[row][column] = color
+        self.__last_sent_grid.grid = grid
 
     def __set_local_grid(self, grid):
         raw_grid = deepcopy(grid)
         is_str = type(raw_grid) == str
         if is_str:
-            raw_grid = list(
-                map(
-                    lambda line: line.strip(),
-                    list(
-                        filter(
-                            lambda l: len(l.strip()) > 0,
-                            raw_grid.splitlines(False)
-                        )
-                    )
-                )
-            )
+            raw_grid = lines_to_grid(image_to_lines(raw_grid))
         if len(raw_grid) < 1:
             return
         if type(raw_grid[0]) == str:
-            for i in range(len(raw_grid)):
-                raw_grid[i] = [*raw_grid[i]]
+            raw_grid = lines_to_grid(cast(List[str], raw_grid))
 
-        is_2d = len(raw_grid) > 0 and type(raw_grid[0]) != str and hasattr(raw_grid[0], "__getitem__")
-        if is_2d:
-            self.__last_sent_grid.grid = list(
-                map(
-                    lambda row: list(
-                        map(
-                            lambda raw_color: raw_color,
-                            row
-                        )
-                    ),
-                    raw_grid
-                )
-            )
-        elif len(raw_grid) > 0:
-            self.__last_sent_grid.grid = list(
-                map(
-                    lambda raw_color: raw_color,
-                    raw_grid
-                )
-            )
+        self.__last_sent_grid.grid = list(raw_grid)
 
-    def set_grid(self, grid: ColorGrid, device_id: str = None, unicast_to: int = None, broadcast: bool = False, base_color: Union[RgbColor, str] = None):
+    def set_grid(self, grid: ColorGrid, base_color: Union[BaseColor] = None, **delivery_opts):
         '''
         Parameters
         ----------
@@ -841,12 +811,10 @@ class Connector:
         self.emit(
             SocketEvents.ADD_NEW_DATA,
             grid_msg,
-            broadcast=broadcast,
-            unicast_to=unicast_to,
-            device_id=device_id
+            **delivery_opts
         )
 
-    def set_color(self, color: CssColorType, device_id: str = None, unicast_to: int = None, broadcast: bool = False):
+    def set_color(self, color: CssColorType, **delivery_opts):
         '''
         Parameters
         ----------
@@ -880,9 +848,7 @@ class Connector:
                 'type': 'color',
                 'color': color
             },
-            broadcast=broadcast,
-            unicast_to=unicast_to,
-            device_id=device_id
+            **delivery_opts
         )
 
     def set_device_nr(self, new_device_nr: int, device_id: str = None, current_device_nr: int = None, max_wait: float = 5) -> bool:

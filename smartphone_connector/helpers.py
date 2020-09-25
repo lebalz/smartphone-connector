@@ -90,3 +90,13 @@ T = TypeVar('T')
 
 def first(filter_func: Callable[[T], bool], list_: List[T]) -> T:
     return next((item for item in list_ if try_or(lambda: filter_func(item), False)), None)
+
+
+def image_to_lines(image: str):
+    lines = image.splitlines(False)
+    without_empty = list(filter(lambda l: len(l.strip()) > 0, lines))
+    return list(map(lambda line: line.strip(), without_empty))
+
+
+def lines_to_grid(lines: List[str]):
+    return list(map(lambda line: [*line], lines))
