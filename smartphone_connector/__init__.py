@@ -920,6 +920,9 @@ class Connector:
             return
 
         arg_count = len(signature(self.__on_notify_subscribers).parameters)
+        if arg_count == 0:
+            return self.__on_notify_subscribers()
+
         data: DataFrame = DataFrame({
             'key': self.latest_key(device_id=self.__device_id) or default('key'),
             'acceleration': self.latest_acceleration(device_id=self.__device_id) or default('acceleration'),
