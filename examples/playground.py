@@ -2,9 +2,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import Connector, DictX, KeyMsg
+from server_adress import SERVER_ADRESS
 
+DT = 2
 
-device = Connector('https://io.lebalz.ch', 'FooBar')
+device = Connector(SERVER_ADRESS, 'FooBar')
 player = DictX({
   'color': 'yellow',
   'form': 'round',
@@ -13,22 +15,23 @@ player = DictX({
   'id': 'player1',
   'movement': 'controlled',
   'pos_x': 0,
-  'pos_y': 0
+  'pos_y': 0,
+  'clickable': True
 })
 
 
 def on_key(data: KeyMsg):
     if data.key == 'right':
-        player.pos_x += 5
+        player.pos_x += DT
         device.update_sprite('player1', {'pos_x': player.pos_x})
     if data.key == 'left':
-        player.pos_x -= 5
+        player.pos_x -= DT
         device.update_sprite('player1', {'pos_x': player.pos_x})
     if data.key == 'up':
-        player.pos_y += 5
+        player.pos_y += DT
         device.update_sprite('player1', {'pos_y': player.pos_y})
     if data.key == 'down':
-        player.pos_y -= 5
+        player.pos_y -= DT
         device.update_sprite('player1', {'pos_y': player.pos_y})
     if data.key == 'home':
         if player.form == 'round':
@@ -41,11 +44,11 @@ def on_key(data: KeyMsg):
 device.on_key = on_key
 device.on_sprite_collision = lambda data: print(data)
 device.configure_playground({
-        'width': 100,
-        'height': 100,
-        'shift_x': 0,
-        'shift_y': 0
-    })
+    'width': 100,
+    'height': 100,
+    'shift_x': 0,
+    'shift_y': 0
+})
 
 device.add_sprites([
         player,
@@ -59,7 +62,8 @@ device.add_sprites([
             'movement': 'uncontrolled',
             'pos_x': 0,
             'pos_y': 0,
-            'speed': 2
+            'speed': 2,
+            'reset_time': True
         },
         {
             'color': 'blue',
@@ -67,11 +71,12 @@ device.add_sprites([
             'form': 'round',
             'height': 5,
             'width': 5,
-            'id': 'asdfa1',
+            'id': 'asdfa2',
             'movement': 'uncontrolled',
             'pos_x': 0,
             'pos_y': 0,
-            'speed': 1
+            'speed': 1,
+            'reset_time': True
         },
         {
             'color': 'green',
@@ -79,10 +84,11 @@ device.add_sprites([
             'form': 'round',
             'height': 5,
             'width': 5,
-            'id': 'asdfa1',
+            'id': 'asdfa3',
             'movement': 'uncontrolled',
-            'pos_x': 0,
-            'pos_y': 0,
-            'speed': 0
+            'pos_x': 1,
+            'pos_y': 1,
+            'speed': 0.1,
+            'reset_time': True
         }
     ])

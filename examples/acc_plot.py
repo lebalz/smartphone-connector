@@ -4,7 +4,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from smartphone_connector import Connector
 from smartphone_connector.types import AccMsg
 import matplotlib.pyplot as plt
-device = Connector('https://io.lebalz.ch', 'FooBar')
+from server_adress import SERVER_ADRESS
+
+device = Connector(SERVER_ADRESS, 'FooBar')
 
 MAX_SAMPLES = 300
 
