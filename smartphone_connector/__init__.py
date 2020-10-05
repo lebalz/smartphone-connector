@@ -38,13 +38,14 @@ class INPUT_TYPE:
     SELECT: Final[str] = 'select'
 
 
-def noop(x): return None
+def noop(x):
+    pass
 
 
 class Connector:
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
-    data: dict[str, list[ClientMsg]] = DictX({})
+    data: dict[str, dict[str, list[ClientMsg]]] = DictX({})
     __devices = {'time_stamp': time_s(), 'devices': []}
     device: Optional[Device] = None
     __server_url: str
@@ -90,9 +91,13 @@ class Connector:
     on_room_joined: Union[Callable[[DeviceJoinedMsg], None], Callable[[DeviceJoinedMsg, Connector], None]] = noop
     on_room_left: Union[Callable[[DeviceLeftMsg], None], Callable[[DeviceLeftMsg, Connector], None]] = noop
 
-    on_sprite_out: Union[Callable[[SpriteOut], None], Callable[[SpriteOut, Connector], None]] = noop
-    on_sprite_collision: Union[Callable[[SpriteCollision], None], Callable[[SpriteCollision, Connector], None]] = noop
-    __on_notify_subscribers: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = noop
+    on_sprite_out: Union[Callable[[SpriteOutMsg], None], Callable[[SpriteOutMsg, Connector], None]] = noop
+    on_sprite_collision: Union[Callable[[SpriteCollisionMsg], None],
+                               Callable[[SpriteCollisionMsg, Connector], None]] = noop
+    on_border_overlap: Union[Callable[[BorderOverlapMsg], None], Callable[[BorderOverlapMsg, Connector], None]] = noop
+
+    __on_notify_subscribers: Union[Callable[[], None], Callable[[
+        DataFrame], None], Callable[[DataFrame, Connector], None]] = noop
     __subscription_job: Union[ThreadJob, CancleSubscription]
 
     __responses: List[InputResponseMsg] = []
@@ -419,45 +424,18 @@ class Connector:
         return len(self.room_members)
 
     @property
-    def data_list(self) -> List[DataMsg]:
+    def data_list(self) -> List[ClientMsg]:
         '''
         Returns
         -------
-        List[DataMsg] a list of all received messages (inlcuding messages to other device id's), ordered by time_stamp ascending (first element = oldest)
+        List[ClientMsg] a list of all received messages (inlcuding messages to other device id's), ordered by time_stamp ascending (first element = oldest)
         '''
-        data = flatten(list(self.data.values()))
-        data = sorted(
-            data,
-            key=lambda item: item['time_stamp'] if 'time_stamp' in item else 0,
-            reverse=False
-        )
-        return list(data)
-
-    def all_broadcast_data(self, data_type: str = None) -> List[DataMsg]:
-        '''
-        Returns the broadcasted data (from all devices)
-        '''
-        data = filter(lambda item: 'broadcast' in item and item['broadcast'], self.data_list)
-
-        if data_type is not None:
-            data = filter(lambda pkg: 'type' in pkg and pkg['type'] == data_type, data)
-
-        return list(data)
-
-    def latest_broadcast_data(self, data_type: str = None) -> Union[DataMsg, None]:
-        '''
-        Return
-        ______
-        DataMsg, None
-            the latest data from all broadcasted data. None is returned when no package is found
-        '''
-
-        for pkg in reversed(self.data_list):
-            if 'broadcast' in pkg and pkg['broadcast']:
-                if data_type is None or ('type' in pkg and pkg['type'] == data_type):
-                    return pkg
-
-        return None
+        all_data: List[ClientMsg] = []
+        for dev_id in self.data:
+            for dtype in self.data[dev_id]:
+                all_data.extend(self.data[dev_id][dtype])
+        all_data.sort(key=lambda d: d['time_stamp'])
+        return all_data
 
     @overload
     def all_data(self, data_type: Literal['pointer'], device_id: str = None) -> Union[List[ColorPointer], List[GridPointer]]:
@@ -476,12 +454,14 @@ class Connector:
         ...
 
     @overload
-    def all_data(self, data_type: Literal['key'], device_id: str = None) -> List[KeyMsg]:
+    def all_data(self, data_type: DataTypes, device_id: str) -> List[ClientMsg]:
         ...
 
-    def all_data(self, data_type: str = None, device_id: str = None) -> List[DataMsg]:
+    def all_data(self, data_type: str = None, device_id: str = None) -> List[ClientMsg]:
         '''
-        Returns all data with the given type and from the given device_id.
+        Returns
+        -------
+        List[ClientMsg] a list of received messages ordered by time_stamp ascending (first element=oldest)
 
         Optional
         --------
@@ -497,18 +477,19 @@ class Connector:
         if device_id is None:
             device_id = self.device_id
 
+        dev_ids = [device_id]
         if device_id == '__ALL_DEVICES__':
-            pass
+            dev_ids = self.data.keys()
         elif device_id not in self.data:
             return []
 
-        data = self.data_list if device_id == '__ALL_DEVICES__' else self.data[device_id]
-
-        if data_type is None:
-            return cast(list[DataMsg], data)
-
-        data = filter(lambda pkg: 'type' in pkg and pkg['type'] == data_type, data)
-        return cast(list[DataMsg], list(data))
+        all_data: List[ClientMsg] = []
+        for dev_id in dev_ids:
+            data_types = self.data[dev_id].keys() if data_type is None else [data_type]
+            for dtype in data_types:
+                all_data.extend(self.data[dev_id][dtype])
+        all_data.sort(key=lambda d: d['time_stamp'])
+        return all_data
 
     def pointer_data(self, device_id: str = '__ALL_DEVICES__') -> Union[List[ColorPointer], List[GridPointer]]:
         return self.all_data('pointer', device_id=device_id)
@@ -546,7 +527,7 @@ class Connector:
     def latest_data(self, data_type: Literal['key'], device_id: str = None) -> Union[None, KeyMsg]:
         ...
 
-    def latest_data(self, data_type: str = None, device_id: str = None) -> Union[dict, None]:
+    def latest_data(self, data_type: DataTypes = None, device_id: str = None) -> Union[ClientMsg, None]:
         '''
         Returns the latest data (last received) with the given type and from the given device_id.
 
@@ -566,40 +547,26 @@ class Connector:
         DataMsg, None
             when no data is found, None is returned
         '''
-        if device_id is None:
-            device_id = self.device_id
 
-        if device_id == '__ALL_DEVICES__':
-            pass
-        elif device_id not in self.data:
+        data = self.all_data(data_type=data_type, device_id=device_id)
+        if (len(data) == 0):
             return None
-
-        data = self.data_list if device_id == '__ALL_DEVICES__' else self.data[device_id]
-
-        for pkg in reversed(data):
-            if data_type is None or ('type' in pkg and pkg['type'] == data_type):
-                return pkg
-
-        return None
+        return data[-1]
 
     def latest_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, GridPointer, None]:
         return self.latest_data('pointer', device_id=device_id)
 
     def latest_color_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, None]:
-        for pkg in reversed(self.data_list):
-            has_type = 'type' in pkg and pkg['type'] == 'pointer' and pkg['context'] == 'color'
-            is_device = device_id == '__ALL_DEVICES__' or ('device_id' in pkg and device_id == pkg['device_id'])
-
-            if has_type and is_device:
-                return cast(ColorPointer, pkg)
+        data = self.all_data(data_type='pointer', device_id=device_id)
+        for pkg in reversed(data):
+            if pkg.context == 'color':
+                return pkg
 
     def latest_grid_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[GridPointer, None]:
-        for pkg in reversed(self.data_list):
-            has_type = 'type' in pkg and pkg['type'] == 'pointer' and pkg['context'] == 'grid'
-            is_device = device_id == '__ALL_DEVICES__' or ('device_id' in pkg and device_id == pkg['device_id'])
-
-            if has_type and is_device:
-                return cast(GridPointer, pkg)
+        data = self.all_data(data_type='pointer', device_id=device_id)
+        for pkg in reversed(data):
+            if pkg.context == 'grid':
+                return pkg
 
     def latest_gyro(self, device_id: str = '__ALL_DEVICES__') -> Union[None, GyroMsg]:
         return self.latest_data('gyro', device_id=device_id)
@@ -611,11 +578,12 @@ class Connector:
         return self.latest_data('key', device_id=device_id)
 
     def configure_playground(self, config: Union[dict, PlaygroundConfig], **delivery_opts):
-        conf = cast(PlaygroundConfigMsg, config)
-        conf['type'] = 'playground_config'
-        self.emit(SocketEvents.ADD_NEW_DATA, conf, **delivery_opts)
+        self.emit(SocketEvents.ADD_NEW_DATA, {
+            'type': 'playground_config',
+            'config': config
+        }, **delivery_opts)
 
-    def add_sprites(self, sprites: List[Union[dict, Sprite]], **delivery_opts):
+    def add_sprites(self, sprites: List[Union[dict, dict]], **delivery_opts):
         self.__sprites.extend(map(lambda sprite: DictX(sprite), sprites))
         self.emit(
             SocketEvents.ADD_NEW_DATA,
@@ -626,7 +594,7 @@ class Connector:
             **delivery_opts
         )
 
-    def add_sprite(self, sprite: Sprite, **delivery_opts):
+    def add_sprite(self, sprite: dict, **delivery_opts):
         self.__sprites.append(DictX(sprite))
         self.emit(
             SocketEvents.ADD_NEW_DATA,
@@ -637,14 +605,35 @@ class Connector:
             **delivery_opts
         )
 
+    def clear_playground(self, **delivery_opts):
+        self.emit(
+            SocketEvents.ADD_NEW_DATA,
+            {
+                'type': DataType.CLEAR_PLAYGROUND
+            }
+        )
+
+    def remove_sprite(self, sprite_id: str, **delivery_opts):
+        to_remove = first(lambda s: s.id == sprite_id, self.__sprites)
+        if to_remove is not None:
+            self.__sprites.remove(to_remove)
+
+        self.emit(
+            SocketEvents.ADD_NEW_DATA,
+            {
+                'type': DataType.REMOVE_SPRITE,
+                'sprite_id': sprite_id
+            },
+            **delivery_opts
+        )
+
     def update_sprite(self, id: str, update: Union[dict, UpdateSprite], **delivery_opts):
         sprite = first(lambda s: s.id == id, self.__sprites)
         if sprite:
             sprite.update(update)
-        update.update({
-            'id': id,
-            'movement': 'controlled'
-        })
+        update.update({'id': id})
+        if 'movement' not in update:
+            update.update({'movement': sprite.movement if sprite else 'uncontrolled'})
 
         self.emit(
             SocketEvents.ADD_NEW_DATA,
@@ -657,7 +646,7 @@ class Connector:
 
     @property
     def get_grid(self) -> List[List[CssColorType]]:
-        grid = self.__last_sent_grid.grid
+        grid = self.__last_sent_grid['grid']
         is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
         if is_2d:
             return deepcopy(grid)
@@ -735,17 +724,18 @@ class Connector:
         grid[row][column] = color
         self.__last_sent_grid.grid = grid
 
-    def __set_local_grid(self, grid):
+    def __set_local_grid(self, grid: ColorGrid):
         raw_grid = deepcopy(grid)
-        is_str = type(raw_grid) == str
-        if is_str:
+        if isinstance(raw_grid, str):
             raw_grid = lines_to_grid(image_to_lines(raw_grid))
+        if isinstance(raw_grid, int):
+            raw_grid = [[raw_grid]]
         if len(raw_grid) < 1:
             return
-        if type(raw_grid[0]) == str:
+        if isinstance(raw_grid[0], str):
             raw_grid = lines_to_grid(cast(List[str], raw_grid))
 
-        self.__last_sent_grid.grid = list(raw_grid)
+        self.__last_sent_grid.grid = cast(List[List[CssColorType]], list(raw_grid))
 
     def set_grid(self, grid: ColorGrid, base_color: Union[BaseColor] = None, **delivery_opts):
         '''
@@ -899,8 +889,10 @@ class Connector:
             return
 
         arg_count = len(signature(self.__on_notify_subscribers).parameters)
+        clbk = cast(Callable, self.__on_notify_subscribers)
+
         if arg_count == 0:
-            return self.__on_notify_subscribers()
+            return clbk()
 
         data: DataFrame = DataFrame({
             'key': self.latest_key(device_id=self.__device_id) or default('key'),
@@ -1010,9 +1002,12 @@ class Connector:
             return
 
         if data['device_id'] not in self.data:
-            self.data[data['device_id']] = []
+            self.data[data['device_id']] = {}
 
-        self.data[data['device_id']].append(cast(ClientMsg, data))
+        if data['type'] not in self.data[data['device_id']]:
+            self.data[data['device_id']][data['type']] = []
+
+        self.data[data['device_id']][data['type']].append(cast(ClientMsg, data))
         if self.__main_thread_blocked:
             self.__blocked_data_msgs.append(cast(DataMsg, data))
         else:
@@ -1020,7 +1015,7 @@ class Connector:
 
     def __distribute_new_data_callback(self, data: DataMsg):
         if 'type' in data:
-            if data['type'] == 'key':
+            if data['type'] == DataType.KEY:
                 self.__callback('on_key', data)
                 if data['key'] == 'F1':
                     self.__callback('on_f1', data)
@@ -1030,26 +1025,28 @@ class Connector:
                     self.__callback('on_f3', data)
                 elif data['key'] == 'F4':
                     self.__callback('on_f4', data)
-            if data['type'] in ['acceleration', 'gyro']:
+            if data['type'] in [DataType.ACCELERATION, DataType.GYRO]:
                 self.__callback('on_sensor', data)
-            if data['type'] == 'acceleration':
+            if data['type'] == DataType.ACCELERATION:
                 self.__callback('on_acceleration', data)
-            if data['type'] == 'gyro':
+            if data['type'] == DataType.GYRO:
                 self.__callback('on_gyro', data)
-            if data['type'] == 'pointer':
+            if data['type'] == DataType.POINTER:
                 self.__callback('on_pointer', data)
-            if data['type'] == 'input_response':
+            if data['type'] == DataType.INPUT_RESPONSE:
                 self.__responses.append(cast(InputResponseMsg, data))
-            if data['type'] == 'alert_confirm':
+            if data['type'] == DataType.ALERT_CONFIRM:
                 self.__alerts.append(cast(AlertConfirmMsg, data))
-            if data['type'] == 'sprite_out':
+            if data['type'] == DataType.SPRITE_OUT:
                 sprite = first(lambda s: s.id == data.sprite_id, self.__sprites)
                 if sprite:
-                    print('sprite out', sprite.id)
-                    del self.__sprites[self.__sprites.index(sprite)]
+                    self.__sprites.remove(sprite)
                 self.__callback('on_sprite_out', data)
-            if data['type'] == 'sprite_collision':
+            if data['type'] == DataType.SPRITE_COLLISION:
+                data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
                 self.__callback('on_sprite_collision', data)
+            if data['type'] == DataType.BORDER_OVERLAP:
+                self.__callback('on_border_overlap', data)
 
         if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
             self.__callback('on_broadcast_data', data)
@@ -1060,8 +1057,15 @@ class Connector:
         if 'device_id' not in data:
             return
 
-        data['all_data'] = list(map(lambda pkg: DictX(pkg), data['all_data']))
+        xdata: dict[str, List[dict]] = data['all_data']
+        for dtype in xdata:
+            xdata[dtype] = list(map(lambda msg: DictX(msg), xdata[dtype]))
+
+        data['all_data'] = DictX(xdata)
         self.data[data['device_id']] = data['all_data']
+        if DataType.SPRITE in data['all_data'] and data['device_id'] == self.device_id:
+            self.__sprites = list(map(lambda s: s['sprite'], data['all_data']['sprite']))
+
         self.__callback('on_all_data', data)
 
     def __on_room_left(self, device: dict):

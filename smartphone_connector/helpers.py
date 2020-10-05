@@ -1,4 +1,4 @@
-from typing import List, Callable, TypeVar
+from typing import List, Callable, TypeVar, Union
 from time import time_ns
 from datetime import datetime
 import random
@@ -88,7 +88,7 @@ def try_or(func, default=None, expected_exc=(Exception,)):
 T = TypeVar('T')
 
 
-def first(filter_func: Callable[[T], bool], list_: List[T]) -> T:
+def first(filter_func: Callable[[T], bool], list_: List[T]) -> Union[T, None]:
     return next((item for item in list_ if try_or(lambda: filter_func(item), False)), None)
 
 
