@@ -8,8 +8,8 @@ from examples.server_adress import SERVER_ADRESS
 device = Connector(SERVER_ADRESS, 'FooBar')
 WIDTH = 100
 HEIGHT = 100
-SHIFT_X = -50
-SHIFT_Y = -50
+SHIFT_X = 0
+SHIFT_Y = 0
 
 positions = [(0.0 + SHIFT_X, 0.0 + SHIFT_Y)]
 form = 'round'
@@ -56,21 +56,21 @@ def update_position(dx: float, dy: float):
 def update_players():
     updates = [{
         'id': 'player1',
-        'movement': 'controlled',
+        'collision_detection': True,
         'pos_x': positions[-1][0],
         'pos_y': positions[-1][1],
     }]
     if len(positions) >= 20:
         updates.append({
             'id': 'player2',
-            'movement': 'controlled',
+            'collision_detection': True,
             'pos_x': positions[-20][0],
             'pos_y': positions[-20][1],
         })
     if len(positions) >= 40:
         updates.append({
             'id': 'player3',
-            'movement': 'controlled',
+            'collision_detection': True,
             'pos_x': positions[-40][0],
             'pos_y': positions[-40][1],
         })
@@ -85,16 +85,16 @@ def on_acc(data: AccMsg):
 
 
 def on_overlap(data: BorderOverlapMsg):
-    if data.movement == 'uncontrolled' and data.border == 'bottom':
+    if data.collision_detection and data.border == 'bottom':
         device.update_sprite(data.id, {'color': 'red'})
 
 
 def on_collision(data: SpriteCollisionMsg):
-    if data.overlap == 'in' and data.sprites[0].movement == 'controlled' and data.sprites[1].movement == 'controlled':
-        device.remove_sprite(data.sprites[1].id)
+    if data.overlap == 'in' and data.sprites[0].collision_detection and data.sprites[1].collision_detection:
+        device.update_sprite(data.sprites[0].id, {'color': 'pink'})
         return
     for s in data.sprites:
-        if s.movement == 'uncontrolled':
+        if not s.collision_detection:
             device.update_sprite(s.id, {'color': 'grey', 'text': 'x'})
 
 
@@ -109,7 +109,8 @@ device.configure_playground({
         'width': WIDTH,
         'height': HEIGHT,
         'shift_x': SHIFT_X,
-        'shift_y': SHIFT_Y
+        'shift_y': SHIFT_Y,
+        'color': 'red'
     })
 
 device.add_sprites([
@@ -119,7 +120,7 @@ device.add_sprites([
         'height': 10,
         'width': 10,
         'id': 'player1',
-        'movement': 'controlled',
+        'collision_detection': True,
         'pos_x': 0 + SHIFT_X,
         'pos_y': 0 + SHIFT_Y
     },
@@ -129,7 +130,7 @@ device.add_sprites([
         'height': 7,
         'width': 7,
         'id': 'player2',
-        'movement': 'controlled',
+        'collision_detection': True,
         'pos_x': 50 + SHIFT_X,
         'pos_y': 50 + SHIFT_Y
     },
@@ -139,7 +140,7 @@ device.add_sprites([
         'height': 4,
         'width': 4,
         'id': 'player3',
-        'movement': 'controlled',
+        'collision_detection': True,
         'pos_x': 70 + SHIFT_X,
         'pos_y': 70 + SHIFT_Y
     }
@@ -157,7 +158,6 @@ while True:
         'height': randint(2, 10),
         'width': w,
         'id': f'asdfa{sprite_count}',
-        'movement': 'uncontrolled',
         'pos_x': randint(0, WIDTH - w) + SHIFT_X,
         'pos_y': HEIGHT + SHIFT_Y,
         'speed': randint(1, 60) / 10
