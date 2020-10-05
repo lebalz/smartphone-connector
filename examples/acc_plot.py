@@ -1,10 +1,10 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from examples.server_adress import SERVER_ADRESS
 from smartphone_connector import Connector
 from smartphone_connector.types import AccMsg
 import matplotlib.pyplot as plt
-from server_adress import SERVER_ADRESS
 
 device = Connector(SERVER_ADRESS, 'FooBar')
 

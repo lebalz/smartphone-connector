@@ -1,5 +1,5 @@
 from smartphone_connector import Connector
-from server_adress import SERVER_ADRESS
+from examples.server_adress import SERVER_ADRESS
 
 device = Connector(SERVER_ADRESS, 'FooBar')
 
