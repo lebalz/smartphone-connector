@@ -17,6 +17,8 @@ class DictX(dict):
 
     def __getattr__(self, key):
         try:
+            if type(self[key]) is dict:
+                return DictX(self[key])
             return self[key]
         except KeyError as k:
             raise AttributeError(k)
@@ -32,3 +34,10 @@ class DictX(dict):
 
     def __repr__(self):
         return '<DictX ' + dict.__repr__(self) + '>'
+
+
+if __name__ == '__main__':
+    a = DictX({'a': DictX({'b': 12, 'c': {'a': 113}})})
+    print(a.a)
+    print(a.a.b)
+    print(a.a.c.a)
