@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import overload, Union, Literal, Optional, Tuple, List
+from typing import Final, overload, Union, Literal, Optional, Tuple, List, TypedDict
 from dataclasses import dataclass
 from .dictx import DictX
 
@@ -23,25 +23,52 @@ SocketEvents = Literal[
 ]
 
 
-DataType = Literal[
-    'key',
-    'grid',
-    'grid_update',
-    'color',
-    'acceleration',
-    'gyro',
-    'pointer',
-    'notification',
-    'input_prompt',
-    'input_response',
-    'unknown',
-    'all_data',
-    'alert_confirm',
-    'sprite',
-    'sprites',
-    'sprite_collision',
-    'sprite_out',
-    'playground_config'
+class DataType:
+    KEY: Final[str] = 'key'
+    GRID: Final[str] = 'grid'
+    GRIDUPDATE: Final[str] = 'grid_update'
+    COLOR: Final[str] = 'color'
+    ACCELERATION: Final[str] = 'acceleration'
+    GYRO: Final[str] = 'gyro'
+    POINTER: Final[str] = 'pointer'
+    NOTIFICATION: Final[str] = 'notification'
+    INPUT_PROMPT: Final[str] = 'input_prompt'
+    INPUT_RESPONSE: Final[str] = 'input_response'
+    UNKNOWN: Final[str] = 'unknown'
+    ALLDATA: Final[str] = 'all_data'
+    ALERT_CONFIRM: Final[str] = 'alert_confirm'
+    REMOVE_SPRITE: Final[str] = 'remove_sprite'
+    SPRITE: Final[str] = 'sprite'
+    SPRITES: Final[str] = 'sprites'
+    SPRITE_COLLISION: Final[str] = 'sprite_collision'
+    SPRITE_OUT: Final[str] = 'sprite_out'
+    PLAYGROUND_CONFIG: Final[str] = 'playground_config'
+    CLEAR_PLAYGROUND: Final[str] = 'clear_playground'
+    BORDER_OVERLAP: Final[str] = 'border_overlap'
+
+
+DataTypes = Literal[
+    DataType.KEY,
+    DataType.GRID,
+    DataType.GRIDUPDATE,
+    DataType.COLOR,
+    DataType.ACCELERATION,
+    DataType.GYRO,
+    DataType.POINTER,
+    DataType.NOTIFICATION,
+    DataType.INPUT_PROMPT,
+    DataType.INPUT_RESPONSE,
+    DataType.UNKNOWN,
+    DataType.ALLDATA,
+    DataType.ALERT_CONFIRM,
+    DataType.REMOVE_SPRITE,
+    DataType.SPRITE,
+    DataType.SPRITES,
+    DataType.SPRITE_COLLISION,
+    DataType.SPRITE_OUT,
+    DataType.PLAYGROUND_CONFIG,
+    DataType.CLEAR_PLAYGROUND,
+    DataType.BORDER_OVERLAP
 ]
 
 
@@ -83,7 +110,7 @@ class BaseMsg(TimeStampedMsg):
 
 
 class DataMsg(BaseMsg):
-    type: DataType
+    type: DataTypes
 
 
 class Device(DictX):
@@ -375,14 +402,34 @@ class UpdateSpriteMsg(UpdateSprite):
     device_nr: int
 
 
+class SpriteBase:
+    id: str
+    movement: Literal['controlled', 'uncontrolled']
+
+
 class SpriteCollision(DataMsg):
     type: Literal['sprite_collision']
-    sprite_ids: Tuple[str, str]
+    sprites: Tuple[SpriteBase, SpriteBase]
     time_stamp: float
     overlap: Literal['in', 'out']
 
 
 class SpriteCollisionMsg(SpriteCollision):
+    time_stamp: float
+    device_id: str
+    device_nr: int
+
+
+class BorderOverlap(DataMsg):
+    type: Literal['border_overlap']
+    border: Literal['left', 'right', 'top', 'bottom']
+    movement: Literal['controlled', 'uncontrolled']
+    x: float
+    y: float
+    id: str
+
+
+class BorderOverlapMsg(BorderOverlap):
     time_stamp: float
     device_id: str
     device_nr: int

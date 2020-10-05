@@ -29,27 +29,6 @@ class SocketEvents:
     SET_NEW_DEVICE_NR: Final[str] = 'set_new_device_nr'
 
 
-class DataType:
-    KEY: Final[str] = 'key'
-    GRID: Final[str] = 'grid'
-    GRIDUPDATE: Final[str] = 'grid_update'
-    COLOR: Final[str] = 'color'
-    ACCELERATION: Final[str] = 'acceleration'
-    GYRO: Final[str] = 'gyro'
-    POINTER: Final[str] = 'pointer'
-    NOTIFICATION: Final[str] = 'notification'
-    INPUT_PROMPT: Final[str] = 'input_prompt'
-    INPUTRESPONSE: Final[str] = 'input_response'
-    UNKNOWN: Final[str] = 'unknown'
-    ALLDATA: Final[str] = 'all_data'
-    ALERTCONFIRM: Final[str] = 'alert_confirm'
-    SPRITE: Final[str] = 'sprite'
-    SPRITES: Final[str] = 'sprites'
-    SPRITECOLLISION: Final[str] = 'sprite_collision'
-    SPRITEOUT: Final[str] = 'sprite_out'
-    PLAYGROUNDCONFIG: Final[str] = 'playground_config'
-
-
 class INPUT_TYPE:
     TEXT: Final[str] = 'text'
     NUMBER: Final[str] = 'number'
