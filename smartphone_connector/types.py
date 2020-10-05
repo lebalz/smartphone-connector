@@ -2,85 +2,62 @@ from __future__ import annotations
 from typing import Final, overload, Union, Literal, Optional, Tuple, List, TypedDict
 from dataclasses import dataclass
 from .dictx import DictX
-
-SocketEvents = Literal[
-    'device',
-    'devices',
-    'all_data',
-    'new_data',
-    'new_data',
-    'clear_data',
-    'new_device',
-    'get_all_data',
-    'get_devices',
-    'join_room',
-    'leave_room',
-    'room_left',
-    'room_joined',
-    'error_msg',
-    'information_msg',
-    'set_new_device_nr'
-]
+from enum import Enum
 
 
-class DataType:
-    KEY: Final[str] = 'key'
-    GRID: Final[str] = 'grid'
-    GRIDUPDATE: Final[str] = 'grid_update'
-    COLOR: Final[str] = 'color'
-    ACCELERATION: Final[str] = 'acceleration'
-    GYRO: Final[str] = 'gyro'
-    POINTER: Final[str] = 'pointer'
-    NOTIFICATION: Final[str] = 'notification'
-    INPUT_PROMPT: Final[str] = 'input_prompt'
-    INPUT_RESPONSE: Final[str] = 'input_response'
-    UNKNOWN: Final[str] = 'unknown'
-    ALLDATA: Final[str] = 'all_data'
-    ALERT_CONFIRM: Final[str] = 'alert_confirm'
-    REMOVE_SPRITE: Final[str] = 'remove_sprite'
-    SPRITE: Final[str] = 'sprite'
-    SPRITES: Final[str] = 'sprites'
-    SPRITE_COLLISION: Final[str] = 'sprite_collision'
-    SPRITE_OUT: Final[str] = 'sprite_out'
-    PLAYGROUND_CONFIG: Final[str] = 'playground_config'
-    CLEAR_PLAYGROUND: Final[str] = 'clear_playground'
-    BORDER_OVERLAP: Final[str] = 'border_overlap'
+class SocketEvents(str, Enum):
+    ALL_DATA = "all_data"
+    CLEAR_DATA = "clear_data"
+    DATA_STORE = "data_store"
+    DEVICE = "device"
+    DEVICES = "devices"
+    ERROR_MSG = "error_msg"
+    GET_ALL_DATA = "get_all_data"
+    GET_DEVICES = "get_devices"
+    INFORMATION_MSG = "information_msg"
+    JOIN_ROOM = "join_room"
+    LEAVE_ROOM = "leave_room"
+    NEW_DATA = "new_data"
+    NEW_DEVICE = "new_device"
+    REMOVE_ALL = "remove_all"
+    ROOM_JOINED = "room_joined"
+    ROOM_LEFT = "room_left"
+    SET_NEW_DEVICE_NR = "set_new_device_nr"
 
 
-DataTypes = Literal[
-    DataType.KEY,
-    DataType.GRID,
-    DataType.GRIDUPDATE,
-    DataType.COLOR,
-    DataType.ACCELERATION,
-    DataType.GYRO,
-    DataType.POINTER,
-    DataType.NOTIFICATION,
-    DataType.INPUT_PROMPT,
-    DataType.INPUT_RESPONSE,
-    DataType.UNKNOWN,
-    DataType.ALLDATA,
-    DataType.ALERT_CONFIRM,
-    DataType.REMOVE_SPRITE,
-    DataType.SPRITE,
-    DataType.SPRITES,
-    DataType.SPRITE_COLLISION,
-    DataType.SPRITE_OUT,
-    DataType.PLAYGROUND_CONFIG,
-    DataType.CLEAR_PLAYGROUND,
-    DataType.BORDER_OVERLAP
-]
+class DataType(str, Enum):
+    ACCELERATION = "acceleration"
+    ALERT_CONFIRM = "alert_confirm"
+    ALL_DATA = "all_data"
+    BORDER_OVERLAP = "border_overlap"
+    CLEAR_PLAYGROUND = "clear_playground"
+    COLOR = "color"
+    GRID = "grid"
+    GRID_UPDATE = "grid_update"
+    GYRO = "gyro"
+    INPUT_PROMPT = "input_prompt"
+    INPUT_RESPONSE = "input_response"
+    KEY = "key"
+    NOTIFICATION = "notification"
+    PLAYGROUND_CONFIG = "playground_config"
+    POINTER = "pointer"
+    REMOVE_SPRITE = "remove_sprite"
+    SPRITE = "sprite"
+    SPRITES = "sprites"
+    SPRITE_CLICKED = "sprite_clicked"
+    SPRITE_COLLISION = "sprite_collision"
+    SPRITE_OUT = "sprite_out"
+    UNKNOWN = "unknown"
 
 
-InputType = Literal[
-    'text',
-    'number',
-    'datetime',
-    'date',
-    'time',
-    'select',
-    'datetime-local'
-]
+class ClientDataMsgInputType(str, Enum):
+    DATE = "date"
+    DATETIME_LOCAL = "datetime-local"
+    NUMBER = "number"
+    SELECT = "select"
+    TEXT = "text"
+    TIME = "time"
+
 
 R = int
 G = int
@@ -110,7 +87,7 @@ class BaseMsg(TimeStampedMsg):
 
 
 class DataMsg(BaseMsg):
-    type: DataTypes
+    type: DataType
 
 
 class Device(DictX):
@@ -368,19 +345,31 @@ class PlaygroundConfigMsg(PlaygroundConfig):
     device_nr: int
 
 
+class SpriteForm(str, Enum):
+    RECTANGLE = "rectangle"
+    ROUND = "round"
+
+
 class Sprite(DataMsg):
-    type: Literal['sprite']
     id: str
-    pos_x: int
-    pos_y: int
-    width: int
-    height: int
-    form: Literal['round', 'rectangle']
-    color: CssColorType
-    movement: Literal['controlled', 'uncontrolled']
+    clickable: Optional[bool] = None
+    collision_detection: Optional[bool] = None
+    color: Optional[str] = None
+    direction: Optional[List[float]] = None
+    distance: Optional[float] = None
+    form: Optional[SpriteForm] = None
+    height: Optional[float] = None
+    pos_x: Optional[float] = None
+    pos_y: Optional[float] = None
+    reset_time: Optional[bool] = None
+    speed: Optional[float] = None
+    text: Optional[str] = None
+    time_span: Optional[float] = None
+    width: Optional[float] = None
 
 
 class SpriteMsg(Sprite):
+    type: Literal['sprite']
     time_stamp: float
     device_id: str
     device_nr: int
@@ -404,7 +393,7 @@ class UpdateSpriteMsg(UpdateSprite):
 
 class SpriteBase:
     id: str
-    movement: Literal['controlled', 'uncontrolled']
+    collision_detection: bool
 
 
 class SpriteCollision(DataMsg):
@@ -423,7 +412,7 @@ class SpriteCollisionMsg(SpriteCollision):
 class BorderOverlap(DataMsg):
     type: Literal['border_overlap']
     border: Literal['left', 'right', 'top', 'bottom']
-    movement: Literal['controlled', 'uncontrolled']
+    collision_detection: bool
     x: float
     y: float
     id: str
@@ -437,7 +426,7 @@ class BorderOverlapMsg(BorderOverlap):
 
 class SpriteOut(DataMsg):
     type: Literal['sprite_out']
-    sprite_id: str
+    id: str
     time_stamp: float
 
 

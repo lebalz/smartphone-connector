@@ -8,25 +8,8 @@ from typing import overload, cast, Any, Union, Literal, Callable, List, Optional
 from copy import deepcopy
 from itertools import repeat
 from .types import *
-
-
-class SocketEvents:
-    DEVICE: Final[str] = 'device'
-    DEVICES: Final[str] = 'devices'
-    ALL_DATA: Final[str] = 'all_data'
-    ADD_NEW_DATA: Final[str] = 'new_data'
-    NEW_DATA: Final[str] = 'new_data'
-    CLEAR_DATA: Final[str] = 'clear_data'
-    NEW_DEVICE: Final[str] = 'new_device'
-    GET_ALL_DATA: Final[str] = 'get_all_data'
-    GET_DEVICES: Final[str] = 'get_devices'
-    JOIN_ROOM: Final[str] = 'join_room'
-    LEAVE_ROOM: Final[str] = 'leave_room'
-    ROOM_LEFT: Final[str] = 'room_left'
-    ROOM_JOINED: Final[str] = 'room_joined'
-    ERROR_MSG: Final[str] = 'error_msg'
-    INFORMATION_MSG: Final[str] = 'information_msg'
-    SET_NEW_DEVICE_NR: Final[str] = 'set_new_device_nr'
+from .colors import Colors
+from random import randint
 
 
 class INPUT_TYPE:
@@ -125,6 +108,10 @@ class Connector:
         self.__last_time_stamp = ts
         return ts
 
+    @property
+    def sprites(self) -> List[Sprite]:
+        return self.__sprites
+
     def __init__(self, server_url: str, device_id: str):
         self.__server_url = server_url
         self.__device_id = device_id
@@ -201,7 +188,7 @@ class Connector:
         unicast_to : int
             the device number to which this message is sent exclusively. When set, boradcast has no effect.
         '''
-        self.emit(SocketEvents.ADD_NEW_DATA, data=data, **delivery_opts)
+        self.emit(SocketEvents.NEW_DATA, data=data, **delivery_opts)
 
     def alert(self, message: str, unicast_to: int = None):
         '''
@@ -259,7 +246,7 @@ class Connector:
         ts = self.current_time_stamp
 
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             data={
                 'type': DataType.NOTIFICATION,
                 'time_stamp': ts,
@@ -361,7 +348,7 @@ class Connector:
             input_type = 'datetime-local'
 
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             {
                 'type': DataType.INPUT_PROMPT,
                 'question': question,
@@ -383,10 +370,10 @@ class Connector:
             return response['response']
 
     def broadcast(self, data: DataMsg):
-        self.emit(SocketEvents.ADD_NEW_DATA, data=data, broadcast=True)
+        self.emit(SocketEvents.NEW_DATA, data=data, broadcast=True)
 
     def unicast_to(self, data: DataMsg, device_nr: int):
-        self.emit(SocketEvents.ADD_NEW_DATA, data=data, unicast_to=device_nr)
+        self.emit(SocketEvents.NEW_DATA, data=data, unicast_to=device_nr)
 
     def connect(self):
         if self.sio.connected:
@@ -454,7 +441,7 @@ class Connector:
         ...
 
     @overload
-    def all_data(self, data_type: DataTypes, device_id: str) -> List[ClientMsg]:
+    def all_data(self, data_type: DataType, device_id: str) -> List[ClientMsg]:
         ...
 
     def all_data(self, data_type: str = None, device_id: str = None) -> List[ClientMsg]:
@@ -527,7 +514,7 @@ class Connector:
     def latest_data(self, data_type: Literal['key'], device_id: str = None) -> Union[None, KeyMsg]:
         ...
 
-    def latest_data(self, data_type: DataTypes = None, device_id: str = None) -> Union[ClientMsg, None]:
+    def latest_data(self, data_type: DataType = None, device_id: str = None) -> Union[ClientMsg, None]:
         '''
         Returns the latest data (last received) with the given type and from the given device_id.
 
@@ -578,7 +565,7 @@ class Connector:
         return self.latest_data('key', device_id=device_id)
 
     def configure_playground(self, config: Union[dict, PlaygroundConfig], **delivery_opts):
-        self.emit(SocketEvents.ADD_NEW_DATA, {
+        self.emit(SocketEvents.NEW_DATA, {
             'type': 'playground_config',
             'config': config
         }, **delivery_opts)
@@ -586,9 +573,9 @@ class Connector:
     def add_sprites(self, sprites: List[Union[dict, dict]], **delivery_opts):
         self.__sprites.extend(map(lambda sprite: DictX(sprite), sprites))
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             {
-                'type': 'sprites',
+                'type': DataType.SPRITES,
                 'sprites': sprites
             },
             **delivery_opts
@@ -596,22 +583,27 @@ class Connector:
 
     def add_sprite(self, sprite: dict, **delivery_opts):
         self.__sprites.append(DictX(sprite))
+        if 'id' not in sprite:
+            sprite['id'] = f'sprite{randint(10000, 99999)}'
+
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             {
-                'type': 'sprite',
+                'type': DataType.SPRITE,
                 'sprite': sprite
             },
             **delivery_opts
         )
 
     def clear_playground(self, **delivery_opts):
+        self.__sprites.clear()
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             {
                 'type': DataType.CLEAR_PLAYGROUND
             }
         )
+        self.sleep(0.2)
 
     def remove_sprite(self, sprite_id: str, **delivery_opts):
         to_remove = first(lambda s: s.id == sprite_id, self.__sprites)
@@ -619,10 +611,10 @@ class Connector:
             self.__sprites.remove(to_remove)
 
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             {
                 'type': DataType.REMOVE_SPRITE,
-                'sprite_id': sprite_id
+                'id': sprite_id
             },
             **delivery_opts
         )
@@ -632,11 +624,9 @@ class Connector:
         if sprite:
             sprite.update(update)
         update.update({'id': id})
-        if 'movement' not in update:
-            update.update({'movement': sprite.movement if sprite else 'uncontrolled'})
 
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             {
                 'type': 'sprite',
                 'sprite': update
@@ -666,7 +656,7 @@ class Connector:
             'time_stamp': self.current_time_stamp
         }
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             grid_msg,
             **delivery_opts
         )
@@ -778,7 +768,7 @@ class Connector:
             'time_stamp': self.current_time_stamp
         }
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             grid_msg,
             **delivery_opts
         )
@@ -812,7 +802,7 @@ class Connector:
         '''
         color = to_css_color(color)
         self.emit(
-            SocketEvents.ADD_NEW_DATA,
+            SocketEvents.NEW_DATA,
             {
                 'type': 'color',
                 'color': color
@@ -964,6 +954,7 @@ class Connector:
     def disconnect(self):
         if not self.sio.connected:
             return
+        self.sleep(0.2)
         self.sio.disconnect()
 
     def join_room(self, device_id: str):
