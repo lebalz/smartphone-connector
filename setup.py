@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="smartphone_connector",
-    version="0.0.55",
+    version="0.0.56",
     author="Balthasar Hofer",
     author_email="lebalz@outlook.com",
     description="Talk to a socketio server",
@@ -21,5 +21,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.2',
+    python_requires='>=3.7',
 )
