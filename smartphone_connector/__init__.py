@@ -4,7 +4,7 @@ from .timings import CancleSubscription, ThreadJob
 from .helpers import *
 import socketio
 from inspect import signature
-from typing import overload, cast, Any, Union, Literal, Callable, List, Optional, Any, Final
+from typing import overload, cast, Any, Union, Literal, Callable, List, Optional, Any
 from copy import deepcopy
 from itertools import repeat
 from .types import *
@@ -12,22 +12,24 @@ from .colors import Colors
 from random import randint
 
 
-class INPUT_TYPE:
-    TEXT: Final[str] = 'text'
-    NUMBER: Final[str] = 'number'
-    DATETIME: Final[str] = 'datetime'
-    DATE: Final[str] = 'date'
-    TIME: Final[str] = 'time'
-    SELECT: Final[str] = 'select'
-
-
 def noop(x):
     pass
+
+
+DATA_MSG_THRESHOLD = 5
+CHARTEABLE_DATA_MSG_THRESHOLD = 120  # around 2 seconds @ 16ms
+
+
+def data_threshold(data_type: str) -> int:
+    if data_type == DataType.ACCELERATION or data_type == DataType.GYRO:
+        return CHARTEABLE_DATA_MSG_THRESHOLD
+    return DATA_MSG_THRESHOLD
 
 
 class Connector:
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
+    __record_data__: bool = False
     data: dict[str, dict[str, list[ClientMsg]]] = DictX({})
     __devices = {'time_stamp': time_s(), 'devices': []}
     device: Optional[Device] = None
@@ -963,6 +965,17 @@ class Connector:
     def leave_room(self, device_id: str):
         self.emit(SocketEvents.LEAVE_ROOM, DictX({'room': device_id}))
 
+    def start_recording(self):
+        self.clean_data()
+        self.__record_data__ = True
+
+    def stop_recording(self):
+        self.__record_data__ = False
+
+    @property
+    def is_recording(self):
+        return self.__record_data__
+
     def __on_connect(self):
         logging.info('SocketIO connected')
 
@@ -998,7 +1011,12 @@ class Connector:
         if data['type'] not in self.data[data['device_id']]:
             self.data[data['device_id']][data['type']] = []
 
+        data_len = len(self.data[data['device_id']][data['type']])
+        if not self.__record_data__ and (data_len >= data_threshold(data['type'])):
+            self.data[data['device_id']][data['type']].pop(0)
+
         self.data[data['device_id']][data['type']].append(cast(ClientMsg, data))
+
         if self.__main_thread_blocked:
             self.__blocked_data_msgs.append(cast(DataMsg, data))
         else:

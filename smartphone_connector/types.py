@@ -1,8 +1,17 @@
 from __future__ import annotations
-from typing import Final, overload, Union, Literal, Optional, Tuple, List, TypedDict
+from typing import overload, Union, Literal, Optional, Tuple, List, TypedDict
 from dataclasses import dataclass
 from .dictx import DictX
 from enum import Enum
+
+
+class InputType(str, Enum):
+    TEXT = 'text'
+    NUMBER = 'number'
+    DATETIME = 'datetime'
+    DATE = 'date'
+    TIME = 'time'
+    SELECT = 'select'
 
 
 class SocketEvents(str, Enum):
