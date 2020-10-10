@@ -35,9 +35,19 @@ A simple socket io server implementing this interface can be seen on [github.com
   ```
   [
     {
-        'device_id': str,
-        'time_stamp': int, # time (seconds) since client loaded page,
+      'acceleration': [
+        {
+          'device_id': str,
+          'time_stamp': int, # time (seconds) since client loaded page,
+          ...
+        },
         ...
+      ],
+      'gyro': [
+        {
+          ...
+        }
+      ]
     },
     ...
   ]
@@ -48,7 +58,7 @@ A simple socket io server implementing this interface can be seen on [github.com
     'device_id': str,
     'device_nr': int,
     'time_stamp': int, # time (seconds) since client loaded page,
-    'type': 'key' | 'acceleration' | 'gyro' | 'pointer' | 'notification'
+    'type': DataType
     ...
   }
   ```
@@ -107,6 +117,9 @@ when a function is assigned to one of the following props, this function will be
 - `on_room_joined`
 - `on_room_left`
 - `on_client_device` - when a webbrowser client with the same `device_id` connects (the client device is passed) or disconnects (`None` is passed)
+- `on_sprite_out`
+- `on_sprite_collision`
+- `on_border_overlap`
 
 e.g.
 
@@ -128,6 +141,11 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 
 ### Attributes
 
+Normally the user is responsible to keep track of sent and received messages. For convenienc, the last `5` received data messages (and for streamed sensor values the last `120` Messages what is around 2s of data) are kept in memory. When recording is turned on, all messages are stored... This can use a lot of memory and shall be used with care...
+
+Start recording: `device.start_recording()` (this cleans the current data first)
+Stop recording: `device.stop_recording()`
+
 - `data` data dictionary. key: `device_id`, value: List containing all data messages
 - `data_list` flattend list containing all received messages
 - `devices` all devices
@@ -143,6 +161,7 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `client_device` the first found device connected over a webbrowser with the same `device_id`
 - `client_devices` all devices connected over a webbrowser to the server
 - `get_grid` returns the last sent grid
+- `sprites` returns all sent sprites
 
 ## Methods
 
@@ -224,9 +243,36 @@ To get a random color (e.g. for the color panel), you can call `random_color()` 
 - `latest_acceleration(device_id = '__ALL_DEVICES__')`
 - `latest_key(device_id = '__ALL_DEVICES__')`
 - `set_device_nr(new_device_nr: int, device_id: str = None, current_device_nr: int = None, max_wait: float = 5)`
+- `configure_playground(width: int, height: int, shift_x: int, shift_y: int, color: str)`
+  The default origin is in the bottom left corner and all sprites will be placed realtive to the origin. The origin can be shifted by adding an offset to the coordinates. To shift the to the right, a negative `x_shift` must be applied.
+  e.g. for a playground in 4:3 with the origin in center:
+  ```py
+  device.configure_playground(
+    width=400,
+    height=300,
+    shift_x=-200,
+    shift_y=-150
+  )
+  ```
+- `clear_playground()` removes all sprites from the playground
+- `add_sprite()`
+- `update_sprite()`
+- `remove_sprite(sprite_id: str)`
+- ```py
+  with add_sprites() as add:
+    add(id='sprite_1', color='red')
+    add(id='sprite_2', color='blue')
+  ```
+- ```py
+  with update_sprites() as update:
+    update(id='sprite_1', color='green')
+    update(id='sprite_2', color='green')
+  ```
 
 ## Examples
+
 ### Draw 3x3 checker board
+
 ```py
 from smartphone_connector import Connector
 phone = Connector('https://io.lebalz.ch', 'FooBar')
@@ -254,8 +300,8 @@ When `broadcast` is set to `False` (default), only the `FooBar` devices display 
 
 ![checker board](checker_demo.png)
 
-
 ### Stream & display gyroscope data
+
 ```py
 from smartphone_connector import Connector, GyroMsg
 import matplotlib.pyplot as plt
@@ -285,6 +331,7 @@ def on_intervall():
 phone.on_gyro = on_gyro
 phone.subscribe(on_intervall, interval=0)
 ```
+
 Displays gyroscope data from the smartphone on a Matplotlib-Plot.
 ![Gyroscope-Plot](gyroscope.png)
 
