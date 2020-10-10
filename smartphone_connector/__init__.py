@@ -10,6 +10,7 @@ from itertools import repeat
 from .types import *
 from .colors import Colors
 from random import randint
+from contextlib import contextmanager
 
 
 def noop(x):
@@ -443,7 +444,7 @@ class Connector:
         ...
 
     @overload
-    def all_data(self, data_type: DataType, device_id: str) -> List[ClientMsg]:
+    def all_data(self, data_type: DataType = None, device_id: str = None) -> List[ClientMsg]:
         ...
 
     def all_data(self, data_type: str = None, device_id: str = None) -> List[ClientMsg]:
@@ -566,28 +567,228 @@ class Connector:
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
         return self.latest_data('key', device_id=device_id)
 
-    def configure_playground(self, config: Union[dict, PlaygroundConfig], **delivery_opts):
-        self.emit(SocketEvents.NEW_DATA, {
-            'type': 'playground_config',
-            'config': config
-        }, **delivery_opts)
+    def configure_playground(self,
+                             width: Optional[Number] = None,
+                             height: Optional[Number] = None,
+                             shift_x: Optional[Number] = None,
+                             shift_y: Optional[Number] = None,
+                             color: Optional[Union[Colors, str]] = None,
+                             **delivery_opts):
+        config = {
+            'type': DataType.PLAYGROUND_CONFIG,
+            'config': without_none({
+                'width': width,
+                'height': height,
+                'shift_x': shift_x,
+                'shift_y': shift_y,
+                'color': color
+            })
+        }
+        self.emit(SocketEvents.NEW_DATA, config, **delivery_opts)
 
-    def add_sprites(self, sprites: List[Union[dict, dict]], **delivery_opts):
-        self.__sprites.extend(map(lambda sprite: DictX(sprite), sprites))
-        self.emit(
-            SocketEvents.NEW_DATA,
-            {
-                'type': DataType.SPRITES,
-                'sprites': sprites
-            },
-            **delivery_opts
-        )
+    @contextmanager
+    def add_sprites(self, **delivery_opts):
+        sprites = []
 
-    def add_sprite(self, sprite: dict, **delivery_opts):
-        self.__sprites.append(DictX(sprite))
-        if 'id' not in sprite:
-            sprite['id'] = f'sprite{randint(10000, 99999)}'
+        def sprite(
+                id: Optional[str],
+                clickable: Optional[bool] = None,
+                collision_detection: Optional[bool] = None,
+                color: Optional[Union[Colors, str]] = None,
+                direction: Optional[List[Number]] = None,
+                distance: Optional[Number] = None,
+                form: Optional[Union[SpriteForm, Literal['round', 'rectangle']]] = None,
+                height: Optional[Number] = None,
+                pos_x: Optional[Number] = None,
+                pos_y: Optional[Number] = None,
+                reset_time: Optional[Number] = None,
+                speed: Optional[Number] = None,
+                text: Optional[str] = None,
+                time_span: Optional[Number] = None,
+                width: Optional[Number] = None,
+                **delivery_opts):
+            '''
+            Optional
+            --------
+            id : str
+                unique id. When already present, this sprite will be updated.
 
+            form : 'round' | 'rectangle'
+                the form of the sprite
+
+            width : Number
+                the width of the sprite in playground units
+
+            height : Number
+                the height of the sprite in playground units
+
+            pos_x : Number
+                the x position in playground units
+
+            pos_y : Number
+                the y position in playground units
+
+            color : str
+                the color of the sprite
+
+            clickable : bool
+                wheter an event is delivered when the sprite is clicked
+
+            collision_detection : bool
+                wheter to report collisions with other sprites or not. Collision-Detection can be costly,
+                so use it with care.
+
+            direction : [x: Number, y: Number]
+                the direction of the sprite. In combination with a speed value, the sprite will be advanced
+                for each display refresh in this direction.
+
+            distance : Number
+                the sprite will disappear after the given distance (in auto-movement mode) is reached.
+
+            reset_time : bool
+                wheter to reset the start time on an update. Resets the time_span or distance
+                for auto-movement sprites.
+
+            speed : Number
+                makes a sprite auto-movable.
+
+            text : str
+                the text that is displayed on the sprite.
+
+            time_span : Number
+                the time a sprite lives
+            '''
+            s = {
+                'id': id if id is not None else f'sprite{randint(10000, 99999)}',
+                'clickable': clickable,
+                'collision_detection': collision_detection,
+                'color': color,
+                'direction': direction,
+                'distance': distance,
+                'form': form,
+                'height': height,
+                'pos_x': pos_x,
+                'pos_y': pos_y,
+                'reset_time': reset_time,
+                'speed': speed,
+                'text': text,
+                'time_span': time_span,
+                'width': width
+            }
+            sprites.append(without_none(s))
+        try:
+            yield sprite
+        except:
+            sprites = []
+            raise
+        else:
+            for s in sprites:
+                to_update = first(lambda s: s['id'] == s['id'], self.__sprites)
+                if to_update is not None:
+                    to_update.update(s)
+                else:
+                    self.__sprites.append(DictX(s))
+            self.emit(
+                SocketEvents.NEW_DATA,
+                {
+                    'type': DataType.SPRITES,
+                    'sprites': sprites
+                },
+                **delivery_opts
+            )
+
+    def add_sprite(
+            self,
+            id: Optional[str],
+            clickable: Optional[bool] = None,
+            collision_detection: Optional[bool] = None,
+            color: Optional[Union[Colors, str]] = None,
+            direction: Optional[List[Number]] = None,
+            distance: Optional[Number] = None,
+            form: Optional[Union[SpriteForm, Literal['round', 'rectangle']]] = None,
+            height: Optional[Number] = None,
+            pos_x: Optional[Number] = None,
+            pos_y: Optional[Number] = None,
+            reset_time: Optional[Number] = None,
+            speed: Optional[Number] = None,
+            text: Optional[str] = None,
+            time_span: Optional[Number] = None,
+            width: Optional[Number] = None,
+            **delivery_opts):
+        '''
+        Optional
+        --------
+        id : str
+            unique id. When already present, this sprite will be updated.
+
+        form : 'round' | 'rectangle'
+            the form of the sprite
+
+        width : Number
+            the width of the sprite in playground units
+
+        height : Number
+            the height of the sprite in playground units
+
+        pos_x : Number
+            the x position in playground units
+
+        pos_y : Number
+            the y position in playground units
+
+        color : str
+            the color of the sprite
+
+        clickable : bool
+            wheter an event is delivered when the sprite is clicked
+
+        collision_detection : bool
+            wheter to report collisions with other sprites or not. Collision-Detection can be costly,
+            so use it with care.
+
+        direction : [x: Number, y: Number]
+            the direction of the sprite. In combination with a speed value, the sprite will be advanced
+            for each display refresh in this direction.
+
+        distance : Number
+            the sprite will disappear after the given distance (in auto-movement mode) is reached.
+
+        reset_time : bool
+            wheter to reset the start time on an update. Resets the time_span or distance
+            for auto-movement sprites.
+
+        speed : Number
+            makes a sprite auto-movable.
+
+        text : str
+            the text that is displayed on the sprite.
+
+        time_span : Number
+            the time a sprite lives
+        '''
+        sprite = {
+            'id': id if id is not None else f'sprite{randint(10000, 99999)}',
+            'clickable': clickable,
+            'collision_detection': collision_detection,
+            'color': color,
+            'direction': direction,
+            'distance': distance,
+            'form': form,
+            'height': height,
+            'pos_x': pos_x,
+            'pos_y': pos_y,
+            'reset_time': reset_time,
+            'speed': speed,
+            'text': text,
+            'time_span': time_span,
+            'width': width
+        }
+        sprite = without_none(sprite)
+        to_update = first(lambda s: s['id'] == sprite['id'], self.__sprites)
+        if to_update is not None:
+            to_update.update(sprite)
+        else:
+            self.__sprites.append(DictX(sprite))
         self.emit(
             SocketEvents.NEW_DATA,
             {
@@ -596,6 +797,8 @@ class Connector:
             },
             **delivery_opts
         )
+
+    update_sprites = add_sprites
 
     def clear_playground(self, **delivery_opts):
         self.__sprites.clear()
@@ -621,20 +824,7 @@ class Connector:
             **delivery_opts
         )
 
-    def update_sprite(self, id: str, update: Union[dict, UpdateSprite], **delivery_opts):
-        sprite = first(lambda s: s.id == id, self.__sprites)
-        if sprite:
-            sprite.update(update)
-        update.update({'id': id})
-
-        self.emit(
-            SocketEvents.NEW_DATA,
-            {
-                'type': 'sprite',
-                'sprite': update
-            },
-            **delivery_opts
-        )
+    update_sprite = add_sprite
 
     @property
     def get_grid(self) -> List[List[CssColorType]]:

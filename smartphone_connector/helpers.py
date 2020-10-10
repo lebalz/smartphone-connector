@@ -20,18 +20,28 @@ def time_s() -> float:
     return (time_ns() // 1000000) / 1000.0
 
 
+def without_none(raw: dict) -> dict:
+    '''
+    removes all None values from the dict on level 1 (thus nested dicts are not supported). 
+    '''
+    return {k: v for k, v in raw.items() if v is not None}
+
+
 def flatten(list_of_lists: List[List]) -> List:
     return [y for x in list_of_lists for y in x]
 
 
-def to_datetime(data: TimeStampedMsg) -> datetime:
+def to_datetime(data: Union[TimeStampedMsg, int, float]) -> datetime:
     '''
     extracts the datetime from a data package. if the field `time_stamp` is not present,
     the current datetime will be returned
     '''
-    if 'time_stamp' not in data:
+    is_number = isinstance(data, int) or isinstance(data, float)
+
+    if not is_number and 'time_stamp' not in data:
         return datetime.now()
-    ts = data['time_stamp']
+
+    ts = data if (isinstance(data, int) or isinstance(data, float)) else data['time_stamp']
     # convert time_stamp from ms to seconds
     if ts > 1000000000000:
         ts = ts / 1000.0

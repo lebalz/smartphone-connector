@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from .dictx import DictX
 from enum import Enum
 
+Number = Union[float, int]
+
 
 class InputType(str, Enum):
     TEXT = 'text'
@@ -346,6 +348,7 @@ class PlaygroundConfig(DataMsg):
     height: Optional[int]
     shift_x: Optional[int]
     shift_y: Optional[int]
+    color: Optional[str]
 
 
 class PlaygroundConfigMsg(PlaygroundConfig):
