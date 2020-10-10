@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from smartphone_connector import Connector, DictX, KeyMsg, AccMsg, random_color, BorderOverlapMsg, SpriteCollisionMsg
+from smartphone_connector import Connector, DictX, KeyMsg, AccMsg, random_color, BorderOverlapMsg, SpriteCollisionMsg, Colors
 from random import randint
 from examples.server_adress import SERVER_ADRESS
 
@@ -32,9 +32,10 @@ def on_key(data: KeyMsg):
             form = 'rectangle'
         else:
             form = 'round'
-        device.update_sprite('player1', {'form': form})
-        device.update_sprite('player2', {'form': form})
-        device.update_sprite('player3', {'form': form})
+        with device.update_sprites() as update:
+            update(id='player1', form=form)
+            update(id='player2', form=form)
+            update(id='player3', form=form)
         return
     update_players()
 
@@ -54,28 +55,20 @@ def update_position(dx: float, dy: float):
 
 
 def update_players():
-    updates = [{
-        'id': 'player1',
-        'collision_detection': True,
-        'pos_x': positions[-1][0],
-        'pos_y': positions[-1][1],
-    }]
-    if len(positions) >= 20:
-        updates.append({
-            'id': 'player2',
-            'collision_detection': True,
-            'pos_x': positions[-20][0],
-            'pos_y': positions[-20][1],
-        })
-    if len(positions) >= 40:
-        updates.append({
-            'id': 'player3',
-            'collision_detection': True,
-            'pos_x': positions[-40][0],
-            'pos_y': positions[-40][1],
-        })
-
-    device.add_sprites(updates)
+    with device.update_sprites() as update:
+        update(id='player1', pos_x=positions[-1][0], pos_y=positions[-1][1])
+        if len(positions) >= 20:
+            update(
+                id='player2',
+                pos_x=positions[-20][0],
+                pos_y=positions[-20][1],
+            )
+        if len(positions) >= 40:
+            update(
+                id='player3',
+                pos_x=positions[-40][0],
+                pos_y=positions[-40][1],
+            )
 
 
 def on_acc(data: AccMsg):
@@ -86,16 +79,16 @@ def on_acc(data: AccMsg):
 
 def on_overlap(data: BorderOverlapMsg):
     if data.collision_detection and data.border == 'bottom':
-        device.update_sprite(data.id, {'color': 'red'})
+        device.update_sprite(id=data.id, color='red')
 
 
 def on_collision(data: SpriteCollisionMsg):
     if data.overlap == 'in' and data.sprites[0].collision_detection and data.sprites[1].collision_detection:
-        device.update_sprite(data.sprites[0].id, {'color': 'pink'})
+        device.update_sprite(id=data.sprites[0].id, color='pink')
         return
     for s in data.sprites:
         if not s.collision_detection:
-            device.update_sprite(s.id, {'color': 'grey', 'text': 'x'})
+            device.update_sprite(id=s.id, color='grey', text='x')
 
 
 device.on_key = on_key
@@ -105,60 +98,60 @@ device.on_acceleration = on_acc
 
 
 device.clear_playground()
-device.configure_playground({
-        'width': WIDTH,
-        'height': HEIGHT,
-        'shift_x': SHIFT_X,
-        'shift_y': SHIFT_Y,
-        'color': 'red'
-    })
+device.configure_playground(
+        width=WIDTH,
+        height=HEIGHT,
+        shift_x=SHIFT_X,
+        shift_y=SHIFT_Y,
+        color='red'
+)
 
-device.add_sprites([
-    {
-        'color': 'yellow',
-        'form': 'round',
-        'height': 10,
-        'width': 10,
-        'id': 'player1',
-        'collision_detection': True,
-        'pos_x': 0 + SHIFT_X,
-        'pos_y': 0 + SHIFT_Y
-    },
-    {
-        'color': 'yellow',
-        'form': 'round',
-        'height': 7,
-        'width': 7,
-        'id': 'player2',
-        'collision_detection': True,
-        'pos_x': 50 + SHIFT_X,
-        'pos_y': 50 + SHIFT_Y
-    },
-    {
-        'color': 'yellow',
-        'form': 'round',
-        'height': 4,
-        'width': 4,
-        'id': 'player3',
-        'collision_detection': True,
-        'pos_x': 70 + SHIFT_X,
-        'pos_y': 70 + SHIFT_Y
-    }
-])
+with device.add_sprites() as add:
+    add(
+        id='player1',
+        color='yellow',
+        form='round',
+        height=10,
+        width=10,
+        collision_detection=True,
+        pos_x=0 + SHIFT_X,
+        pos_y=0 + SHIFT_Y
+    )
+    add(
+        id='player2',
+        color='yellow',
+        form='round',
+        height=7,
+        width=7,
+        collision_detection=True,
+        pos_x=50 + SHIFT_X,
+        pos_y=50 + SHIFT_Y
+    )
+    add(
+        id='player3',
+        color='yellow',
+        form='round',
+        height=4,
+        width=4,
+        collision_detection=True,
+        pos_x=70 + SHIFT_X,
+        pos_y=70 + SHIFT_Y
+    )
+
 
 sprite_count = 0
 while True:
     sprite_count += 1
     device.sleep(0.5)
     w = randint(2, 10)
-    device.add_sprite({
-        'color': random_color(),
-        'direction': [0, -1],
-        'form': 'round',
-        'height': randint(2, 10),
-        'width': w,
-        'id': f'asdfa{sprite_count}',
-        'pos_x': randint(0, WIDTH - w) + SHIFT_X,
-        'pos_y': HEIGHT + SHIFT_Y,
-        'speed': randint(1, 60) / 10
-    })
+    device.add_sprite(
+        color=random_color(),
+        direction=[0, -1],
+        form='round',
+        height=randint(2, 10),
+        width=w,
+        id=f'asdfa{sprite_count}',
+        pos_x=randint(0, WIDTH - w) + SHIFT_X,
+        pos_y=HEIGHT + SHIFT_Y,
+        speed=randint(1, 60) / 10
+    )
