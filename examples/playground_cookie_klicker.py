@@ -9,14 +9,14 @@ score = 0
 device.clear_playground()
 device.configure_playground(
     width=100,
-    height=100,
+    height=180,
     color=Colors.ALICEBLUE,
     images='images'
 )
 device.add_sprite(
     id='score',
     pos_x=0,
-    pos_y=80,
+    pos_y=160,
     height=20,
     width=30,
     text=f'Score: {score}',
