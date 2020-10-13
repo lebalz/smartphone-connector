@@ -3,6 +3,7 @@ from time import time_ns
 from datetime import datetime
 import random
 from .types import TimeStampedMsg, CssColorType, RgbColor
+from pathlib import Path
 
 
 def ClassProps(cls) -> List[str]:

@@ -11,6 +11,7 @@ from .types import *
 from .colors import Colors
 from random import randint
 from contextlib import contextmanager
+from pathlib import Path
 
 
 def noop(x):
@@ -81,6 +82,7 @@ class Connector:
     on_sprite_collision: Union[Callable[[SpriteCollisionMsg], None],
                                Callable[[SpriteCollisionMsg, Connector], None]] = noop
     on_border_overlap: Union[Callable[[BorderOverlapMsg], None], Callable[[BorderOverlapMsg, Connector], None]] = noop
+    on_sprite_clicked: Union[Callable[[SpriteClickedMsg], None], Callable[[SpriteClickedMsg, Connector], None]] = noop
 
     __on_notify_subscribers: Union[Callable[[], None], Callable[[
         DataFrame], None], Callable[[DataFrame, Connector], None]] = noop
@@ -573,15 +575,42 @@ class Connector:
                              shift_x: Optional[Number] = None,
                              shift_y: Optional[Number] = None,
                              color: Optional[Union[Colors, str]] = None,
+                             images: Optional[Union[Path, str]] = None,
                              **delivery_opts):
+        raw_images = []
+        if images is not None:
+            images = Path(images)
+            if images.is_absolute():
+                pass
+            else:
+                rpath = Path.cwd().rglob(str(images))
+                try:
+                    while True:
+                        new_p = next(rpath)
+                        if new_p.is_dir():
+                            images = new_p
+                            break
+                except:
+                    pass
+
+            if not images.is_dir():
+                raise f'Image path {images} not found'
+            for image in images.iterdir():
+                if image.suffix in ['.jpg', '.jpeg', '.png', '.svg']:
+                    raw = image.read_bytes()
+                    name = image.stem
+                    file_type = image.suffix
+                    raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
+
         config = {
             'type': DataType.PLAYGROUND_CONFIG,
             'config': without_none({
                 'width': width,
                 'height': height,
-                'shift_x': shift_x,
-                'shift_y': shift_y,
-                'color': color
+                'shift_x': shift_x if shift_x is not None else 0,
+                'shift_y': shift_y if shift_y is not None else 0,
+                'color': color,
+                'images': raw_images
             })
         }
         self.emit(SocketEvents.NEW_DATA, config, **delivery_opts)
@@ -604,8 +633,10 @@ class Connector:
                 reset_time: Optional[Number] = None,
                 speed: Optional[Number] = None,
                 text: Optional[str] = None,
+                image: Optional[str] = None,
                 time_span: Optional[Number] = None,
                 width: Optional[Number] = None,
+                rotate: Optional[Number] = None,
                 **delivery_opts):
             '''
             Optional
@@ -655,6 +686,12 @@ class Connector:
             text : str
                 the text that is displayed on the sprite.
 
+            image : str
+                name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
+
+            rotate : Number
+                degrees to rotate the sprite clockwise 
+
             time_span : Number
                 the time a sprite lives
             '''
@@ -672,6 +709,8 @@ class Connector:
                 'reset_time': reset_time,
                 'speed': speed,
                 'text': text,
+                'image': image,
+                'rotate': rotate,
                 'time_span': time_span,
                 'width': width
             }
@@ -699,7 +738,7 @@ class Connector:
 
     def add_sprite(
             self,
-            id: Optional[str],
+            id: Optional[str] = None,
             clickable: Optional[bool] = None,
             collision_detection: Optional[bool] = None,
             color: Optional[Union[Colors, str]] = None,
@@ -712,8 +751,10 @@ class Connector:
             reset_time: Optional[Number] = None,
             speed: Optional[Number] = None,
             text: Optional[str] = None,
+            image: Optional[str] = None,
             time_span: Optional[Number] = None,
             width: Optional[Number] = None,
+            rotate: Optional[Number] = None,
             **delivery_opts):
         '''
         Optional
@@ -763,6 +804,12 @@ class Connector:
         text : str
             the text that is displayed on the sprite.
 
+        image : str
+            name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
+
+        rotate : Number
+            degrees to rotate the sprite clockwise
+
         time_span : Number
             the time a sprite lives
         '''
@@ -780,6 +827,8 @@ class Connector:
             'reset_time': reset_time,
             'speed': speed,
             'text': text,
+            'rotate': rotate,
+            'image': image,
             'time_span': time_span,
             'width': width
         }
@@ -1214,6 +1263,9 @@ class Connector:
 
     def __distribute_new_data_callback(self, data: DataMsg):
         if 'type' in data:
+            if data['type'] in [DataType.ACCELERATION, DataType.GYRO]:
+                self.__callback('on_sensor', data)
+
             if data['type'] == DataType.KEY:
                 self.__callback('on_key', data)
                 if data['key'] == 'F1':
@@ -1224,28 +1276,28 @@ class Connector:
                     self.__callback('on_f3', data)
                 elif data['key'] == 'F4':
                     self.__callback('on_f4', data)
-            if data['type'] in [DataType.ACCELERATION, DataType.GYRO]:
-                self.__callback('on_sensor', data)
-            if data['type'] == DataType.ACCELERATION:
+            elif data['type'] == DataType.ACCELERATION:
                 self.__callback('on_acceleration', data)
-            if data['type'] == DataType.GYRO:
+            elif data['type'] == DataType.GYRO:
                 self.__callback('on_gyro', data)
-            if data['type'] == DataType.POINTER:
+            elif data['type'] == DataType.POINTER:
                 self.__callback('on_pointer', data)
-            if data['type'] == DataType.INPUT_RESPONSE:
+            elif data['type'] == DataType.INPUT_RESPONSE:
                 self.__responses.append(cast(InputResponseMsg, data))
-            if data['type'] == DataType.ALERT_CONFIRM:
+            elif data['type'] == DataType.ALERT_CONFIRM:
                 self.__alerts.append(cast(AlertConfirmMsg, data))
-            if data['type'] == DataType.SPRITE_OUT:
+            elif data['type'] == DataType.SPRITE_OUT:
                 sprite = first(lambda s: s.id == data.sprite_id, self.__sprites)
                 if sprite:
                     self.__sprites.remove(sprite)
                 self.__callback('on_sprite_out', data)
-            if data['type'] == DataType.SPRITE_COLLISION:
+            elif data['type'] == DataType.SPRITE_COLLISION:
                 data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
                 self.__callback('on_sprite_collision', data)
-            if data['type'] == DataType.BORDER_OVERLAP:
+            elif data['type'] == DataType.BORDER_OVERLAP:
                 self.__callback('on_border_overlap', data)
+            elif data['type'] == DataType.SPRITE_CLICKED:
+                self.__callback('on_sprite_clicked', data)
 
         if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
             self.__callback('on_broadcast_data', data)

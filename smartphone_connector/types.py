@@ -436,6 +436,20 @@ class BorderOverlapMsg(BorderOverlap):
     device_nr: int
 
 
+class SpriteClicked(DataMsg):
+    type: Literal['sprite_clicked']
+    id: str
+    text: Optional[str]
+    x: Number
+    y: Number
+
+
+class SpriteClickedMsg(SpriteClicked):
+    time_stamp: float
+    device_id: str
+    device_nr: int
+
+
 class SpriteOut(DataMsg):
     type: Literal['sprite_out']
     id: str
