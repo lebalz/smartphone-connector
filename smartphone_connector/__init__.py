@@ -470,6 +470,7 @@ class Connector:
             device_id = self.device_id
 
         dev_ids = [device_id]
+        data_cp = self.data.copy()
         if device_id == '__ALL_DEVICES__':
             dev_ids = self.data.keys()
         elif device_id not in self.data:
@@ -479,7 +480,8 @@ class Connector:
         for dev_id in dev_ids:
             data_types = self.data[dev_id].keys() if data_type is None else [data_type]
             for dtype in data_types:
-                all_data.extend(self.data[dev_id][dtype])
+                if dtype in self.data[dev_id]:
+                    all_data.extend(self.data[dev_id][dtype])
         all_data.sort(key=lambda d: d['time_stamp'])
         return all_data
 
