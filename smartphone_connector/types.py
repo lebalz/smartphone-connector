@@ -140,47 +140,52 @@ def default(type: Literal['acceleration']) -> AccMsg: ...
 @overload
 def default(type: Literal['gyro']) -> GyroMsg: ...
 @overload
-def default(type: Literal['grid_pointer']) -> GridPointer: ...
+def default(type: Literal['grid_pointer']) -> GridPointerMsg: ...
 @overload
-def default(type: Literal['color_pointer']) -> ColorPointer: ...
+def default(type: Literal['color_pointer']) -> ColorPointerMsg: ...
 @overload
 def default(type: Literal['notification']) -> Notification: ...
+@overload
+def default(type: Literal['pointer']) -> PointerDataMsg: ...
+@overload
+def default(type: Literal['border_overlap']) -> BorderOverlapMsg: ...
+@overload
+def default(type: Literal['sprite_clicked']) -> SpriteClickedMsg: ...
+@overload
+def default(type: Literal['sprite_collision']) -> SpriteCollisionMsg: ...
+@overload
+def default(type: Literal['sprite_out']) -> SpriteOut: ...
 
 
 def default(type: str) -> DictX:
+    base = {'time_stamp': 0,
+            'device_id': '',
+            'device_nr': -999}
     if type == 'key':
         return DictX({
+            **base,
             'type': 'key',
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
             'key': ''
         })
-    if type == 'acceleration':
+    elif type == 'acceleration':
         return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
+            **base,
             'x': 0,
             'y': 0,
             'z': 0,
             'interval': 16
         })
-    if type == 'gyro':
+    elif type == 'gyro':
         return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
+            **base,
             'alpha': 0,
             'beta': 0,
             'gamma': 0,
             'absolute': False
         })
-    if type == 'color_pointer':
+    elif type == 'color_pointer':
         return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
+            **base,
             'type': 'pointer',
             'context': 'color',
             'x': 0,
@@ -189,11 +194,9 @@ def default(type: str) -> DictX:
             'height': -1,
             'displayed_at': 0
         })
-    if type == 'grid_pointer':
+    elif type == 'grid_pointer':
         return DictX({
-            'time_stamp': 0,
-            'device_id': '',
-            'device_nr': -999,
+            **base,
             'type': 'pointer',
             'context': 'grid',
             'x': 0,
@@ -202,7 +205,64 @@ def default(type: str) -> DictX:
             'height': -1,
             'displayed_at': 0
         })
+    elif type == 'pointer':
+        return default('color_pointer')
+    elif type == 'border_overlap':
+        return DictX({
+            **base,
+            'type': 'border_overlap',
+            'border': 'left',
+            'collision_detection': False,
+            'x': 0,
+            'y': 0,
+            'id': ''
+        })
+    elif type == 'sprite_clicked':
+        return DictX({
+            **base,
+            'type': 'sprite_clicked',
+            'id': '',
+            'text': '',
+            'x': 0,
+            'y': 0
+        })
+    elif type == 'sprite_collision':
+        return DictX({
+            **base,
+            'type': 'sprite_collision',
+            'sprites': ['s1', 's2'],
+            'overlap': 'in'
+        })
+    elif type == 'sprite_out':
+        return DictX({
+            **base,
+            'type': 'sprite_out',
+            'id': ''
+        })
+    elif type == 'notification':
+        return DictX({
+            **base,
+            'type': 'notification',
+            'message': '',
+            'alter': False,
+            'time': 3000
+        })
     return DictX({})
+
+
+def default_data_frame():
+    return DictX({
+                'key': default('key'),
+                'acceleration': default('acceleration'),
+                'gyro': default('gyro'),
+                'color_pointer': default('color_pointer'),
+                'grid_pointer': default('grid_pointer'),
+                'pointer': default('pointer'),
+                'border_overlap': default('border_overlap'),
+                'sprite_clicked': default('sprite_clicked'),
+                'sprite_collision': default('sprite_collision'),
+                'sprite_out': default('sprite_out')
+            })
 
 
 class KeyMsgF1(KeyMsg):
@@ -241,12 +301,24 @@ class ColorPointer(PointerDataMsg):
     displayed_at: float
 
 
+class ColorPointerMsg(ColorPointer):
+    time_stamp: float
+    device_id: str
+    device_nr: int
+
+
 class GridPointer(PointerDataMsg):
     context: Literal['grid']
     row: int
     column: int
     color: str
     displayed_at: float
+
+
+class GridPointerMsg(GridPointer):
+    time_stamp: float
+    device_id: str
+    device_nr: int
 
 
 class Acc(BaseMsg):
@@ -281,8 +353,13 @@ class DataFrame(DictX):
     key: KeyMsg
     acceleration: AccMsg
     gyro: GyroMsg
-    color_pointer: ColorPointer
-    grid_pointer: GridPointer
+    color_pointer: ColorPointerMsg
+    grid_pointer: GridPointerMsg
+    pointer: PointerDataMsg
+    border_overlap: BorderOverlapMsg
+    sprite_clicked: SpriteClickedMsg
+    sprite_collision: SpriteCollisionMsg
+    sprite_out: SpriteOutMsg
 
 
 class ErrorMsg(BaseMsg):

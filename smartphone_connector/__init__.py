@@ -31,8 +31,10 @@ def data_threshold(data_type: str) -> int:
 class Connector:
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
-    __record_data__: bool = False
+    __record_data: bool = False
     data: dict[str, dict[str, list[ClientMsg]]] = DictX({})
+    __current_data_frame: dict[str, DataFrame] = DictX({})
+    __latest_data: DataFrame = default_data_frame()
     __devices = {'time_stamp': time_s(), 'devices': []}
     device: Optional[Device] = None
     __server_url: str
@@ -120,6 +122,7 @@ class Connector:
     def __init__(self, server_url: str, device_id: str):
         self.__server_url = server_url
         self.__device_id = device_id
+        self.__current_data_frame[device_id] = default_data_frame()
         self.sio.on('connect', self.__on_connect)
         self.sio.on('disconnect', self.__on_disconnect)
         self.sio.on(SocketEvents.NEW_DATA, self.__on_new_data)
@@ -470,7 +473,6 @@ class Connector:
             device_id = self.device_id
 
         dev_ids = [device_id]
-        data_cp = self.data.copy()
         if device_id == '__ALL_DEVICES__':
             dev_ids = self.data.keys()
         elif device_id not in self.data:
@@ -541,35 +543,67 @@ class Connector:
         DataMsg, None
             when no data is found, None is returned
         '''
+        if device_id is None:
+            device_id = self.device_id
+        if device_id == '__ALL_DEVICES__':
+            raw = deepcopy(self.__latest_data)
+        else:
+            raw = deepcopy(self.__current_data_frame[device_id])
 
-        data = self.all_data(data_type=data_type, device_id=device_id)
-        if (len(data) == 0):
-            return None
-        return data[-1]
+        if raw is None:
+            if data_type is None:
+                return default('key')
+            return default(data_type)
+
+        if data_type is None:
+            srted = sorted(raw.values(), reverse=True, key=lambda x: x['time_stamp'])
+            return srted[0]
+
+        if data_type in raw:
+            return raw[data_type]
+        return default(data_type)
 
     def latest_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, GridPointer, None]:
-        return self.latest_data('pointer', device_id=device_id)
+        return self.latest_data(device_id=device_id, data_type='pointer')
 
     def latest_color_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[ColorPointer, None]:
-        data = self.all_data(data_type='pointer', device_id=device_id)
-        for pkg in reversed(data):
-            if pkg.context == 'color':
-                return pkg
+        return self.latest_data(device_id=device_id, data_type='color_pointer')
 
     def latest_grid_pointer(self, device_id: str = '__ALL_DEVICES__') -> Union[GridPointer, None]:
-        data = self.all_data(data_type='pointer', device_id=device_id)
-        for pkg in reversed(data):
-            if pkg.context == 'grid':
-                return pkg
+        return self.latest_data(device_id=device_id, data_type='color_pointer')
 
     def latest_gyro(self, device_id: str = '__ALL_DEVICES__') -> Union[None, GyroMsg]:
-        return self.latest_data('gyro', device_id=device_id)
+        return self.latest_data(device_id=device_id, data_type=DataType.GYRO)
 
     def latest_acceleration(self, device_id: str = '__ALL_DEVICES__') -> Union[None, AccMsg]:
-        return self.latest_data('acceleration', device_id=device_id)
+        return self.latest_data(device_id=device_id, data_type=DataType.ACCELERATION)
 
     def latest_key(self, device_id: str = '__ALL_DEVICES__') -> Union[None, KeyMsg]:
-        return self.latest_data('key', device_id=device_id)
+        return self.latest_data(device_id=device_id, data_type=DataType.KEY)
+
+    @property
+    def pointer(self) -> PointerDataMsg:
+        return self.latest_pointer(device_id=self.device_id)
+
+    @property
+    def color_pointer(self) -> ColorPointerMsg:
+        return self.latest_color_pointer(device_id=self.device_id)
+
+    @property
+    def grid_pointer(self) -> GridPointerMsg:
+        return self.latest_grid_pointer(device_id=self.device_id)
+
+    @property
+    def gyro(self) -> GyroMsg:
+        return self.latest_gyro(device_id=self.device_id)
+
+    @property
+    def acceleration(self) -> AccMsg:
+        return self.latest_acceleration(device_id=self.device_id)
+
+    @property
+    def key(self) -> KeyMsg:
+        return self.latest_key(device_id=self.device_id)
 
     def configure_playground(self,
                              width: Optional[Number] = None,
@@ -1208,14 +1242,14 @@ class Connector:
 
     def start_recording(self):
         self.clean_data()
-        self.__record_data__ = True
+        self.__record_data = True
 
     def stop_recording(self):
-        self.__record_data__ = False
+        self.__record_data = False
 
     @property
     def is_recording(self):
-        return self.__record_data__
+        return self.__record_data
 
     def __on_connect(self):
         logging.info('SocketIO connected')
@@ -1241,6 +1275,23 @@ class Connector:
         except Exception:
             pass
 
+    def __update_current_data_frame(self, data: dict):
+        if data['device_id'] not in self.__current_data_frame:
+            self.__current_data_frame[data['device_id']] = default_data_frame()
+        if data['type'] in ['key', 'acceleration', 'gyro']:
+            self.__current_data_frame[data['device_id']][data['type']] = data
+        elif data['type'] == DataType.POINTER:
+            contex = data['context']
+            tkey = f'{contex}_pointer'
+            self.__current_data_frame[data['device_id']][tkey] = data
+
+    def __update_latest_data(self, data: dict):
+        self.__latest_data[data['type']] = data
+        if data['type'] == DataType.POINTER:
+            contex = data['context']
+            tkey = f'{contex}_pointer'
+            self.__latest_data[tkey] = data
+
     def __on_new_data(self, data: dict):
         data = DictX(data)
         if 'device_id' not in data:
@@ -1252,8 +1303,11 @@ class Connector:
         if data['type'] not in self.data[data['device_id']]:
             self.data[data['device_id']][data['type']] = []
 
+        self.__update_current_data_frame(data)
+        self.__update_latest_data(data)
+
         data_len = len(self.data[data['device_id']][data['type']])
-        if not self.__record_data__ and (data_len >= data_threshold(data['type'])):
+        if not self.__record_data and (data_len >= data_threshold(data['type'])):
             self.data[data['device_id']][data['type']].pop(0)
 
         self.data[data['device_id']][data['type']].append(cast(ClientMsg, data))
