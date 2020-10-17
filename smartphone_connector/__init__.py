@@ -919,26 +919,41 @@ class Connector:
             return deepcopy(grid)
         return [deepcopy(grid)]
 
-    def set_grid_at(self, row: int, column: int, color: CssColorType, base_color: Optional[BaseColor] = None, **delivery_opts):
+    def update_cell(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cellNumber: Optional[int] = None, base_color: Optional[BaseColor] = None, enumerate: bool = None, **delivery_opts):
         '''
         sets the color of the current grid at the given row and column
         '''
-        self.__set_local_grid_at(row, column, color)
+        self.update_grid(row=row, column=column, color=color, cellNumber=cellNumber,
+                         base_color=base_color, enumerate=enumerate, **delivery_opts)
+
+    def set_grid_at(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cellNumber: Optional[int] = None, base_color: Optional[BaseColor] = None, enumerate: bool = None, **delivery_opts):
+        '''
+        sets the color of the current grid at the given row and column
+        '''
+        self.update_grid(row=row, column=column, color=color, cellNumber=cellNumber,
+                         base_color=base_color, enumerate=enumerate, **delivery_opts)
+
+    def update_grid(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cellNumber: Optional[int] = None, base_color: Optional[BaseColor] = None, enumerate: bool = None, **delivery_opts):
+        '''
+        sets the color of the current grid at the given row and column
+        '''
         grid_msg = {
             'type': 'grid_update',
             'row': row,
             'column': column,
+            'number': cellNumber,
             'color': color,
             'base_color': base_color,
+            'enumerate': enumerate,
             'time_stamp': self.current_time_stamp
         }
         self.emit(
             SocketEvents.NEW_DATA,
-            grid_msg,
+            without_none(grid_msg),
             **delivery_opts
         )
 
-    def set_image(self, image: Union[List[str], str], base_color: Union[BaseColor] = None, **delivery_opts):
+    def set_image(self, image: Union[List[str], str], base_color: Union[BaseColor] = None, enumerate: bool = None, **delivery_opts):
         '''
         Parameters
         ----------
@@ -970,7 +985,7 @@ class Connector:
         phone.set_image(image)
         ```
         '''
-        return self.set_grid(image, base_color=base_color, **delivery_opts)
+        return self.set_grid(image, base_color=base_color, enumerate=enumerate, **delivery_opts)
 
     def reset_grid(self, **delivery_opts):
         self.set_grid([['white']], **delivery_opts)
@@ -1004,7 +1019,7 @@ class Connector:
 
         self.__last_sent_grid.grid = cast(List[List[CssColorType]], list(raw_grid))
 
-    def set_grid(self, grid: ColorGrid, base_color: Union[BaseColor] = None, **delivery_opts):
+    def set_grid(self, grid: ColorGrid, base_color: BaseColor = None, enumerate: bool = None, **delivery_opts):
         '''
         Parameters
         ----------
@@ -1042,11 +1057,12 @@ class Connector:
             'type': 'grid',
             'grid': grid,
             'base_color': base_color,
+            'enumerate': enumerate,
             'time_stamp': self.current_time_stamp
         }
         self.emit(
             SocketEvents.NEW_DATA,
-            grid_msg,
+            without_none(grid_msg),
             **delivery_opts
         )
 

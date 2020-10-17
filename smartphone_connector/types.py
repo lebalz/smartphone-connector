@@ -311,6 +311,7 @@ class GridPointer(PointerDataMsg):
     context: Literal['grid']
     row: int
     column: int
+    number: int
     color: str
     displayed_at: float
 
