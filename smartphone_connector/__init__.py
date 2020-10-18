@@ -1314,19 +1314,19 @@ class Connector:
             return
 
         if data['device_id'] not in self.data:
-            self.data[data['device_id']] = {}
+            self.data[data['device_id']] = DictX({})
 
         if data['type'] not in self.data[data['device_id']]:
             self.data[data['device_id']][data['type']] = []
-
-        self.__update_current_data_frame(data)
-        self.__update_latest_data(data)
 
         data_len = len(self.data[data['device_id']][data['type']])
         if not self.__record_data and (data_len >= data_threshold(data['type'])):
             self.data[data['device_id']][data['type']].pop(0)
 
         self.data[data['device_id']][data['type']].append(cast(ClientMsg, data))
+
+        self.__update_current_data_frame(data)
+        self.__update_latest_data(data)
 
         if self.__main_thread_blocked:
             self.__blocked_data_msgs.append(cast(DataMsg, data))
