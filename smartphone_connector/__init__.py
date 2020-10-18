@@ -919,34 +919,91 @@ class Connector:
             return deepcopy(grid)
         return [deepcopy(grid)]
 
-    def update_cell(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cellNumber: Optional[int] = None, base_color: Optional[BaseColor] = None, enumerate: bool = None, **delivery_opts):
+    def update_cell(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cell_number: Optional[int] = None, base_color: Optional[BaseColor] = None, **delivery_opts):
         '''
-        sets the color of the current grid at the given row and column
-        '''
-        self.update_grid(row=row, column=column, color=color, cellNumber=cellNumber,
-                         base_color=base_color, enumerate=enumerate, **delivery_opts)
+        sets the color of the current grid at the given row and column or at the given cell_number
 
-    def set_grid_at(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cellNumber: Optional[int] = None, base_color: Optional[BaseColor] = None, enumerate: bool = None, **delivery_opts):
-        '''
-        sets the color of the current grid at the given row and column
-        '''
-        self.update_grid(row=row, column=column, color=color, cellNumber=cellNumber,
-                         base_color=base_color, enumerate=enumerate, **delivery_opts)
+        Optional
+        ----------
+        row : int
+            row of the cell
 
-    def update_grid(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cellNumber: Optional[int] = None, base_color: Optional[BaseColor] = None, enumerate: bool = None, **delivery_opts):
+        column : int
+            column of the cell
+
+        cell_number : int
+            cells are enumerated from left to right, starting with "1" on cell top left
+
+        color : CssColorType
+            color to set
+
+        base_color : CssColorType
+            base color when numeric color values are set
         '''
-        sets the color of the current grid at the given row and column
+        self.update_grid(row=row, column=column, color=color, cell_number=cell_number,
+                         base_color=base_color, **delivery_opts)
+
+    def set_grid_at(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cell_number: Optional[int] = None, base_color: Optional[BaseColor] = None, **delivery_opts):
         '''
+        sets the color of the current grid at the given row and column or at the given cell_number
+
+        Optional
+        ----------
+        row : int
+            row of the cell
+
+        column : int
+            column of the cell
+
+        cell_number : int
+            cells are enumerated from left to right, starting with "1" on cell top left
+
+        color : CssColorType
+            color to set
+
+        base_color : CssColorType
+            base color when numeric color values are set
+        '''
+
+        self.update_grid(row=row, column=column, color=color, cell_number=cell_number,
+                         base_color=base_color, **delivery_opts)
+
+    def update_grid(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cell_number: Optional[int] = None, base_color: Optional[BaseColor] = None, enumerate: bool = None, **delivery_opts):
+        '''
+        sets the color of the current grid at the given row and column or at the given cell_number
+
+        Optional
+        ----------
+        row : int
+            row of the cell
+
+        column : int
+            column of the cell
+
+        cell_number : int
+            cells are enumerated from left to right, starting with "1" on cell top left
+
+        color : CssColorType
+            color to set
+
+        base_color : CssColorType
+            base color when numeric color values are set
+
+        enumerate : bool
+            wheter to enumerate grid cells or not
+        '''
+
         grid_msg = {
             'type': 'grid_update',
             'row': row,
             'column': column,
-            'number': cellNumber,
+            'number': cell_number,
             'color': color,
             'base_color': base_color,
             'enumerate': enumerate,
             'time_stamp': self.current_time_stamp
         }
+        self.__set_local_grid_at(row=row, column=column, color=color, cell_number=cell_number)
         self.emit(
             SocketEvents.NEW_DATA,
             without_none(grid_msg),
@@ -990,14 +1047,23 @@ class Connector:
     def reset_grid(self, **delivery_opts):
         self.set_grid([['white']], **delivery_opts)
 
-    def __set_local_grid_at(self, row: int, column: int, color: CssColorType):
+    def __set_local_grid_at(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cell_number: Optional[int] = None):
         grid = self.get_grid
 
         rows = len(grid)
         if rows == 0:
             grid = [[]]
 
-        while len(grid[0]) <= column:
+        col_count = len(grid[0]) if grid[0] is not None else 0
+        if cell_number is not None:
+            col_cnt = col_count
+            if col_cnt == 0:
+                col_cnt = 1
+            cell_number = cell_number - 1
+            row = cell_number // col_cnt
+            column = cell_number % col_cnt
+
+        while col_count <= column:
             for col in grid:
                 col.append(0)
         while len(grid) <= row:
