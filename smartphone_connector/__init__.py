@@ -1063,7 +1063,7 @@ class Connector:
             row = cell_number // col_cnt
             column = cell_number % col_cnt
 
-        while col_count <= column:
+        while len(grid[0]) <= column:
             for col in grid:
                 col.append(0)
         while len(grid) <= row:

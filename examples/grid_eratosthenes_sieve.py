@@ -10,7 +10,7 @@ GRID_H = 20
 
 device = Connector(SERVER_ADRESS, 'FooBar')
 # set up white grid
-device.set_grid([])
+device.set_grid([[]])
 device.set_grid_at(row=GRID_H - 1, column=GRID_W - 1, enumerate=True)
 
 
