@@ -15,13 +15,23 @@ class DictX(dict):
     credits: https://dev.to/0xbf/use-dot-syntax-to-access-dictionary-key-python-tips-10ec
     '''
 
+    def __getitem__(self, key):
+        try:
+            val = dict.__getitem__(self, key)
+            if type(val) is dict:
+                return DictX(val)
+            return val
+        except KeyError as k:
+            pass
+
     def __getattr__(self, key):
         try:
             if type(self[key]) is dict:
                 return DictX(self[key])
             return self[key]
         except KeyError as k:
-            raise AttributeError(k)
+            pass
+            # raise AttributeError(k)
 
     def __setattr__(self, key, value):
         self[key] = value
@@ -38,6 +48,8 @@ class DictX(dict):
 
 if __name__ == '__main__':
     a = DictX({'a': DictX({'b': 12, 'c': {'a': 113}})})
+    print(a['a'])
     print(a.a)
     print(a.a.b)
+    print(a['a']['c'])
     print(a.a.c.a)
