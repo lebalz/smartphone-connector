@@ -913,11 +913,35 @@ class Connector:
 
     @property
     def get_grid(self) -> List[List[CssColorType]]:
+        '''
+        returns a copy of the last sent grid. Changes on the returned grid will not have an effect.
+        '''
+        return deepcopy(self.__get_grid)
+
+    @property
+    def __get_grid(self) -> List[List[CssColorType]]:
+        '''
+        returns the internal grid (no deep copy!)
+        '''
         grid = self.__last_sent_grid['grid']
         is_2d = len(grid) > 0 and type(grid[0]) != str and hasattr(grid[0], "__getitem__")
         if is_2d:
-            return deepcopy(grid)
-        return [deepcopy(grid)]
+            return grid
+        return [grid]
+
+    def get_grid_at(self, row: Optional[int] = None, column: Optional[int] = None, cell_number: Optional[int] = None) -> Optional[CssColorType]:
+        grid = self.__get_grid
+        if cell_number is not None:
+            row = (cell_number - 1) // len(grid[0])
+            column = (cell_number - 1) % len(grid[0])
+        elif row is None or column is None:
+            return None
+
+        if len(grid) <= row:
+            return None
+        if len(grid[row]) <= column:
+            return None
+        return grid[row][column]
 
     def update_cell(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cell_number: Optional[int] = None, base_color: Optional[BaseColor] = None, **delivery_opts):
         '''
@@ -1046,6 +1070,16 @@ class Connector:
 
     def reset_grid(self, **delivery_opts):
         self.set_grid([['white']], **delivery_opts)
+
+    def setup_grid(self, rows: int, columns: int, color: Optional[CssColorType] = None, enumerate: Optional[bool] = None, **delivery_opts):
+        grid = []
+        colr = color if color is not None else 0
+        for _ in range(rows):
+            row = []
+            for _ in range(columns):
+                row.append(colr)
+            grid.append(row)
+        self.set_grid(grid, enumerate=enumerate, base_color='white', **delivery_opts)
 
     def __set_local_grid_at(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cell_number: Optional[int] = None):
         grid = self.get_grid

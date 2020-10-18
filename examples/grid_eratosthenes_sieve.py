@@ -10,8 +10,7 @@ GRID_H = 20
 
 device = Connector(SERVER_ADRESS, 'FooBar')
 # set up white grid
-device.set_grid([[]])
-device.set_grid_at(row=GRID_H - 1, column=GRID_W - 1, enumerate=True)
+device.setup_grid(GRID_H, GRID_W, enumerate=True)
 
 
 def on_pointer(data: GridPointerMsg):
@@ -24,8 +23,12 @@ def on_pointer(data: GridPointerMsg):
         return
     # update all grid cells being a multiplicative multiple of the number
     # e.g for 2: 4,6,8,10,12
+    updates = 0
     for num in range(data.number * 2, GRID_H * GRID_W + 1, data.number):
-        device.update_cell(cell_number=num, color='red')
+        if device.get_grid_at(cell_number=num) != 'red':
+            updates = updates + 1
+            device.update_cell(cell_number=num, color='red')
+    print(updates)
 
 
 device.on_pointer = on_pointer
