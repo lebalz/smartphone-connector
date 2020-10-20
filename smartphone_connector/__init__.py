@@ -1071,7 +1071,7 @@ class Connector:
     def reset_grid(self, **delivery_opts):
         self.set_grid([['white']], **delivery_opts)
 
-    def setup_grid(self, rows: int, columns: int, color: Optional[CssColorType] = None, enumerate: Optional[bool] = None, **delivery_opts):
+    def setup_grid(self, rows: int, columns: int, color: Optional[CssColorType] = None, enumerate: Optional[bool] = None, base_color: Optional[BaseColor] = None, ** delivery_opts):
         grid = []
         colr = color if color is not None else 0
         for _ in range(rows):
@@ -1079,9 +1079,14 @@ class Connector:
             for _ in range(columns):
                 row.append(colr)
             grid.append(row)
-        self.set_grid(grid, enumerate=enumerate, base_color='white', **delivery_opts)
+        if base_color is None:
+            base_color = 'white'
+        self.set_grid(grid, enumerate=enumerate, base_color=base_color, **delivery_opts)
 
     def __set_local_grid_at(self, row: Optional[int] = None, column: Optional[int] = None, color: Optional[CssColorType] = None, cell_number: Optional[int] = None):
+        if row is None and cell_number is None:
+            return
+
         grid = self.get_grid
 
         rows = len(grid)
