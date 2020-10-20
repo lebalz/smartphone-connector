@@ -548,7 +548,7 @@ class Connector:
         if device_id == '__ALL_DEVICES__':
             raw = deepcopy(self.__latest_data)
         else:
-            raw = deepcopy(self.__current_data_frame[device_id])
+            raw = deepcopy(self.__current_data_frame[device_id]) if (device_id in self.__current_data_frame) else None
 
         if raw is None:
             if data_type is None:

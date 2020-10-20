@@ -22,7 +22,8 @@ class DictX(dict):
                 return DictX(val)
             return val
         except KeyError as k:
-            pass
+            # deepcopy does not work propperly when no AttributeError is raised here!!!
+            raise AttributeError(k)
 
     def __getattr__(self, key):
         try:
@@ -31,7 +32,6 @@ class DictX(dict):
             return self[key]
         except KeyError as k:
             pass
-            # raise AttributeError(k)
 
     def __setattr__(self, key, value):
         self[key] = value
@@ -48,6 +48,9 @@ class DictX(dict):
 
 if __name__ == '__main__':
     a = DictX({'a': DictX({'b': 12, 'c': {'a': 113}})})
+    a['b'] = {'c': 18}
+    print(a['b'])
+    print(a.b)
     print(a['a'])
     print(a.a)
     print(a.a.b)
