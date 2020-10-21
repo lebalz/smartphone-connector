@@ -1476,10 +1476,9 @@ class Connector:
             elif data['type'] == DataType.SPRITE_CLICKED:
                 self.__callback('on_sprite_clicked', data)
 
-        if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data != noop:
+        if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
             self.__callback('on_broadcast_data', data)
-        else:
-            self.__callback('on_data', data)
+        self.__callback('on_data', data)
 
     def __on_all_data(self, data: dict):
         if 'device_id' not in data:
