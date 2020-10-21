@@ -120,6 +120,7 @@ class Connector:
         return self.__sprites
 
     def __init__(self, server_url: str, device_id: str):
+        device_id = device_id.strip()
         self.__server_url = server_url
         self.__device_id = device_id
         self.__current_data_frame[device_id] = default_data_frame()
