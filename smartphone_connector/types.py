@@ -445,6 +445,7 @@ class Sprite(DataMsg):
     clickable: Optional[bool] = None
     collision_detection: Optional[bool] = None
     color: Optional[str] = None
+    border_color: Optional[str] = None
     direction: Optional[List[float]] = None
     distance: Optional[float] = None
     form: Optional[SpriteForm] = None
@@ -454,6 +455,8 @@ class Sprite(DataMsg):
     reset_time: Optional[bool] = None
     speed: Optional[float] = None
     text: Optional[str] = None
+    font_size: Optional[Number] = None
+    font_color: Optional[str] = None
     time_span: Optional[float] = None
     width: Optional[float] = None
 

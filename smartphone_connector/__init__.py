@@ -52,6 +52,12 @@ class Connector:
         'broadcast': False,
         'base_color': (255, 0, 0)
     })
+    __playground_config: PlaygroundConfig = DictX({
+        'width': 100,
+        'height': 100,
+        'shift_x': 0,
+        'shift_y': 0
+    })
 
     __sprites = []
 
@@ -639,9 +645,7 @@ class Connector:
                     file_type = image.suffix
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
 
-        config = {
-            'type': DataType.PLAYGROUND_CONFIG,
-            'config': without_none({
+        playground_config = without_none({
                 'width': width,
                 'height': height,
                 'shift_x': shift_x if shift_x is not None else 0,
@@ -649,6 +653,10 @@ class Connector:
                 'color': color,
                 'images': raw_images
             })
+        self.__playground_config = playground_config
+        config = {
+            'type': DataType.PLAYGROUND_CONFIG,
+            'config': playground_config
         }
         self.emit(SocketEvents.NEW_DATA, config, **delivery_opts)
 
@@ -661,15 +669,19 @@ class Connector:
                 clickable: Optional[bool] = None,
                 collision_detection: Optional[bool] = None,
                 color: Optional[Union[Colors, str]] = None,
+                border_color: Optional[Union[Colors, str]] = None,
                 direction: Optional[List[Number]] = None,
                 distance: Optional[Number] = None,
                 form: Optional[Union[SpriteForm, Literal['round', 'rectangle']]] = None,
                 height: Optional[Number] = None,
                 pos_x: Optional[Number] = None,
                 pos_y: Optional[Number] = None,
+                anchor: Optional[Tuple[Number, Number]] = None,
                 reset_time: Optional[Number] = None,
                 speed: Optional[Number] = None,
                 text: Optional[str] = None,
+                font_color: Optional[str] = None,
+                font_size: Optional[Number] = None,
                 image: Optional[str] = None,
                 time_span: Optional[Number] = None,
                 width: Optional[Number] = None,
@@ -695,6 +707,9 @@ class Connector:
 
             pos_y : Number
                 the y position in playground units
+
+            anchor : Tuple[Number, Number]
+                the anchor (center) of the sprite: range from 0 (left/bottom) to 1 (right/top)
 
             color : str
                 the color of the sprite
@@ -737,21 +752,26 @@ class Connector:
                 'clickable': clickable,
                 'collision_detection': collision_detection,
                 'color': color,
+                'border_color': border_color,
                 'direction': direction,
                 'distance': distance,
                 'form': form,
                 'height': height,
                 'pos_x': pos_x,
                 'pos_y': pos_y,
+                'anchor': anchor,
                 'reset_time': reset_time,
                 'speed': speed,
                 'text': text,
+                'font_color': font_color,
+                'font_size': font_size,
                 'image': image,
                 'rotate': rotate,
                 'time_span': time_span,
                 'width': width
             }
             sprites.append(without_none(s))
+
         try:
             yield sprite
         except:
@@ -773,26 +793,179 @@ class Connector:
                 **delivery_opts
             )
 
+    def add_circle(
+            self,
+            center_x: Number = None,
+            center_y: Number = None,
+            radius: Number = None,
+            color: Optional[Union[Colors, str]] = None,
+            border_color: Optional[Union[Colors, str]] = None,
+            id: Optional[str] = None,
+            anchor: Optional[Tuple[Number, Number]] = None,
+            clickable: Optional[bool] = None,
+            collision_detection: Optional[bool] = None,
+            direction: Optional[List[Number]] = None,
+            distance: Optional[Number] = None,
+            reset_time: Optional[Number] = None,
+            speed: Optional[Number] = None,
+            text: Optional[str] = None,
+            font_color: Optional[str] = None,
+            font_size: Optional[Number] = None,
+            image: Optional[str] = None,
+            time_span: Optional[Number] = None,
+            rotate: Optional[Number] = None,
+            **delivery_opts) -> str:
+        return self.add_sprite(
+            id=id,
+            form='round',
+            clickable=clickable,
+            collision_detection=collision_detection,
+            color=color,
+            direction=direction,
+            distance=distance,
+            height=radius * 2,
+            width=radius * 2,
+            pos_x=center_x,
+            pos_y=center_y,
+            anchor=anchor,
+            reset_time=reset_time,
+            speed=speed,
+            text=text,
+            image=image,
+            time_span=time_span,
+            rotate=rotate,
+            border_color=border_color,
+            font_color=font_color,
+            font_size=font_size,
+            **delivery_opts
+        )
+
+    def add_square(
+            self,
+            pos_x: Number = None,
+            pos_y: Number = None,
+            size: Number = None,
+            color: Optional[Union[Colors, str]] = None,
+            border_color: Optional[Union[Colors, str]] = None,
+            anchor: Optional[Tuple[Number, Number]] = None,
+            id: Optional[str] = None,
+            clickable: Optional[bool] = None,
+            collision_detection: Optional[bool] = None,
+            direction: Optional[List[Number]] = None,
+            distance: Optional[Number] = None,
+            reset_time: Optional[Number] = None,
+            speed: Optional[Number] = None,
+            text: Optional[str] = None,
+            font_color: Optional[str] = None,
+            font_size: Optional[Number] = None,
+            image: Optional[str] = None,
+            time_span: Optional[Number] = None,
+            rotate: Optional[Number] = None,
+            **delivery_opts) -> str:
+        return self.add_sprite(
+            id=id,
+            form='rectangle',
+            height=size,
+            width=size,
+            clickable=clickable,
+            collision_detection=collision_detection,
+            color=color,
+            direction=direction,
+            distance=distance,
+            pos_x=pos_x,
+            pos_y=pos_y,
+            anchor=anchor,
+            reset_time=reset_time,
+            speed=speed,
+            text=text,
+            image=image,
+            time_span=time_span,
+            rotate=rotate,
+            border_color=border_color,
+            font_color=font_color,
+            font_size=font_size,
+            **delivery_opts
+        )
+
+    def add_text(
+            self,
+            text: str,
+            pos_x: Optional[Number] = None,
+            pos_y: Optional[Number] = None,
+            height: Optional[Number] = None,
+            background_color: Optional[Union[Colors, str]] = None,
+            border_color: Optional[Union[Colors, str]] = None,
+            font_color: Optional[str] = None,
+            font_size: Optional[Number] = None,
+            id: Optional[str] = None,
+            anchor: Optional[Tuple[Number, Number]] = None,
+            clickable: Optional[bool] = None,
+            collision_detection: Optional[bool] = None,
+            direction: Optional[List[Number]] = None,
+            distance: Optional[Number] = None,
+            reset_time: Optional[Number] = None,
+            speed: Optional[Number] = None,
+            image: Optional[str] = None,
+            time_span: Optional[Number] = None,
+            rotate: Optional[Number] = None,
+            **delivery_opts) -> str:
+        config = DictX({'width': 100, 'height': 100})
+        config.update(without_none(self.__playground_config))
+        if height is None:
+            height = config.height / 20
+        text_len = len(text)
+        width = text_len * (height * config.height / config.width) / 4
+        print(height, width)
+
+        return self.add_sprite(
+            id=id,
+            form='rectangle',
+            height=height,
+            width=width,
+            clickable=clickable,
+            collision_detection=collision_detection,
+            color=background_color,
+            direction=direction,
+            distance=distance,
+            pos_x=pos_x,
+            pos_y=pos_y,
+            anchor=anchor,
+            reset_time=reset_time,
+            speed=speed,
+            text=text,
+            image=image,
+            time_span=time_span,
+            rotate=rotate,
+            border_color=border_color,
+            font_color=font_color,
+            font_size=font_size,
+            **delivery_opts
+        )
+
     def add_sprite(
             self,
             id: Optional[str] = None,
             clickable: Optional[bool] = None,
             collision_detection: Optional[bool] = None,
             color: Optional[Union[Colors, str]] = None,
+            border_color: Optional[Union[Colors, str]] = None,
             direction: Optional[List[Number]] = None,
             distance: Optional[Number] = None,
             form: Optional[Union[SpriteForm, Literal['round', 'rectangle']]] = None,
             height: Optional[Number] = None,
             pos_x: Optional[Number] = None,
             pos_y: Optional[Number] = None,
+            anchor: Optional[Tuple[Number, Number]] = None,
             reset_time: Optional[Number] = None,
             speed: Optional[Number] = None,
             text: Optional[str] = None,
+            font_color: Optional[str] = None,
+            font_size: Optional[Number] = None,
             image: Optional[str] = None,
             time_span: Optional[Number] = None,
             width: Optional[Number] = None,
             rotate: Optional[Number] = None,
-            **delivery_opts):
+            **delivery_opts) -> str:
         '''
         Optional
         --------
@@ -813,6 +986,9 @@ class Connector:
 
         pos_y : Number
             the y position in playground units
+
+        anchor : Tuple[Number, Number]
+            the anchor (center) of the sprite: range from 0 (left/bottom) to 1 (right/top)
 
         color : str
             the color of the sprite
@@ -855,15 +1031,19 @@ class Connector:
             'clickable': clickable,
             'collision_detection': collision_detection,
             'color': color,
+            'border_color': border_color,
             'direction': direction,
             'distance': distance,
             'form': form,
             'height': height,
             'pos_x': pos_x,
             'pos_y': pos_y,
+            'anchor': anchor,
             'reset_time': reset_time,
             'speed': speed,
             'text': text,
+            'font_color': font_color,
+            'font_size': font_size,
             'rotate': rotate,
             'image': image,
             'time_span': time_span,
@@ -883,6 +1063,7 @@ class Connector:
             },
             **delivery_opts
         )
+        return sprite['id']
 
     update_sprites = add_sprites
 
@@ -1476,6 +1657,8 @@ class Connector:
                 self.__callback('on_border_overlap', data)
             elif data['type'] == DataType.SPRITE_CLICKED:
                 self.__callback('on_sprite_clicked', data)
+            elif data['type'] == DataType.PLAYGROUND_CONFIG:
+                self.__playground_config = DictX(data['config'])
 
         if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
             self.__callback('on_broadcast_data', data)
