@@ -677,6 +677,8 @@ class Connector:
                 height: Optional[Number] = None,
                 pos_x: Optional[Number] = None,
                 pos_y: Optional[Number] = None,
+                size: Optional[Number] = None,
+                radius: Optional[Number] = None,
                 anchor: Optional[Tuple[Number, Number]] = None,
                 reset_time: Optional[Number] = None,
                 speed: Optional[Number] = None,
@@ -708,6 +710,12 @@ class Connector:
 
             pos_y : Number
                 the y position in playground units
+
+            size : Number
+                set the width and height to the same size
+
+            radius : Number
+                set the width and height to 2 * radius
 
             anchor : Tuple[Number, Number]
                 the anchor (center) of the sprite: range from 0 (left/bottom) to 1 (right/top)
@@ -748,6 +756,14 @@ class Connector:
             time_span : Number
                 the time a sprite lives
             '''
+            if size is not None:
+                width = size
+                height = size
+
+            if radius is not None:
+                width = radius * 2
+                height = radius * 2
+
             s = {
                 'id': id if id is not None else f'sprite{randint(10000, 99999)}',
                 'clickable': clickable,
@@ -880,8 +896,8 @@ class Connector:
             color=color,
             direction=direction,
             distance=distance,
-            height=radius * 2,
-            width=radius * 2,
+            height=radius * 2 if radius is not None else None,
+            width=radius * 2 if radius is not None else None,
             pos_x=pos_x,
             pos_y=pos_y,
             anchor=anchor,
