@@ -616,11 +616,43 @@ class Connector:
     def configure_playground(self,
                              width: Optional[Number] = None,
                              height: Optional[Number] = None,
+                             origin_x: Optional[Number] = None,
+                             origin_y: Optional[Number] = None,
                              shift_x: Optional[Number] = None,
                              shift_y: Optional[Number] = None,
                              color: Optional[Union[Colors, str]] = None,
                              images: Optional[Union[Path, str]] = None,
                              **delivery_opts):
+        '''
+        Optional
+        --------
+        width : Number
+            width of the playground (this has no units - it defines your playground unit)
+
+        height : Number
+            height of the playground (this has no units - it defines your playground unit)
+
+        origin_x : Number
+            the x coordinate of the origin of your playground. By default it is in the lower left corner at 0, 0. You can define it in
+            your playground coordinates.
+
+        origin_y : Number
+            the y coordinate of the origin of your playground. By default it is in the lower left corner at 0, 0. You can define it in
+            your playground coordinates.
+
+        shift_x : Number
+            How many units should the playground be shifted horizontally? Same as the negative value of origin_x.
+            Only one of both should be set
+
+        shift_y : Number
+            How many units should the playground be shifted vertically? Same as the negative value of origin_y
+            Only one of both should be set
+
+        '''
+        if origin_x is not None:
+            shift_x = -origin_x
+        if origin_y is not None:
+            shift_y = -origin_y
         raw_images = []
         if images is not None:
             images = Path(images)
