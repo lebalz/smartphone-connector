@@ -58,6 +58,9 @@ class DataType(str, Enum):
     SPRITE_CLICKED = "sprite_clicked"
     SPRITE_COLLISION = "sprite_collision"
     SPRITE_OUT = "sprite_out"
+    REMOVE_LINE = "remove_line"
+    LINE = "line"
+    LINES = "lines"
     UNKNOWN = "unknown"
 
 
@@ -479,6 +482,43 @@ class UpdateSprite(DataMsg):
 
 
 class UpdateSpriteMsg(UpdateSprite):
+    time_stamp: float
+    device_id: str
+    device_nr: int
+
+
+class Line(DataMsg):
+    id: str
+    y1: Number
+    x1: Number
+    x2: Number
+    y2: Number
+    color: Optional[str]
+    line_width: Optional[Number]
+    rotate: Optional[Number]
+    anchor: Optional[Number]
+
+
+class LineMsg(Line):
+    type: Literal['line']
+    time_stamp: float
+    device_id: str
+    device_nr: int
+
+
+class UpdateLine(DataMsg):
+    x1: Optional[Number]
+    y1: Optional[Number]
+    x2: Optional[Number]
+    y2: Optional[Number]
+    color: Optional[str]
+    line_width: Optional[Number]
+    rotate: Optional[Number]
+    anchor: Optional[Number]
+
+
+class UpdateLineMsg(UpdateLine):
+    type: Literal['line']
     time_stamp: float
     device_id: str
     device_nr: int

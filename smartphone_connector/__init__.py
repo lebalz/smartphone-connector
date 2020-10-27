@@ -60,6 +60,7 @@ class Connector:
     })
 
     __sprites = []
+    __lines = []
 
     # callback functions
 
@@ -815,6 +816,60 @@ class Connector:
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
             **delivery_opts) -> str:
+        '''
+        Optional
+        --------
+        id : str
+            unique id. When already present, this sprite will be updated.
+
+        radius : Number
+            the width of the circle in playground units
+
+        center_x : Number
+            the x position in playground units
+
+        center_y : Number
+            the y position in playground units
+
+        anchor : Tuple[Number, Number]
+            the anchor (center) of the circle: range from 0 (left/bottom) to 1 (right/top)
+
+        color : str
+            the color of the circle
+
+        clickable : bool
+            wheter an event is delivered when the circle is clicked
+
+        collision_detection : bool
+            wheter to report collisions with other circles or not. Collision-Detection can be costly,
+            so use it with care.
+
+        direction : [x: Number, y: Number]
+            the direction of the circle. In combination with a speed value, the circle will be advanced
+            for each display refresh in this direction.
+
+        distance : Number
+            the circle will disappear after the given distance (in auto-movement mode) is reached.
+
+        reset_time : bool
+            wheter to reset the start time on an update. Resets the time_span or distance
+            for auto-movement circles.
+
+        speed : Number
+            makes a circle auto-movable.
+
+        text : str
+            the text that is displayed on the circle.
+
+        image : str
+            name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
+
+        rotate : Number
+            degrees to rotate the circle clockwise
+
+        time_span : Number
+            the time a circle lives
+        '''
         return self.add_sprite(
             id=id,
             form='round',
@@ -825,6 +880,111 @@ class Connector:
             distance=distance,
             height=radius * 2,
             width=radius * 2,
+            pos_x=center_x,
+            pos_y=center_y,
+            anchor=anchor,
+            reset_time=reset_time,
+            speed=speed,
+            text=text,
+            image=image,
+            time_span=time_span,
+            rotate=rotate,
+            border_color=border_color,
+            font_color=font_color,
+            font_size=font_size,
+            **delivery_opts
+        )
+
+    def add_ellipse(
+            self,
+            center_x: Number = None,
+            center_y: Number = None,
+            height: Number = None,
+            width: Number = None,
+            color: Optional[Union[Colors, str]] = None,
+            border_color: Optional[Union[Colors, str]] = None,
+            id: Optional[str] = None,
+            anchor: Optional[Tuple[Number, Number]] = None,
+            clickable: Optional[bool] = None,
+            collision_detection: Optional[bool] = None,
+            direction: Optional[List[Number]] = None,
+            distance: Optional[Number] = None,
+            reset_time: Optional[Number] = None,
+            speed: Optional[Number] = None,
+            text: Optional[str] = None,
+            font_color: Optional[str] = None,
+            font_size: Optional[Number] = None,
+            image: Optional[str] = None,
+            time_span: Optional[Number] = None,
+            rotate: Optional[Number] = None,
+            **delivery_opts) -> str:
+        '''
+        Optional
+        --------
+        id : str
+            unique id. When already present, this sprite will be updated.
+
+        width : Number
+            the width of the ellipse in playground units
+
+        height : Number
+            the height of the ellipse in playground units
+
+        pos_x : Number
+            the x position in playground units
+
+        pos_y : Number
+            the y position in playground units
+
+        anchor : Tuple[Number, Number]
+            the anchor (center) of the ellipse: range from 0 (left/bottom) to 1 (right/top)
+
+        color : str
+            the color of the ellipse
+
+        clickable : bool
+            wheter an event is delivered when the ellipse is clicked
+
+        collision_detection : bool
+            wheter to report collisions with other ellipses or not. Collision-Detection can be costly,
+            so use it with care.
+
+        direction : [x: Number, y: Number]
+            the direction of the ellipse. In combination with a speed value, the ellipse will be advanced
+            for each display refresh in this direction.
+
+        distance : Number
+            the ellipse will disappear after the given distance (in auto-movement mode) is reached.
+
+        reset_time : bool
+            wheter to reset the start time on an update. Resets the time_span or distance
+            for auto-movement ellipses.
+
+        speed : Number
+            makes a ellipse auto-movable.
+
+        text : str
+            the text that is displayed on the ellipse.
+
+        image : str
+            name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
+
+        rotate : Number
+            degrees to rotate the ellipse clockwise
+
+        time_span : Number
+            the time a ellipse lives
+        '''
+        return self.add_sprite(
+            id=id,
+            form='round',
+            clickable=clickable,
+            collision_detection=collision_detection,
+            color=color,
+            direction=direction,
+            distance=distance,
+            height=height,
+            width=width,
             pos_x=center_x,
             pos_y=center_y,
             anchor=anchor,
@@ -862,11 +1022,170 @@ class Connector:
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
             **delivery_opts) -> str:
+        '''
+        Optional
+        --------
+        id : str
+            unique id. When already present, this square will be updated.
+
+        size : Number
+            the size of the square in playground units
+
+        pos_x : Number
+            the x position in playground units
+
+        pos_y : Number
+            the y position in playground units
+
+        anchor : Tuple[Number, Number]
+            the anchor (center) of the square: range from 0 (left/bottom) to 1 (right/top)
+
+        color : str
+            the color of the square
+
+        clickable : bool
+            wheter an event is delivered when the square is clicked
+
+        collision_detection : bool
+            wheter to report collisions with other squares or not. Collision-Detection can be costly,
+            so use it with care.
+
+        direction : [x: Number, y: Number]
+            the direction of the square. In combination with a speed value, the square will be advanced
+            for each display refresh in this direction.
+
+        distance : Number
+            the square will disappear after the given distance (in auto-movement mode) is reached.
+
+        reset_time : bool
+            wheter to reset the start time on an update. Resets the time_span or distance
+            for auto-movement squares.
+
+        speed : Number
+            makes a square auto-movable.
+
+        text : str
+            the text that is displayed on the square.
+
+        image : str
+            name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
+
+        rotate : Number
+            degrees to rotate the square clockwise
+
+        time_span : Number
+            the time a square lives
+        '''
         return self.add_sprite(
             id=id,
             form='rectangle',
             height=size,
             width=size,
+            clickable=clickable,
+            collision_detection=collision_detection,
+            color=color,
+            direction=direction,
+            distance=distance,
+            pos_x=pos_x,
+            pos_y=pos_y,
+            anchor=anchor,
+            reset_time=reset_time,
+            speed=speed,
+            text=text,
+            image=image,
+            time_span=time_span,
+            rotate=rotate,
+            border_color=border_color,
+            font_color=font_color,
+            font_size=font_size,
+            **delivery_opts
+        )
+
+    def add_rectangle(
+            self,
+            pos_x: Number = None,
+            pos_y: Number = None,
+            width: Number = None,
+            height: Number = None,
+            color: Optional[Union[Colors, str]] = None,
+            border_color: Optional[Union[Colors, str]] = None,
+            anchor: Optional[Tuple[Number, Number]] = None,
+            id: Optional[str] = None,
+            clickable: Optional[bool] = None,
+            collision_detection: Optional[bool] = None,
+            direction: Optional[List[Number]] = None,
+            distance: Optional[Number] = None,
+            reset_time: Optional[Number] = None,
+            speed: Optional[Number] = None,
+            text: Optional[str] = None,
+            font_color: Optional[str] = None,
+            font_size: Optional[Number] = None,
+            image: Optional[str] = None,
+            time_span: Optional[Number] = None,
+            rotate: Optional[Number] = None,
+            **delivery_opts) -> str:
+        '''
+        Optional
+        --------
+        id : str
+            unique id. When already present, this rectangle will be updated.
+
+        width : Number
+            the width of the rectangle in playground units
+
+        height : Number
+            the height of the rectangle in playground units
+
+        pos_x : Number
+            the x position in playground units
+
+        pos_y : Number
+            the y position in playground units
+
+        anchor : Tuple[Number, Number]
+            the anchor (center) of the rectangle: range from 0 (left/bottom) to 1 (right/top)
+
+        color : str
+            the color of the rectangle
+
+        clickable : bool
+            wheter an event is delivered when the rectangle is clicked
+
+        collision_detection : bool
+            wheter to report collisions with other rectangles or not. Collision-Detection can be costly,
+            so use it with care.
+
+        direction : [x: Number, y: Number]
+            the direction of the rectangle. In combination with a speed value, the rectangle will be advanced
+            for each display refresh in this direction.
+
+        distance : Number
+            the rectangle will disappear after the given distance (in auto-movement mode) is reached.
+
+        reset_time : bool
+            wheter to reset the start time on an update. Resets the time_span or distance
+            for auto-movement rectangles.
+
+        speed : Number
+            makes a rectangle auto-movable.
+
+        text : str
+            the text that is displayed on the rectangle.
+
+        image : str
+            name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
+
+        rotate : Number
+            degrees to rotate the rectangle clockwise
+
+        time_span : Number
+            the time a rectangle lives
+        '''
+        return self.add_sprite(
+            id=id,
+            form='rectangle',
+            height=height,
+            width=width,
             clickable=clickable,
             collision_detection=collision_detection,
             color=color,
@@ -915,7 +1234,6 @@ class Connector:
             height = config.height / 20
         text_len = len(text)
         width = text_len * (height * config.height / config.width) / 4
-        print(height, width)
 
         return self.add_sprite(
             id=id,
@@ -1092,6 +1410,218 @@ class Connector:
         )
 
     update_sprite = add_sprite
+
+    def add_line(
+            self,
+            x1: Number,
+            y1: Number,
+            x2: Number,
+            y2: Number,
+            line_width: Optional[Number] = None,
+            color: Optional[Union[Colors, str]] = None,
+            id: Optional[str] = None,
+            **delivery_opts) -> str:
+        '''Adds a line to the playground
+
+        Parameters
+        ----------
+
+        x1 : Number
+            start position x coordinate
+
+        y1 : Number
+            start position y coordinate
+
+        x2 : Number
+            end position x coordinate
+
+        y2 : Number
+            end position y coordinate
+
+        Optional
+        --------
+        color : Colors, str
+            color of the line
+
+        line_width : Number
+            width of the line stroke in playground size
+
+        id : string
+            the id of the line - can be used to update or remove the line later
+
+        Returns
+        -------
+        str : the id of the added line
+        '''
+        line = {
+            'x1': x1,
+            'y1': y1,
+            'x2': x2,
+            'y2': y2,
+            'line_width': line_width,
+            'color': color,
+            'id': id if id is not None else f'line{randint(10000, 99999)}'
+        }
+
+        line = without_none(line)
+        to_update = first(lambda s: s['id'] == line['id'], self.__lines)
+        if to_update is not None:
+            to_update.update(line)
+        else:
+            self.__lines.append(DictX(line))
+
+        self.emit(
+            SocketEvents.NEW_DATA,
+            {
+                'type': DataType.LINE,
+                'line': line
+            },
+            **delivery_opts
+        )
+        return line['id']
+
+    def update_line(
+            self,
+            id: str,
+            x1: Optional[Number] = None,
+            y1: Optional[Number] = None,
+            x2: Optional[Number] = None,
+            y2: Optional[Number] = None,
+            line_width: Optional[Number] = None,
+            color: Optional[Union[Colors, str]] = None,
+            **delivery_opts) -> str:
+        '''Updates a line already added to the playground
+
+        Optional
+        --------
+        x1 : Number
+            start position x coordinate
+
+        y1 : Number
+            start position y coordinate
+
+        x2 : Number
+            end position x coordinate
+
+        y2 : Number
+            end position y coordinate
+
+        color : Colors, str
+            color of the line
+
+        line_width : Number
+            width of the line stroke in playground size
+
+        id : string
+            the id of the line - can be used to update or remove the line later
+
+        Returns
+        -------
+        str : the id of the updated line
+        '''
+        return self.add_line(
+            id=id,
+            x1=x1,
+            y1=y1,
+            x2=x2,
+            y2=y2,
+            line_width=line_width,
+            color=color,
+            **delivery_opts
+        )
+
+    @contextmanager
+    def add_lines(self, **delivery_opts):
+        lines = []
+
+        def line(
+                x1: Number = None,
+                y1: Number = None,
+                x2: Number = None,
+                y2: Number = None,
+                line_width: Optional[Number] = None,
+                color: Optional[Union[Colors, str]] = None,
+                id: Optional[str] = None) -> str:
+            '''Adds or updates a line to the playground
+
+            Parameters
+            ----------
+
+            x1 : Number
+                start position x coordinate
+
+            y1 : Number
+                start position y coordinate
+
+            x2 : Number
+                end position x coordinate
+
+            y2 : Number
+                end position y coordinate
+
+            Optional
+            --------
+            color : Colors, str
+                color of the line
+
+            line_width : Number
+                width of the line stroke in playground size
+
+            id : string
+                the id of the line - can be used to update or remove the line later
+
+            Returns
+            -------
+            str : the id of the added line
+            '''
+            l = {
+                'x1': x1,
+                'y1': y1,
+                'x2': x2,
+                'y2': y2,
+                'line_width': line_width,
+                'color': color,
+                'id': id if id is not None else f'line{randint(10000, 99999)}'
+            }
+            lines.append(without_none(l))
+            return l['id']
+
+        try:
+            yield line
+        except:
+            lines = []
+            raise
+        else:
+            for s in lines:
+                to_update = first(lambda s: s['id'] == s['id'], self.__lines)
+                if to_update is not None:
+                    to_update.update(s)
+                else:
+                    self.__lines.append(DictX(s))
+            self.emit(
+                SocketEvents.NEW_DATA,
+                {
+                    'type': DataType.LINES,
+                    'lines': lines
+                },
+                **delivery_opts
+            )
+    update_lines = add_lines
+
+    def remove_line(self, line_id: str, **delivery_opts):
+        '''removes the line with the given id'''
+        to_remove = first(lambda s: s.id == line_id, self.__lines)
+        if to_remove is not None:
+            self.__lines.remove(to_remove)
+
+        self.emit(
+            SocketEvents.NEW_DATA,
+            {
+                'type': DataType.REMOVE_LINE,
+                'id': line_id
+            },
+            **delivery_opts
+        )
 
     @property
     def get_grid(self) -> List[List[CssColorType]]:
