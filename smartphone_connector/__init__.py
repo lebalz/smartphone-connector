@@ -794,11 +794,13 @@ class Connector:
                 **delivery_opts
             )
 
+    update_sprites = add_sprites
+
     def add_circle(
             self,
-            center_x: Number = None,
-            center_y: Number = None,
-            radius: Number = None,
+            pos_x: Optional[Number] = None,
+            pos_y: Optional[Number] = None,
+            radius: Optional[Number] = None,
             color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
             id: Optional[str] = None,
@@ -825,10 +827,10 @@ class Connector:
         radius : Number
             the width of the circle in playground units
 
-        center_x : Number
+        pos_x : Number
             the x position in playground units
 
-        center_y : Number
+        pos_y : Number
             the y position in playground units
 
         anchor : Tuple[Number, Number]
@@ -880,8 +882,8 @@ class Connector:
             distance=distance,
             height=radius * 2,
             width=radius * 2,
-            pos_x=center_x,
-            pos_y=center_y,
+            pos_x=pos_x,
+            pos_y=pos_y,
             anchor=anchor,
             reset_time=reset_time,
             speed=speed,
@@ -895,12 +897,14 @@ class Connector:
             **delivery_opts
         )
 
+    update_circle = add_circle
+
     def add_ellipse(
             self,
-            center_x: Number = None,
-            center_y: Number = None,
-            height: Number = None,
-            width: Number = None,
+            pos_x: Optional[Number] = None,
+            pos_y: Optional[Number] = None,
+            height: Optional[Number] = None,
+            width: Optional[Number] = None,
             color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
             id: Optional[str] = None,
@@ -985,8 +989,8 @@ class Connector:
             distance=distance,
             height=height,
             width=width,
-            pos_x=center_x,
-            pos_y=center_y,
+            pos_x=pos_x,
+            pos_y=pos_y,
             anchor=anchor,
             reset_time=reset_time,
             speed=speed,
@@ -999,6 +1003,7 @@ class Connector:
             font_size=font_size,
             **delivery_opts
         )
+    update_ellips = add_ellipse
 
     def add_square(
             self,
@@ -1100,6 +1105,8 @@ class Connector:
             font_size=font_size,
             **delivery_opts
         )
+
+    update_square = add_square
 
     def add_rectangle(
             self,
@@ -1206,6 +1213,8 @@ class Connector:
             **delivery_opts
         )
 
+    update_rectangle = add_rectangle
+
     def add_text(
             self,
             text: str,
@@ -1259,6 +1268,8 @@ class Connector:
             font_size=font_size,
             **delivery_opts
         )
+
+    update_text = add_text
 
     def add_sprite(
             self,
@@ -1382,8 +1393,6 @@ class Connector:
             **delivery_opts
         )
         return sprite['id']
-
-    update_sprites = add_sprites
 
     def clear_playground(self, **delivery_opts):
         self.__sprites.clear()
