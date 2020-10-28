@@ -843,6 +843,8 @@ class Connector:
             )
 
     update_sprites = add_sprites
+    add_objects = add_sprites
+    update_objects = add_sprites
 
     def add_circle(
             self,
