@@ -1468,6 +1468,8 @@ class Connector:
             **delivery_opts
         )
 
+    remove_object = remove_sprite
+
     update_sprite = add_sprite
 
     def add_line(
