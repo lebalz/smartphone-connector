@@ -90,6 +90,10 @@ class Connector:
     on_sprite_out: Union[Callable[[SpriteOutMsg], None], Callable[[SpriteOutMsg, Connector], None]] = noop
     on_sprite_collision: Union[Callable[[SpriteCollisionMsg], None],
                                Callable[[SpriteCollisionMsg, Connector], None]] = noop
+    on_overlap_in: Union[Callable[[SpriteCollisionMsg], None],
+                         Callable[[SpriteCollisionMsg, Connector], None]] = noop
+    on_overlap_out: Union[Callable[[SpriteCollisionMsg], None],
+                          Callable[[SpriteCollisionMsg, Connector], None]] = noop
     on_border_overlap: Union[Callable[[BorderOverlapMsg], None], Callable[[BorderOverlapMsg, Connector], None]] = noop
     on_sprite_clicked: Union[Callable[[SpriteClickedMsg], None], Callable[[SpriteClickedMsg, Connector], None]] = noop
 
@@ -2244,6 +2248,11 @@ class Connector:
             elif data['type'] == DataType.SPRITE_COLLISION:
                 data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
                 self.__callback('on_sprite_collision', data)
+                if data['overlap'] == 'in':
+                    self.__callback('on_overlap_in', data)
+                elif data['overlap'] == 'out':
+                    self.__callback('on_overlap_out', data)
+
             elif data['type'] == DataType.BORDER_OVERLAP:
                 self.__callback('on_border_overlap', data)
             elif data['type'] == DataType.SPRITE_CLICKED:
