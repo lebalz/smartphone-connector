@@ -626,6 +626,7 @@ class Connector:
                              shift_y: Optional[Number] = None,
                              color: Optional[Union[Colors, str]] = None,
                              images: Optional[Union[Path, str]] = None,
+                             image: Optional[str] = None,
                              **delivery_opts):
         '''
         Optional
@@ -675,11 +676,11 @@ class Connector:
 
             if not images.is_dir():
                 raise f'Image path {images} not found'
-            for image in images.iterdir():
-                if image.suffix in ['.jpg', '.jpeg', '.png', '.svg']:
-                    raw = image.read_bytes()
-                    name = image.stem
-                    file_type = image.suffix
+            for img in images.iterdir():
+                if img.suffix in ['.jpg', '.jpeg', '.png', '.svg']:
+                    raw = img.read_bytes()
+                    name = img.stem
+                    file_type = img.suffix
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
 
         playground_config = without_none({
@@ -688,6 +689,7 @@ class Connector:
                 'shift_x': shift_x if shift_x is not None else 0,
                 'shift_y': shift_y if shift_y is not None else 0,
                 'color': color,
+                'image': image,
                 'images': raw_images
             })
         self.__playground_config = playground_config
@@ -725,7 +727,8 @@ class Connector:
                 time_span: Optional[Number] = None,
                 width: Optional[Number] = None,
                 rotate: Optional[Number] = None,
-                **delivery_opts):
+                z_index: Optional[int] = None,
+                **rest) -> str:
             '''
             Optional
             --------
@@ -800,8 +803,9 @@ class Connector:
                 width = radius * 2
                 height = radius * 2
 
+            next_id = id if id is not None else f'sprite{randint(10000, 99999)}'
             s = {
-                'id': id if id is not None else f'sprite{randint(10000, 99999)}',
+                'id': next_id,
                 'clickable': clickable,
                 'collision_detection': collision_detection,
                 'color': color,
@@ -821,9 +825,11 @@ class Connector:
                 'image': image,
                 'rotate': rotate,
                 'time_span': time_span,
+                'z_index': z_index,
                 'width': width
             }
             sprites.append(without_none(s))
+            return next_id
 
         try:
             yield sprite
@@ -871,6 +877,7 @@ class Connector:
             image: Optional[str] = None,
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -948,6 +955,7 @@ class Connector:
             border_color=border_color,
             font_color=font_color,
             font_size=font_size,
+            z_index=z_index,
             **delivery_opts
         )
 
@@ -975,6 +983,7 @@ class Connector:
             image: Optional[str] = None,
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1055,6 +1064,7 @@ class Connector:
             border_color=border_color,
             font_color=font_color,
             font_size=font_size,
+            z_index=z_index,
             **delivery_opts
         )
     update_ellips = add_ellipse
@@ -1080,6 +1090,7 @@ class Connector:
             image: Optional[str] = None,
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1157,6 +1168,7 @@ class Connector:
             border_color=border_color,
             font_color=font_color,
             font_size=font_size,
+            z_index=z_index,
             **delivery_opts
         )
 
@@ -1184,6 +1196,7 @@ class Connector:
             image: Optional[str] = None,
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1264,6 +1277,7 @@ class Connector:
             border_color=border_color,
             font_color=font_color,
             font_size=font_size,
+            z_index=z_index,
             **delivery_opts
         )
 
@@ -1290,6 +1304,7 @@ class Connector:
             image: Optional[str] = None,
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         config = DictX({'width': 100, 'height': 100})
         config.update(without_none(self.__playground_config))
@@ -1320,6 +1335,7 @@ class Connector:
             border_color=border_color,
             font_color=font_color,
             font_size=font_size,
+            z_index=z_index,
             **delivery_opts
         )
 
@@ -1348,6 +1364,7 @@ class Connector:
             time_span: Optional[Number] = None,
             width: Optional[Number] = None,
             rotate: Optional[Number] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1408,6 +1425,9 @@ class Connector:
 
         time_span : Number
             the time a sprite lives
+
+        z_index : int
+            set a custom z_index for the div
         '''
         sprite = {
             'id': id if id is not None else f'sprite{randint(10000, 99999)}',
@@ -1430,7 +1450,8 @@ class Connector:
             'rotate': rotate,
             'image': image,
             'time_span': time_span,
-            'width': width
+            'width': width,
+            'z_index': z_index
         }
         sprite = without_none(sprite)
         to_update = first(lambda s: s['id'] == sprite['id'], self.__sprites)
@@ -1485,6 +1506,7 @@ class Connector:
             line_width: Optional[Number] = None,
             color: Optional[Union[Colors, str]] = None,
             id: Optional[str] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         '''Adds a line to the playground
 
@@ -1525,6 +1547,7 @@ class Connector:
             'y2': y2,
             'line_width': line_width,
             'color': color,
+            'z_index': z_index,
             'id': id if id is not None else f'line{randint(10000, 99999)}'
         }
 
@@ -1554,6 +1577,7 @@ class Connector:
             y2: Optional[Number] = None,
             line_width: Optional[Number] = None,
             color: Optional[Union[Colors, str]] = None,
+            z_index: Optional[int] = None,
             **delivery_opts) -> str:
         '''Updates a line already added to the playground
 
@@ -1592,6 +1616,7 @@ class Connector:
             y2=y2,
             line_width=line_width,
             color=color,
+            z_index=z_index,
             **delivery_opts
         )
 
@@ -1606,7 +1631,8 @@ class Connector:
                 y2: Number = None,
                 line_width: Optional[Number] = None,
                 color: Optional[Union[Colors, str]] = None,
-                id: Optional[str] = None) -> str:
+                id: Optional[str] = None,
+                z_index: Optional[int] = None) -> str:
             '''Adds or updates a line to the playground
 
             Parameters
@@ -1646,6 +1672,7 @@ class Connector:
                 'y2': y2,
                 'line_width': line_width,
                 'color': color,
+                'z_index': z_index,
                 'id': id if id is not None else f'line{randint(10000, 99999)}'
             }
             lines.append(without_none(l))
