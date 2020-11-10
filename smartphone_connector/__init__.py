@@ -723,7 +723,7 @@ class Connector:
         sprites = []
 
         def sprite(
-                id: Optional[str],
+                id: Optional[str] = None,
                 clickable: Optional[bool] = None,
                 collision_detection: Optional[bool] = None,
                 color: Optional[Union[Colors, str]] = None,
@@ -857,7 +857,7 @@ class Connector:
             raise
         else:
             for s in sprites:
-                to_update = first(lambda s: s['id'] == s['id'], self.__sprites)
+                to_update = first(lambda spr: spr['id'] == s['id'], self.__sprites)
                 if to_update is not None:
                     to_update.update(s)
                 else:
@@ -1703,12 +1703,12 @@ class Connector:
             lines = []
             raise
         else:
-            for s in lines:
-                to_update = first(lambda s: s['id'] == s['id'], self.__lines)
+            for l in lines:
+                to_update = first(lambda ln: ln['id'] == l['id'], self.__lines)
                 if to_update is not None:
-                    to_update.update(s)
+                    to_update.update(l)
                 else:
-                    self.__lines.append(DictX(s))
+                    self.__lines.append(DictX(l))
             self.emit(
                 SocketEvents.NEW_DATA,
                 {
