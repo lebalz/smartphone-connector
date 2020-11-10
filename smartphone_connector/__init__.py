@@ -130,6 +130,25 @@ class Connector:
     def sprites(self) -> List[Sprite]:
         return self.__sprites
 
+    def get_sprite(self, id: str = None) -> Union[Sprite, None]:
+        '''returns the sprite with the given id
+
+        if no id is provided, the first sprite is returned
+
+        if the sprite is not found, None is returned
+        '''
+        if len(self.__sprites) == 0:
+            return None
+        if id is None:
+            return self.__sprites[0]
+        return first(lambda s: s.id == id, self.__sprites)
+
+    get_circle = get_sprite
+    get_ellipse = get_sprite
+    get_square = get_sprite
+    get_rectangle = get_sprite
+    get_object = get_sprite
+
     def __init__(self, server_url: str, device_id: str):
         device_id = device_id.strip()
         self.__server_url = server_url
