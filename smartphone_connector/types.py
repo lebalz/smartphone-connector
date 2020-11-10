@@ -58,6 +58,7 @@ class DataType(str, Enum):
     SPRITE_CLICKED = "sprite_clicked"
     SPRITE_COLLISION = "sprite_collision"
     SPRITE_OUT = "sprite_out"
+    SPRITE_REMOVED = "sprite_removed"
     REMOVE_LINE = "remove_line"
     LINE = "line"
     LINES = "lines"
@@ -531,7 +532,7 @@ class SpriteBase:
 
 class SpriteCollision(DataMsg):
     type: Literal['sprite_collision']
-    sprites: Tuple[SpriteBase, SpriteBase]
+    sprites: Tuple[Union[Sprite, SpriteBase], Union[Sprite, SpriteBase]]
     time_stamp: float
     overlap: Literal['in', 'out']
 
@@ -549,6 +550,7 @@ class BorderOverlap(DataMsg):
     x: float
     y: float
     id: str
+    sprite: Optional[Sprite]
 
 
 class BorderOverlapMsg(BorderOverlap):
@@ -563,6 +565,7 @@ class SpriteClicked(DataMsg):
     text: Optional[str]
     x: Number
     y: Number
+    sprite: Optional[Sprite]
 
 
 class SpriteClickedMsg(SpriteClicked):
@@ -574,10 +577,22 @@ class SpriteClickedMsg(SpriteClicked):
 class SpriteOut(DataMsg):
     type: Literal['sprite_out']
     id: str
-    time_stamp: float
+    sprite: Optional[Sprite]
 
 
 class SpriteOutMsg(SpriteOut):
+    time_stamp: float
+    device_id: str
+    device_nr: int
+
+
+class SpriteRemoved(DataMsg):
+    type: Literal['sprite_removed']
+    id: str
+    sprite: Optional[Sprite]
+
+
+class SpriteRemovedMsg(SpriteRemoved):
     time_stamp: float
     device_id: str
     device_nr: int

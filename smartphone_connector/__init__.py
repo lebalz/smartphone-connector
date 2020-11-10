@@ -88,6 +88,7 @@ class Connector:
     on_room_left: Union[Callable[[DeviceLeftMsg], None], Callable[[DeviceLeftMsg, Connector], None]] = noop
 
     on_sprite_out: Union[Callable[[SpriteOutMsg], None], Callable[[SpriteOutMsg, Connector], None]] = noop
+    on_sprite_removed: Union[Callable[[SpriteRemovedMsg], None], Callable[[SpriteRemovedMsg, Connector], None]] = noop
     on_sprite_collision: Union[Callable[[SpriteCollisionMsg], None],
                                Callable[[SpriteCollisionMsg, Connector], None]] = noop
     on_overlap_in: Union[Callable[[SpriteCollisionMsg], None],
@@ -2287,12 +2288,37 @@ class Connector:
             elif data['type'] == DataType.ALERT_CONFIRM:
                 self.__alerts.append(cast(AlertConfirmMsg, data))
             elif data['type'] == DataType.SPRITE_OUT:
-                sprite = first(lambda s: s.id == data.sprite_id, self.__sprites)
-                if sprite:
-                    self.__sprites.remove(sprite)
+                sprite = self.get_sprite(data['id'])
+                if sprite is not None:
+                    data.update({
+                        'sprite': deepcopy(sprite)
+                    })
                 self.__callback('on_sprite_out', data)
+            elif data['type'] == DataType.SPRITE_REMOVED:
+                sprite = self.get_sprite(data['id'])
+                if sprite is not None:
+                    data.update({'sprite': deepcopy(sprite)})
+                    self.__sprites.remove(sprite)
+                self.__callback('on_sprite_removed', data)
             elif data['type'] == DataType.SPRITE_COLLISION:
-                data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
+                if len(data['sprites']) == 2:
+                    try:
+                        s1 = self.get_sprite(data['sprites'][0]['id'])
+                        s2 = self.get_sprite(data['sprites'][0]['id'])
+                        if s1 is not None:
+                            data['sprites'][0] = deepcopy(s1)
+                        else:
+                            data['sprites'][0] = DictX(data['sprites'][0])
+
+                        if s2 is not None:
+                            data['sprites'][1] = deepcopy(s2)
+                        else:
+                            data['sprites'][1] = DictX(data['sprites'][1])
+                    except:
+                        data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
+                else:
+                    data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
+
                 self.__callback('on_sprite_collision', data)
                 if data['overlap'] == 'in':
                     self.__callback('on_overlap_in', data)
@@ -2300,6 +2326,9 @@ class Connector:
                     self.__callback('on_overlap_out', data)
 
             elif data['type'] == DataType.BORDER_OVERLAP:
+                original = self.get_sprite(data['id'])
+                if original is not None:
+                    data.update({'sprite': deepcopy(original)})
                 self.__callback('on_border_overlap', data)
             elif data['type'] == DataType.SPRITE_CLICKED:
                 self.__callback('on_sprite_clicked', data)
