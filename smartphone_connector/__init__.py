@@ -2349,13 +2349,14 @@ class Connector:
 
         data['all_data'] = DictX(xdata)
         self.data[data['device_id']] = data['all_data']
-        # if DataType.SPRITES in data['all_data'] and data['device_id'] == self.device_id:
-        #     if self.__initial_all_data_received:
-        #         self.__sprites = list(map(lambda s: s['sprite'], data['all_data']['sprites']))
-        #     else:
-        #         for s in data['all_data']['sprites']:
-        #             if 'id' in s and self.get_sprite(s['id']) is None:
-        #                 self.__sprites.append(DictX(s))
+        if data['device_id'] == self.device_id:
+            if DataType.SPRITE in data['all_data']:
+                if self.__initial_all_data_received:
+                    self.__sprites = list(map(lambda s: DictX(s), data['all_data'][DataType.SPRITE]))
+                else:
+                    for s in data['all_data'][DataType.SPRITE]:
+                        if 'id' in s and self.get_sprite(s['id']) is None:
+                            self.__sprites.append(DictX(s))
 
         self.__initial_all_data_received = True
         self.__callback('on_all_data', data)
