@@ -29,6 +29,7 @@ def data_threshold(data_type: str) -> int:
 
 
 class Connector:
+    __initial_all_data_received = False
     __last_time_stamp: float = -1
     __last_sub_time: float = 0
     __record_data: bool = False
@@ -138,11 +139,11 @@ class Connector:
 
         if the sprite is not found, None is returned
         '''
-        if len(self.__sprites) == 0:
+        if len(self.sprites) == 0:
             return None
         if id is None:
-            return self.__sprites[0]
-        return first(lambda s: s.id == id, self.__sprites)
+            return self.sprites[0]
+        return first(lambda s: s.id == id, self.sprites)
 
     get_circle = get_sprite
     get_ellipse = get_sprite
@@ -1490,7 +1491,7 @@ class Connector:
         return sprite['id']
 
     def clear_playground(self, **delivery_opts):
-        self.__sprites.clear()
+        self.__sprites = []
         self.emit(
             SocketEvents.NEW_DATA,
             {
@@ -2342,7 +2343,6 @@ class Connector:
     def __on_all_data(self, data: dict):
         if 'device_id' not in data:
             return
-
         xdata: dict[str, List[dict]] = data['all_data']
         for dtype in xdata:
             xdata[dtype] = list(map(lambda msg: DictX(msg), xdata[dtype]))
@@ -2350,8 +2350,14 @@ class Connector:
         data['all_data'] = DictX(xdata)
         self.data[data['device_id']] = data['all_data']
         if DataType.SPRITE in data['all_data'] and data['device_id'] == self.device_id:
-            self.__sprites = list(map(lambda s: s['sprite'], data['all_data']['sprite']))
+            if self.__initial_all_data_received:
+                self.__sprites = list(map(lambda s: s['sprite'], data['all_data']['sprite']))
+            else:
+                for s in data['all_data']['sprite']:
+                    if self.get_sprite(s['id']) is None:
+                        self.__sprites.append(DictX(s))
 
+        self.__initial_all_data_received = True
         self.__callback('on_all_data', data)
 
     def __on_room_left(self, device: dict):
