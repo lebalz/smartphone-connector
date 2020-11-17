@@ -88,6 +88,7 @@ BaseColor = Union[str, RgbColor]
 class DeliveryOptions:
     broadcast: bool = False
     unicast_to: Optional[int] = None
+    deliver_to: Optional[str] = None
     device_id: Optional[str] = None
 
 

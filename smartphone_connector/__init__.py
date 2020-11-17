@@ -200,6 +200,9 @@ class Connector:
         if 'device_id' in delivery_opts:
             data['device_id'] = delivery_opts['device_id']
 
+        if 'deliver_to' in delivery_opts:
+            data['deliver_to'] = delivery_opts['deliver_to']
+
         if 'device_id' not in data:
             data['device_id'] = self.device_id
 
@@ -212,6 +215,20 @@ class Connector:
             data['unicast_to'] = delivery_opts['unicast_to']
 
         self.sio.emit(event, data)
+
+    def send_to(self, to: str, data: DataMsg, **delivery_opts):
+        '''
+        Emits a new_data event to another device_id group
+        Parameters
+        ----------
+        to : str
+            the device_id of the receiver
+
+        data : DataMsg
+            the data to send, fields 'time_stamp' and 'device_id' are added when they are not present
+        '''
+        data['deliver_to'] = to
+        self.emit(SocketEvents.NEW_DATA, data=data, **delivery_opts)
 
     def send(self, data: DataMsg, **delivery_opts):
         '''
