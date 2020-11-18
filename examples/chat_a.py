@@ -31,4 +31,8 @@ device.send_to(
     }
 )
 
+device.on_border_overlap = lambda x: print(x)
+device.on_sprite_out = lambda x: print(x)
+device.on_sprite_removed = lambda x: print(x)
+
 device.wait()

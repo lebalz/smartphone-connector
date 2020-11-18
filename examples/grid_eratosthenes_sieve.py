@@ -1,9 +1,9 @@
+from examples.server_adress import SERVER_ADRESS
+from smartphone_connector import Connector, GridPointerMsg
 import os
 import sys
 from pprint import pprint
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from smartphone_connector import Connector, GridPointerMsg
-from examples.server_adress import SERVER_ADRESS
 
 GRID_W = 20
 GRID_H = 20
@@ -16,10 +16,10 @@ device.setup_grid(GRID_H, GRID_W, enumerate=True)
 def on_pointer(data: GridPointerMsg):
     # this is the eratosthenes logic...
     # ignore 1
-    if (data.number == 1):
+    if data.number == 1:
         return
     # ignore when already red since it is not prime
-    if (data.color == 'red'):
+    if data.color == 'red':
         return
     # update all grid cells being a multiplicative multiple of the number
     # e.g for 2: 4,6,8,10,12

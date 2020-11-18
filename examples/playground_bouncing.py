@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import *
-from random import random
+from random import random, randint
 from examples.server_adress import SERVER_ADRESS
 
 
@@ -35,12 +35,10 @@ def on_collision(data: SpriteCollisionMsg):
 def on_sprite_out(data: SpriteOutMsg):
     if data.device_nr != device.client_device.device_nr:
         return
-    device.update_circle(
-        id=data.id,
-        pos_x=0,
-        pos_y=0,
-        speed=1
-    )
+    data.sprite.pos_x = 0
+    data.sprite.pos_y = 0
+    data.sprite.speed = 1
+    device.add_sprite(**data.sprite)
 
 
 def on_border_overlap(data: BorderOverlapMsg):
@@ -63,10 +61,8 @@ def on_border_overlap(data: BorderOverlapMsg):
 
 
 device.on_sprite_collision = on_collision
-device.on_sprite_out = on_sprite_out
 device.on_border_overlap = on_border_overlap
-# device.on_sprite_removed = lambda data: print(data)
-# device.on_sprite_clicked = lambda d: print(d)
+device.on_sprite_removed = on_sprite_out
 device.on_sprite_clicked = lambda d: device.update_sprite(id=d.id, pos_x=0, pos_y=0, speed=1)
 
 with device.add_sprites() as add:
@@ -76,7 +72,7 @@ with device.add_sprites() as add:
             pos_y=0,
             form='round',
             direction=[2 * (random() - 0.5), 2 * (random() - 0.5)],
-            speed=2,
+            speed=randint(1, 10),
             color=random_color(),
             radius=2,
             collision_detection=False,
