@@ -104,7 +104,7 @@ class Connector:
     @overload
     def on(self, event: Literal['pointer'], function: OnPointerSignature): ...
     @overload
-    def on(self, event: Literal['acceleration'], function: OnAccelerationSignature): ...
+    def on(self, event: Literal['acceleration', 'acc'], function: OnAccelerationSignature): ...
     @overload
     def on(self, event: Literal['gyro'], function: OnGyroSignature): ...
     @overload
@@ -128,11 +128,14 @@ class Connector:
     @overload
     def on(self, event: Literal['room_left'], function: OnRoomLeftSignature): ...
     @overload
-    def on(self, event: Literal['sprite_out'], function: OnSpriteOutSignature): ...
+    def on(self, event: Literal['sprite_out', 'object_out'], function: OnSpriteOutSignature): ...
     @overload
-    def on(self, event: Literal['sprite_removed'], function: OnSpriteRemovedSignature): ...
+    def on(self, event: Literal['sprite_removed', 'object_removed'], function: OnSpriteRemovedSignature): ...
+
     @overload
-    def on(self, event: Literal['sprite_collision'], function: OnSpriteCollisionSignature): ...
+    def on(self, event: Literal['sprite_collision', 'object_collision',
+                                'collision'], function: OnSpriteCollisionSignature): ...
+
     @overload
     def on(self, event: Literal['overlap_in'], function: OnOverlapInSignature): ...
     @overload
@@ -140,9 +143,9 @@ class Connector:
     @overload
     def on(self, event: Literal['border_overlap'], function: OnBorderOverlapSignature): ...
     @overload
-    def on(self, event: Literal['sprite_clicked'], function: OnSpriteClickedSignature): ...
+    def on(self, event: Literal['sprite_clicked', 'object_clicked'], function: OnSpriteClickedSignature): ...
 
-    def on(self, event: Event, function: CallbackSignature):
+    def on(self, event: Union[Event, EventAliases], function: CallbackSignature):
         if event == 'key':
             self.on_key = function
         elif event == 'f1':
@@ -155,7 +158,7 @@ class Connector:
             self.on_f4 = function
         elif event == 'pointer':
             self.on_pointer = function
-        elif event == 'acceleration':
+        elif event == 'acceleration' or event == 'acc':
             self.on_acceleration = function
         elif event == 'gyro':
             self.on_gyro = function
@@ -179,11 +182,11 @@ class Connector:
             self.on_room_joined = function
         elif event == 'room_left':
             self.on_room_left = function
-        elif event == 'sprite_out':
+        elif event == 'sprite_out' or event == 'object_out':
             self.on_sprite_out = function
-        elif event == 'sprite_removed':
+        elif event == 'sprite_removed' or event == 'object_removed':
             self.on_sprite_removed = function
-        elif event == 'sprite_collision':
+        elif event == 'collision' or event == 'sprite_collision' or event == 'object_collision':
             self.on_sprite_collision = function
         elif event == 'overlap_in':
             self.on_overlap_in = function
@@ -191,7 +194,7 @@ class Connector:
             self.on_overlap_out = function
         elif event == 'border_overlap':
             self.on_border_overlap = function
-        elif event == 'sprite_clicked':
+        elif event == 'sprite_clicked' or event == 'object_clicked':
             self.on_sprite_clicked = function
 
     __on_notify_subscribers: SubscriptionCallbackSignature = noop
@@ -1628,6 +1631,7 @@ class Connector:
     remove_object = remove_sprite
 
     update_sprite = add_sprite
+    update_object = add_sprite
 
     def add_line(
             self,
@@ -2424,21 +2428,32 @@ class Connector:
             elif data['type'] == DataType.SPRITE_OUT:
                 sprite = self.get_sprite(data['id'])
                 if sprite is not None:
+                    obj = deepcopy(sprite)
                     data.update({
-                        'sprite': deepcopy(sprite)
+                        'sprite': obj,
+                        'object': obj
                     })
                 self.__callback('on_sprite_out', data)
             elif data['type'] == DataType.SPRITE_REMOVED:
                 sprite = self.get_sprite(data['id'])
                 if sprite is not None:
-                    data.update({'sprite': deepcopy(sprite)})
+                    obj = deepcopy(sprite)
+                    data.update({
+                        'sprite': obj,
+                        'object': obj
+                    })
                     self.__sprites.remove(sprite)
                 self.__callback('on_sprite_removed', data)
             elif data['type'] == DataType.SPRITE_COLLISION:
                 if len(data['sprites']) == 2:
                     try:
                         s1 = self.get_sprite(data['sprites'][0]['id'])
-                        s2 = self.get_sprite(data['sprites'][0]['id'])
+                        s2 = self.get_sprite(data['sprites'][1]['id'])
+                        # make sure the first sprite is a controlled sprite...
+                        if 'collision_detection' in s1 and not s1['collision_detection']:
+                            t = s2
+                            s1 = s2
+                            s2 = t
                         if s1 is not None:
                             data['sprites'][0] = deepcopy(s1)
                         else:
@@ -2452,7 +2467,8 @@ class Connector:
                         data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
                 else:
                     data['sprites'] = list(map(lambda s: DictX(s), data['sprites']))
-
+                # add alias
+                data['objects'] = data['sprites']
                 self.__callback('on_sprite_collision', data)
                 if data['overlap'] == 'in':
                     self.__callback('on_overlap_in', data)
@@ -2462,9 +2478,11 @@ class Connector:
             elif data['type'] == DataType.BORDER_OVERLAP:
                 original = self.get_sprite(data['id'])
                 if original is not None:
-                    data.update({'sprite': deepcopy(original)})
+                    obj = deepcopy(original)
+                    data.update({'sprite': obj, 'object': obj})
                 self.__callback('on_border_overlap', data)
             elif data['type'] == DataType.SPRITE_CLICKED:
+                data['object'] = data['sprite'] if 'sprite' in data else None
                 self.__callback('on_sprite_clicked', data)
             elif data['type'] == DataType.PLAYGROUND_CONFIG:
                 self.__playground_config = DictX(data['config'])
@@ -2591,6 +2609,7 @@ SubscriptionCallbackSignature = Union[Callable[[], None],
                                       Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]]
 Event = Literal['key', 'f1', 'f2', 'f3', 'f4', 'pointer', 'acceleration', 'gyro', 'sensor', 'data', 'broadcast_data', 'all_data', 'device', 'client_device',
                 'devices', 'error', 'room_joined', 'room_left', 'sprite_out', 'sprite_removed', 'sprite_collision', 'overlap_in', 'overlap_out', 'border_overlap', 'sprite_clicked']
+EventAliases = Literal['acc', 'object_out', 'object_removed', 'object_collision', 'collision', 'object_clicked']
 CallbackSignature = Union[
     OnKeySignature, OnF1Signature, OnF2Signature, OnF3Signature, OnF4Signature, OnPointerSignature, OnAccelerationSignature, OnGyroSignature, OnSensorSignature, OnDataSignature, OnBroadcastDataSignature, OnAll_dataSignature, OnDeviceSignature, OnClientDeviceSignature, OnDevicesSignature, OnErrorSignature, OnRoomJoinedSignature, OnRoomLeftSignature, OnSpriteOutSignature, OnSpriteRemovedSignature, OnSpriteCollisionSignature, OnOverlapInSignature, OnOverlapOutSignature, OnBorderOverlapSignature, OnSpriteClickedSignature
 ]

@@ -536,6 +536,7 @@ class SpriteBase:
 class SpriteCollision(DataMsg):
     type: Literal['sprite_collision']
     sprites: Tuple[Union[Sprite, SpriteBase], Union[Sprite, SpriteBase]]
+    objects: Tuple[Union[Sprite, SpriteBase], Union[Sprite, SpriteBase]]
     time_stamp: float
     overlap: Literal['in', 'out']
 
@@ -554,6 +555,7 @@ class BorderOverlap(DataMsg):
     y: float
     id: str
     sprite: Optional[Sprite]
+    object: Optional[Sprite]
 
 
 class BorderOverlapMsg(BorderOverlap):
@@ -569,6 +571,7 @@ class SpriteClicked(DataMsg):
     x: Number
     y: Number
     sprite: Optional[Sprite]
+    object: Optional[Sprite]
 
 
 class SpriteClickedMsg(SpriteClicked):
@@ -581,6 +584,7 @@ class SpriteOut(DataMsg):
     type: Literal['sprite_out']
     id: str
     sprite: Optional[Sprite]
+    object: Optional[Sprite]
 
 
 class SpriteOutMsg(SpriteOut):
@@ -593,6 +597,7 @@ class SpriteRemoved(DataMsg):
     type: Literal['sprite_removed']
     id: str
     sprite: Optional[Sprite]
+    object: Optional[Sprite]
 
 
 class SpriteRemovedMsg(SpriteRemoved):
