@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import overload, Union, Literal, Optional, Tuple, List, TypedDict
+from typing import overload, Union, Literal, Optional, Tuple, List, Callable
 from dataclasses import dataclass
 from .dictx import DictX
+from .timings import ThreadJob
 from enum import Enum
 
 Number = Union[float, int]
@@ -366,6 +367,7 @@ class DataFrame(DictX):
     sprite_clicked: SpriteClickedMsg
     sprite_collision: SpriteCollisionMsg
     sprite_out: SpriteOutMsg
+    job: Optional[ThreadJob]
 
 
 class ErrorMsg(BaseMsg):

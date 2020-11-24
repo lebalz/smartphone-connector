@@ -2208,12 +2208,17 @@ class Connector:
         '''
         self.sio.sleep(seconds)
 
-    def __distribute_dataframe(self):
-        if self.__on_notify_subscribers is None:
+    def __distribute_dataframe(
+        self,
+        to: SubscriptionCallbackSignature = None,
+        job: ThreadJob = None
+    ):
+        clbk = to if to is not None else self.__on_notify_subscribers
+        if clbk is None:
             return
 
-        arg_count = len(signature(self.__on_notify_subscribers).parameters)
-        clbk = cast(Callable, self.__on_notify_subscribers)
+        arg_count = len(signature(clbk).parameters)
+        clbk = cast(Callable, clbk)
 
         if arg_count == 0:
             return clbk()
@@ -2223,38 +2228,41 @@ class Connector:
             'acceleration': self.latest_acceleration(device_id=self.__device_id) or default('acceleration'),
             'gyro': self.latest_gyro(device_id=self.__device_id) or default('gyro'),
             'color_pointer': self.latest_color_pointer(device_id=self.__device_id) or default('color_pointer'),
-            'grid_pointer': self.latest_grid_pointer(device_id=self.__device_id) or default('grid_pointer')
+            'grid_pointer': self.latest_grid_pointer(device_id=self.__device_id) or default('grid_pointer'),
+            'job': job
         })
-        clbk = cast(Callable, self.__on_notify_subscribers)
         if arg_count == 1:
             clbk(data)
         elif arg_count == 2:
             clbk(data, self)
 
-    def subscribe_async(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05) -> Union[ThreadJob, CancleSubscription]:
+    def animate(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05) -> Union[ThreadJob, CancleSubscription]:
+        return self.subscribe_async(callback=callback, interval=interval)
+
+    def subscribe_async(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05) -> Union[ThreadJob, CancleSubscription]:
         return self.subscribe(callback=callback, interval=interval, blocking=False)
 
     def set_update_interval(self, interval: float):
         return self.subscribe(interval=interval, blocking=True)
 
-    def set_timeout(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05, blocking=True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
+    def set_timeout(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking=True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
         return self.subscribe(callback=callback, interval=interval, blocking=blocking)
 
     @ overload
-    def subscribe(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None,
+    def subscribe(self, callback: SubscriptionCallbackSignature = None,
                   interval: float = 0.05, blocking=True) -> Union[ThreadJob, CancleSubscription]:
         ...
 
     @ overload
-    def subscribe(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05, blocking=False) -> None:
+    def subscribe(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking=False) -> None:
         ...
 
-    def subscribe(self, callback: Union[Callable, Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]] = None, interval: float = 0.05, blocking: bool = True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
+    def subscribe(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking: bool = True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
         '''
         blocked : bool wheter the main thread gets blocked or not.
         '''
-        self.__on_notify_subscribers = cast(Callable, callback)
         if blocking:
+            self.__on_notify_subscribers = cast(Callable, callback)
             self.__main_thread_blocked = True
             self.__subscription_job = CancleSubscription()
             while self.__subscription_job.is_running:
@@ -2269,13 +2277,22 @@ class Connector:
                     self.sleep(interval - td)
             self.__main_thread_blocked = False
         else:
-            self.__subscription_job = ThreadJob(self.__distribute_dataframe, interval)
-            self.__subscription_job.start()
-            return self.__subscription_job
+            thread_job = ThreadJob(
+                lambda job: self.__distribute_dataframe(to=callback, job=job),
+                interval
+            )
+            self.__async_subscription_jobs.append(thread_job)
+            thread_job.start()
+            return thread_job
 
     def cancel_subscription(self):
         if self.__subscription_job is not None:
             self.__subscription_job.cancel()
+
+    def cancel_async_subscriptions(self):
+        for job in self.__async_subscription_jobs:
+            job.cancel()
+        self.__async_subscription_jobs.clear()
 
     def wait(self):
         '''
