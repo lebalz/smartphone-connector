@@ -2355,7 +2355,8 @@ class Connector:
                 callback(data)
             elif arg_count == 2:
                 callback(data, self)
-        except Exception:
+        except Exception as e:
+            logging.warn(e)
             pass
 
     def __update_current_data_frame(self, data: dict):
