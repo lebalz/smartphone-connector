@@ -2294,6 +2294,8 @@ class Connector:
             job.cancel()
         self.__async_subscription_jobs.clear()
 
+    stop_all_animations = cancel_async_subscriptions
+
     def wait(self):
         '''
         Wait until the connection with the server ends.
@@ -2305,6 +2307,8 @@ class Connector:
     def disconnect(self):
         if not self.sio.connected:
             return
+        self.cancel_async_subscriptions()
+        self.cancel_subscription()
         self.sleep(0.2)
         self.sio.disconnect()
 
