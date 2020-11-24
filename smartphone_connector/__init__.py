@@ -195,7 +195,7 @@ class Connector:
             self.on_sprite_clicked = function
 
     __on_notify_subscribers: SubscriptionCallbackSignature = noop
-    __subscription_job: CancleSubscription
+    __subscription_job: CancleSubscription = None
     __async_subscription_jobs: List[ThreadJob] = []
     __responses: List[InputResponseMsg] = []
     __alerts: List[AlertConfirmMsg] = []
@@ -2288,6 +2288,7 @@ class Connector:
     def cancel_subscription(self):
         if self.__subscription_job is not None:
             self.__subscription_job.cancel()
+            self.__subscription_job = None
 
     def cancel_async_subscriptions(self):
         for job in self.__async_subscription_jobs:
