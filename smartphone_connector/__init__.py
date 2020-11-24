@@ -65,44 +65,138 @@ class Connector:
 
     # callback functions
 
-    on_key: Union[Callable[[], None], Callable[[KeyMsg], None], Callable[[KeyMsg, Connector], None]] = noop
-    on_f1: Union[Callable[[], None], Callable[[KeyMsgF1], None], Callable[[KeyMsgF1, Connector], None]] = noop
-    on_f2: Union[Callable[[], None], Callable[[KeyMsgF2], None], Callable[[KeyMsgF2, Connector], None]] = noop
-    on_f3: Union[Callable[[], None], Callable[[KeyMsgF3], None], Callable[[KeyMsgF3, Connector], None]] = noop
-    on_f4: Union[Callable[[], None], Callable[[KeyMsgF4], None], Callable[[KeyMsgF4, Connector], None]] = noop
+    on_key: OnKeySignature = noop
+    on_f1: OnF1Signature = noop
+    on_f2: OnF2Signature = noop
+    on_f3: OnF3Signature = noop
+    on_f4: OnF4Signature = noop
+    on_pointer: OnPointerSignature = noop
+    on_acceleration: OnAccelerationSignature = noop
+    on_gyro: OnGyroSignature = noop
+    on_sensor: OnSensorSignature = noop
+    on_data: OnDataSignature = noop
+    on_broadcast_data: OnBroadcastDataSignature = noop
+    on_all_data: OnAll_dataSignature = noop
+    on_device: OnDeviceSignature = noop
+    on_client_device: OnClientDeviceSignature = noop
+    on_devices: OnDevicesSignature = noop
+    on_error: OnErrorSignature = noop
+    on_room_joined: OnRoomJoinedSignature = noop
+    on_room_left: OnRoomLeftSignature = noop
+    on_sprite_out: OnSpriteOutSignature = noop
+    on_sprite_removed: OnSpriteRemovedSignature = noop
+    on_sprite_collision: OnSpriteCollisionSignature = noop
+    on_overlap_in: OnOverlapInSignature = noop
+    on_overlap_out: OnOverlapOutSignature = noop
+    on_border_overlap: OnBorderOverlapSignature = noop
+    on_sprite_clicked: OnSpriteClickedSignature = noop
 
-    on_pointer: Union[Callable[[Union[ColorPointer, GridPointer]], None],
-                      Callable[[Union[ColorPointer, GridPointer], Connector], None]] = noop
-    on_acceleration: Union[Callable[[AccMsg], None], Callable[[AccMsg, Connector], None]] = noop
-    on_gyro: Union[Callable[[GyroMsg], None], Callable[[GyroMsg, Connector], None]] = noop
-    on_sensor: Union[Callable[[Union[GyroMsg, AccMsg]], None],
-                     Callable[[Union[GyroMsg, AccMsg], Connector], None]] = noop
+    @overload
+    def on(self, event: Literal['key'], function: OnKeySignature): ...
+    @overload
+    def on(self, event: Literal['f1'], function: OnF1Signature): ...
+    @overload
+    def on(self, event: Literal['f2'], function: OnF2Signature): ...
+    @overload
+    def on(self, event: Literal['f3'], function: OnF3Signature): ...
+    @overload
+    def on(self, event: Literal['f4'], function: OnF4Signature): ...
+    @overload
+    def on(self, event: Literal['pointer'], function: OnPointerSignature): ...
+    @overload
+    def on(self, event: Literal['acceleration'], function: OnAccelerationSignature): ...
+    @overload
+    def on(self, event: Literal['gyro'], function: OnGyroSignature): ...
+    @overload
+    def on(self, event: Literal['sensor'], function: OnSensorSignature): ...
+    @overload
+    def on(self, event: Literal['data'], function: OnDataSignature): ...
+    @overload
+    def on(self, event: Literal['broadcast_data'], function: OnBroadcastDataSignature): ...
+    @overload
+    def on(self, event: Literal['all_data'], function: OnAll_dataSignature): ...
+    @overload
+    def on(self, event: Literal['device'], function: OnDeviceSignature): ...
+    @overload
+    def on(self, event: Literal['client_device'], function: OnClientDeviceSignature): ...
+    @overload
+    def on(self, event: Literal['devices'], function: OnDevicesSignature): ...
+    @overload
+    def on(self, event: Literal['error'], function: OnErrorSignature): ...
+    @overload
+    def on(self, event: Literal['room_joined'], function: OnRoomJoinedSignature): ...
+    @overload
+    def on(self, event: Literal['room_left'], function: OnRoomLeftSignature): ...
+    @overload
+    def on(self, event: Literal['sprite_out'], function: OnSpriteOutSignature): ...
+    @overload
+    def on(self, event: Literal['sprite_removed'], function: OnSpriteRemovedSignature): ...
+    @overload
+    def on(self, event: Literal['sprite_collision'], function: OnSpriteCollisionSignature): ...
+    @overload
+    def on(self, event: Literal['overlap_in'], function: OnOverlapInSignature): ...
+    @overload
+    def on(self, event: Literal['overlap_out'], function: OnOverlapOutSignature): ...
+    @overload
+    def on(self, event: Literal['border_overlap'], function: OnBorderOverlapSignature): ...
+    @overload
+    def on(self, event: Literal['sprite_clicked'], function: OnSpriteClickedSignature): ...
 
-    on_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]] = noop
-    on_broadcast_data: Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]] = noop
-    on_all_data: Union[Callable[[List[DataMsg]], None], Callable[[List[DataMsg], Connector], None]] = noop
-    on_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]] = noop
-    on_client_device: Union[Callable[[Device], None], Callable[[Device, Connector], None]] = noop
-    on_devices: Union[Callable[[List[Device]], None], Callable[[List[Device], Connector], None]] = noop
-    on_error: Union[Callable[[ErrorMsg], None], Callable[[ErrorMsg, Connector], None]] = noop
-    on_room_joined: Union[Callable[[DeviceJoinedMsg], None], Callable[[DeviceJoinedMsg, Connector], None]] = noop
-    on_room_left: Union[Callable[[DeviceLeftMsg], None], Callable[[DeviceLeftMsg, Connector], None]] = noop
+    def on(self, event: Event, function: CallbackSignature):
+        if event == 'key':
+            self.on_key = function
+        elif event == 'f1':
+            self.on_f1 = function
+        elif event == 'f2':
+            self.on_f2 = function
+        elif event == 'f3':
+            self.on_f3 = function
+        elif event == 'f4':
+            self.on_f4 = function
+        elif event == 'pointer':
+            self.on_pointer = function
+        elif event == 'acceleration':
+            self.on_acceleration = function
+        elif event == 'gyro':
+            self.on_gyro = function
+        elif event == 'sensor':
+            self.on_sensor = function
+        elif event == 'data':
+            self.on_data = function
+        elif event == 'broadcast_data':
+            self.on_broadcast_data = function
+        elif event == 'all_data':
+            self.on_all_data = function
+        elif event == 'device':
+            self.on_device = function
+        elif event == 'client_device':
+            self.on_client_device = function
+        elif event == 'devices':
+            self.on_devices = function
+        elif event == 'error':
+            self.on_error = function
+        elif event == 'room_joined':
+            self.on_room_joined = function
+        elif event == 'room_left':
+            self.on_room_left = function
+        elif event == 'sprite_out':
+            self.on_sprite_out = function
+        elif event == 'sprite_removed':
+            self.on_sprite_removed = function
+        elif event == 'sprite_collision':
+            self.on_sprite_collision = function
+        elif event == 'overlap_in':
+            self.on_overlap_in = function
+        elif event == 'overlap_out':
+            self.on_overlap_out = function
+        elif event == 'border_overlap':
+            self.on_border_overlap = function
+        elif event == 'sprite_clicked':
+            self.on_sprite_clicked = function
 
-    on_sprite_out: Union[Callable[[SpriteOutMsg], None], Callable[[SpriteOutMsg, Connector], None]] = noop
-    on_sprite_removed: Union[Callable[[SpriteRemovedMsg], None], Callable[[SpriteRemovedMsg, Connector], None]] = noop
-    on_sprite_collision: Union[Callable[[SpriteCollisionMsg], None],
-                               Callable[[SpriteCollisionMsg, Connector], None]] = noop
-    on_overlap_in: Union[Callable[[SpriteCollisionMsg], None],
-                         Callable[[SpriteCollisionMsg, Connector], None]] = noop
-    on_overlap_out: Union[Callable[[SpriteCollisionMsg], None],
-                          Callable[[SpriteCollisionMsg, Connector], None]] = noop
-    on_border_overlap: Union[Callable[[BorderOverlapMsg], None], Callable[[BorderOverlapMsg, Connector], None]] = noop
-    on_sprite_clicked: Union[Callable[[SpriteClickedMsg], None], Callable[[SpriteClickedMsg, Connector], None]] = noop
-
-    __on_notify_subscribers: Union[Callable[[], None], Callable[[
-        DataFrame], None], Callable[[DataFrame, Connector], None]] = noop
-    __subscription_job: Union[ThreadJob, CancleSubscription]
-
+    __on_notify_subscribers: SubscriptionCallbackSignature = noop
+    __subscription_job: CancleSubscription
+    __async_subscription_jobs: List[ThreadJob] = []
     __responses: List[InputResponseMsg] = []
     __alerts: List[AlertConfirmMsg] = []
 
@@ -2438,3 +2532,43 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     phone = Connector('http://localhost:5000', 'FooBar')
     phone.disconnect()
+
+'''
+Callback Signatures
+
+they have to be at the end, otherwise Connector is unknown...
+'''
+OnKeySignature = Union[Callable[[], None], Callable[[KeyMsg], None], Callable[[KeyMsg, Connector], None]]
+OnF1Signature = Union[Callable[[], None], Callable[[KeyMsgF1], None], Callable[[KeyMsgF1, Connector], None]]
+OnF2Signature = Union[Callable[[], None], Callable[[KeyMsgF2], None], Callable[[KeyMsgF2, Connector], None]]
+OnF3Signature = Union[Callable[[], None], Callable[[KeyMsgF3], None], Callable[[KeyMsgF3, Connector], None]]
+OnF4Signature = Union[Callable[[], None], Callable[[KeyMsgF4], None], Callable[[KeyMsgF4, Connector], None]]
+OnPointerSignature = Union[Callable[[Union[ColorPointer, GridPointer]], None],
+                           Callable[[Union[ColorPointer, GridPointer], Connector], None]]
+OnAccelerationSignature = Union[Callable[[AccMsg], None], Callable[[AccMsg, Connector], None]]
+OnGyroSignature = Union[Callable[[GyroMsg], None], Callable[[GyroMsg, Connector], None]]
+OnSensorSignature = Union[Callable[[Union[GyroMsg, AccMsg]], None], Callable[[Union[GyroMsg, AccMsg], Connector], None]]
+OnDataSignature = Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]]
+OnBroadcastDataSignature = Union[Callable[[DataMsg], None], Callable[[DataMsg, Connector], None]]
+OnAll_dataSignature = Union[Callable[[List[DataMsg]], None], Callable[[List[DataMsg], Connector], None]]
+OnDeviceSignature = Union[Callable[[Device], None], Callable[[Device, Connector], None]]
+OnClientDeviceSignature = Union[Callable[[Device], None], Callable[[Device, Connector], None]]
+OnDevicesSignature = Union[Callable[[List[Device]], None], Callable[[List[Device], Connector], None]]
+OnErrorSignature = Union[Callable[[ErrorMsg], None], Callable[[ErrorMsg, Connector], None]]
+OnRoomJoinedSignature = Union[Callable[[DeviceJoinedMsg], None], Callable[[DeviceJoinedMsg, Connector], None]]
+OnRoomLeftSignature = Union[Callable[[DeviceLeftMsg], None], Callable[[DeviceLeftMsg, Connector], None]]
+OnSpriteOutSignature = Union[Callable[[SpriteOutMsg], None], Callable[[SpriteOutMsg, Connector], None]]
+OnSpriteRemovedSignature = Union[Callable[[SpriteRemovedMsg], None], Callable[[SpriteRemovedMsg, Connector], None]]
+OnSpriteCollisionSignature = Union[Callable[[SpriteCollisionMsg], None],
+                                   Callable[[SpriteCollisionMsg, Connector], None]]
+OnOverlapInSignature = Union[Callable[[SpriteCollisionMsg], None], Callable[[SpriteCollisionMsg, Connector], None]]
+OnOverlapOutSignature = Union[Callable[[SpriteCollisionMsg], None], Callable[[SpriteCollisionMsg, Connector], None]]
+OnBorderOverlapSignature = Union[Callable[[BorderOverlapMsg], None], Callable[[BorderOverlapMsg, Connector], None]]
+OnSpriteClickedSignature = Union[Callable[[SpriteClickedMsg], None], Callable[[SpriteClickedMsg, Connector], None]]
+SubscriptionCallbackSignature = Union[Callable[[], None],
+                                      Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]]
+Event = Literal['key', 'f1', 'f2', 'f3', 'f4', 'pointer', 'acceleration', 'gyro', 'sensor', 'data', 'broadcast_data', 'all_data', 'device', 'client_device',
+                'devices', 'error', 'room_joined', 'room_left', 'sprite_out', 'sprite_removed', 'sprite_collision', 'overlap_in', 'overlap_out', 'border_overlap', 'sprite_clicked']
+CallbackSignature = Union[
+    OnKeySignature, OnF1Signature, OnF2Signature, OnF3Signature, OnF4Signature, OnPointerSignature, OnAccelerationSignature, OnGyroSignature, OnSensorSignature, OnDataSignature, OnBroadcastDataSignature, OnAll_dataSignature, OnDeviceSignature, OnClientDeviceSignature, OnDevicesSignature, OnErrorSignature, OnRoomJoinedSignature, OnRoomLeftSignature, OnSpriteOutSignature, OnSpriteRemovedSignature, OnSpriteCollisionSignature, OnOverlapInSignature, OnOverlapOutSignature, OnBorderOverlapSignature, OnSpriteClickedSignature
+]
