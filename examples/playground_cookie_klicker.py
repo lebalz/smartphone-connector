@@ -32,7 +32,7 @@ device.add_sprite(
     form='rectanle',
     color=Colors.BROWN,
     clickable=True,
-    image='cookie'
+    image='firefox'
 )
 
 
@@ -47,7 +47,7 @@ def on_sprite_clicked():
         update(
             id='cookie',
             rotate=score * 5,
-            image='cookie'
+            image='firefox'
         )
         if score % 10 == 0:
             update(

@@ -812,8 +812,13 @@ class Connector:
             if not images.is_dir():
                 raise f'Image path {images} not found'
             for img in images.iterdir():
-                if img.suffix in ['.jpg', '.jpeg', '.png', '.svg']:
+                if img.suffix in ['.jpg', '.jpeg', '.png']:
                     raw = img.read_bytes()
+                    name = img.stem
+                    file_type = img.suffix
+                    raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
+                elif img.suffix in ['.svg']:
+                    raw = img.read_text('utf-8')
                     name = img.stem
                     file_type = img.suffix
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
@@ -844,6 +849,9 @@ class Connector:
                 collision_detection: Optional[bool] = None,
                 color: Optional[Union[Colors, str]] = None,
                 border_color: Optional[Union[Colors, str]] = None,
+                border_width: Optional[int] = None,
+                border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                               'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
                 direction: Optional[List[Number]] = None,
                 distance: Optional[Number] = None,
                 form: Optional[Union[SpriteForm, Literal['round', 'rectangle']]] = None,
@@ -945,6 +953,8 @@ class Connector:
                 'collision_detection': collision_detection,
                 'color': color,
                 'border_color': border_color,
+                'border_style': border_style,
+                'border_width': border_width,
                 'direction': direction,
                 'distance': distance,
                 'form': form,
@@ -998,6 +1008,9 @@ class Connector:
             radius: Optional[Number] = None,
             color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
+            border_width: Optional[int] = None,
+            border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                           'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
             id: Optional[str] = None,
             anchor: Optional[Tuple[Number, Number]] = None,
             clickable: Optional[bool] = None,
@@ -1088,6 +1101,8 @@ class Connector:
             time_span=time_span,
             rotate=rotate,
             border_color=border_color,
+            border_width=border_width,
+            border_style=border_style,
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
@@ -1104,6 +1119,9 @@ class Connector:
             width: Optional[Number] = None,
             color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
+            border_width: Optional[int] = None,
+            border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                           'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
             id: Optional[str] = None,
             anchor: Optional[Tuple[Number, Number]] = None,
             clickable: Optional[bool] = None,
@@ -1197,6 +1215,8 @@ class Connector:
             time_span=time_span,
             rotate=rotate,
             border_color=border_color,
+            border_width=border_width,
+            border_style=border_style,
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
@@ -1211,6 +1231,9 @@ class Connector:
             size: Number = None,
             color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
+        border_width: Optional[int] = None,
+        border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                       'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
             anchor: Optional[Tuple[Number, Number]] = None,
             id: Optional[str] = None,
             clickable: Optional[bool] = None,
@@ -1301,6 +1324,8 @@ class Connector:
             time_span=time_span,
             rotate=rotate,
             border_color=border_color,
+            border_width=border_width,
+            border_style=border_style,
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
@@ -1317,6 +1342,9 @@ class Connector:
             height: Number = None,
             color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
+        border_width: Optional[int] = None,
+        border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                       'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
             anchor: Optional[Tuple[Number, Number]] = None,
             id: Optional[str] = None,
             clickable: Optional[bool] = None,
@@ -1410,6 +1438,8 @@ class Connector:
             time_span=time_span,
             rotate=rotate,
             border_color=border_color,
+            border_width=border_width,
+            border_style=border_style,
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
@@ -1426,6 +1456,9 @@ class Connector:
             height: Optional[Number] = None,
             background_color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
+        border_width: Optional[int] = None,
+        border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                       'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
             font_color: Optional[str] = None,
             font_size: Optional[Number] = None,
             id: Optional[str] = None,
@@ -1468,6 +1501,8 @@ class Connector:
             time_span=time_span,
             rotate=rotate,
             border_color=border_color,
+            border_width=border_width,
+            border_style=border_style,
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
@@ -1483,6 +1518,9 @@ class Connector:
             collision_detection: Optional[bool] = None,
             color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
+        border_width: Optional[int] = None,
+        border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                       'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
             direction: Optional[List[Number]] = None,
             distance: Optional[Number] = None,
             form: Optional[Union[SpriteForm, Literal['round', 'rectangle']]] = None,
@@ -1570,6 +1608,8 @@ class Connector:
             'collision_detection': collision_detection,
             'color': color,
             'border_color': border_color,
+            'border_style': border_style,
+            'border_width': border_width,
             'direction': direction,
             'distance': distance,
             'form': form,
