@@ -28,6 +28,14 @@ def data_threshold(data_type: str) -> int:
     return DATA_MSG_THRESHOLD
 
 
+DEFAULT_PLAYGROUND_CONFIG = DictX({
+        'width': 100,
+        'height': 100,
+        'shift_x': 0,
+        'shift_y': 0
+    })
+
+
 class Connector:
     __initial_all_data_received = False
     __last_time_stamp: float = -1
@@ -53,12 +61,7 @@ class Connector:
         'broadcast': False,
         'base_color': (255, 0, 0)
     })
-    __playground_config: PlaygroundConfig = DictX({
-        'width': 100,
-        'height': 100,
-        'shift_x': 0,
-        'shift_y': 0
-    })
+    __playground_config: PlaygroundConfig = deepcopy(DEFAULT_PLAYGROUND_CONFIG)
 
     __sprites = []
     __lines = []
@@ -847,6 +850,36 @@ class Connector:
     def key(self) -> KeyMsg:
         return self.latest_key(device_id=self.device_id)
 
+    def add_svg_to_playground(self, name: str, raw_svg: str, **delivery_opts):
+        '''
+        Parameters
+        ----------
+        name : str
+            with this name the svg can be referred later
+
+        raw_svg : str
+            the svg content. This should contain a root element containing a viewBox and xmlns attributes
+
+        Example
+        -------
+        A simple triangle
+        ```svg
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="0,0 100,0 50,100" style="fill:lime;stroke:purple;stroke-width:1"/>
+        </svg>
+        ```
+        '''
+        pkg = {'name': name, 'image': raw_svg, 'type': 'svg'}
+        playground_config = {'images': [pkg]}
+        if 'images' not in self.__playground_config:
+            self.__playground_config['images'] = []
+        self.__playground_config['images'].append(pkg)
+        config = {
+            'type': DataType.PLAYGROUND_CONFIG,
+            'config': playground_config
+        }
+        self.emit(SocketEvents.NEW_DATA, config, **delivery_opts)
+
     def configure_playground(self,
                              width: Optional[Number] = None,
                              height: Optional[Number] = None,
@@ -953,11 +986,15 @@ class Connector:
                 'images': raw_images,
                 'audio_tracks': raw_tracks
             })
-        self.__playground_config = playground_config
         config = {
             'type': DataType.PLAYGROUND_CONFIG,
             'config': playground_config
         }
+        if 'images' in self.__playground_config:
+            playground_config['images'] = [*raw_images, *self.__playground_config['images']]
+        if 'audio_tracks' in self.__playground_config:
+            playground_config['audio_tracks'] = [*raw_images, *self.__playground_config['audio_tracks']]
+        self.__playground_config.update(playground_config)
         self.emit(SocketEvents.NEW_DATA, config, **delivery_opts)
 
     @contextmanager
@@ -1605,9 +1642,9 @@ class Connector:
             height: Optional[Number] = None,
             background_color: Optional[Union[Colors, str]] = None,
             border_color: Optional[Union[Colors, str]] = None,
-        border_width: Optional[int] = None,
-        border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
-                                       'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
+            border_width: Optional[int] = None,
+            border_style: Optional[Literal['dotted', 'dashed', 'solid', 'double',
+                                           'groove', 'ridge', 'inset', 'outset', 'none', 'hidden']] = None,
             font_color: Optional[str] = None,
             font_size: Optional[Number] = None,
             id: Optional[str] = None,
@@ -1624,7 +1661,7 @@ class Connector:
             z_index: Optional[int] = None,
             **delivery_opts) -> str:
         config = DictX({'width': 100, 'height': 100})
-        config.update(without_none(self.__playground_config))
+        config.update(without_none(deepcopy(self.__playground_config)))
         if height is None:
             height = config.height / 20
         text_len = len(text)
@@ -1795,6 +1832,7 @@ class Connector:
 
     def clear_playground(self, **delivery_opts):
         self.__sprites = []
+        self.__playground_config = deepcopy(DEFAULT_PLAYGROUND_CONFIG)
         self.emit(
             SocketEvents.NEW_DATA,
             {
@@ -2683,7 +2721,8 @@ class Connector:
                 data['object'] = data['sprite'] if 'sprite' in data else None
                 self.__callback('on_sprite_clicked', data)
             elif data['type'] == DataType.PLAYGROUND_CONFIG:
-                self.__playground_config = DictX(data['config'])
+                self.__playground_config = deepcopy(DEFAULT_PLAYGROUND_CONFIG)
+                self.__playground_config.update(data['config'])
 
         if 'broadcast' in data and data['broadcast'] and self.on_broadcast_data is not None:
             self.__callback('on_broadcast_data', data)
