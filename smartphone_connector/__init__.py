@@ -2429,11 +2429,11 @@ class Connector:
         elif arg_count == 2:
             clbk(data, self)
 
-    def animate(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, count: int = float('inf')) -> Union[ThreadJob, CancleSubscription]:
-        return self.subscribe_async(callback=callback, interval=interval, iteration_count=count)
+    def animate(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, iteration_count: int = float('inf')) -> Union[ThreadJob, CancleSubscription]:
+        return self.subscribe_async(callback=callback, interval=interval, iteration_count=iteration_count)
 
-    def subscribe_async(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, count: int = float('inf')) -> Union[ThreadJob, CancleSubscription]:
-        return self.subscribe(callback=callback, interval=interval, blocking=False, iteration_count=count)
+    def subscribe_async(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, iteration_count: int = float('inf')) -> Union[ThreadJob, CancleSubscription]:
+        return self.subscribe(callback=callback, interval=interval, blocking=False, iteration_count=iteration_count)
 
     def set_update_interval(self, interval: float):
         return self.subscribe(interval=interval, blocking=True)
