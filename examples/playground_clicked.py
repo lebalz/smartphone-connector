@@ -54,4 +54,5 @@ device.on('object_clicked', say_hi)
 device.on('object_clicked', say_hi2)
 device.on('object_clicked', update_pos)
 device.on('object_clicked', update_color)
-device.subscribe_async(update_color, 0.5)
+device.on_sprite_clicked = update_color
+device.subscribe_async(update_color, 1.5)
