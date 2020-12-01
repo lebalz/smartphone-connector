@@ -91,111 +91,206 @@ class Connector:
     on_border_overlap: OnBorderOverlapSignature = noop
     on_sprite_clicked: OnSpriteClickedSignature = noop
 
+    _on_key: List[OnKeySignature] = []
+    _on_f1: List[OnF1Signature] = []
+    _on_f2: List[OnF2Signature] = []
+    _on_f3: List[OnF3Signature] = []
+    _on_f4: List[OnF4Signature] = []
+    _on_pointer: List[OnPointerSignature] = []
+    _on_acceleration: List[OnAccelerationSignature] = []
+    _on_gyro: List[OnGyroSignature] = []
+    _on_sensor: List[OnSensorSignature] = []
+    _on_data: List[OnDataSignature] = []
+    _on_broadcast_data: List[OnBroadcastDataSignature] = []
+    _on_all_data: List[OnAll_dataSignature] = []
+    _on_device: List[OnDeviceSignature] = []
+    _on_client_device: List[OnClientDeviceSignature] = []
+    _on_devices: List[OnDevicesSignature] = []
+    _on_error: List[OnErrorSignature] = []
+    _on_room_joined: List[OnRoomJoinedSignature] = []
+    _on_room_left: List[OnRoomLeftSignature] = []
+    _on_sprite_out: List[OnSpriteOutSignature] = []
+    _on_sprite_removed: List[OnSpriteRemovedSignature] = []
+    _on_sprite_collision: List[OnSpriteCollisionSignature] = []
+    _on_overlap_in: List[OnOverlapInSignature] = []
+    _on_overlap_out: List[OnOverlapOutSignature] = []
+    _on_border_overlap: List[OnBorderOverlapSignature] = []
+    _on_sprite_clicked: List[OnSpriteClickedSignature] = []
+
     @overload
-    def on(self, event: Literal['key'], function: OnKeySignature): ...
+    def on(self, event: Literal['key'], function: OnKeySignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['f1'], function: OnF1Signature): ...
+    def on(self, event: Literal['f1'], function: OnF1Signature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['f2'], function: OnF2Signature): ...
+    def on(self, event: Literal['f2'], function: OnF2Signature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['f3'], function: OnF3Signature): ...
+    def on(self, event: Literal['f3'], function: OnF3Signature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['f4'], function: OnF4Signature): ...
+    def on(self, event: Literal['f4'], function: OnF4Signature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['pointer'], function: OnPointerSignature): ...
+    def on(self, event: Literal['pointer'], function: OnPointerSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['acceleration', 'acc'], function: OnAccelerationSignature): ...
+    def on(self, event: Literal['acceleration', 'acc'], function: OnAccelerationSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['gyro'], function: OnGyroSignature): ...
+    def on(self, event: Literal['gyro'], function: OnGyroSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['sensor'], function: OnSensorSignature): ...
+    def on(self, event: Literal['sensor'], function: OnSensorSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['data'], function: OnDataSignature): ...
+    def on(self, event: Literal['data'], function: OnDataSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['broadcast_data'], function: OnBroadcastDataSignature): ...
+    def on(self, event: Literal['broadcast_data'], function: OnBroadcastDataSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['all_data'], function: OnAll_dataSignature): ...
+    def on(self, event: Literal['all_data'], function: OnAll_dataSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['device'], function: OnDeviceSignature): ...
+    def on(self, event: Literal['device'], function: OnDeviceSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['client_device'], function: OnClientDeviceSignature): ...
+    def on(self, event: Literal['client_device'], function: OnClientDeviceSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['devices'], function: OnDevicesSignature): ...
+    def on(self, event: Literal['devices'], function: OnDevicesSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['error'], function: OnErrorSignature): ...
+    def on(self, event: Literal['error'], function: OnErrorSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['room_joined'], function: OnRoomJoinedSignature): ...
+    def on(self, event: Literal['room_joined'], function: OnRoomJoinedSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['room_left'], function: OnRoomLeftSignature): ...
+    def on(self, event: Literal['room_left'], function: OnRoomLeftSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['sprite_out', 'object_out'], function: OnSpriteOutSignature): ...
+    def on(self, event: Literal['sprite_out', 'object_out'], function: OnSpriteOutSignature, replace: bool = False): ...
+
     @overload
-    def on(self, event: Literal['sprite_removed', 'object_removed'], function: OnSpriteRemovedSignature): ...
+    def on(self, event: Literal['sprite_removed', 'object_removed'],
+           function: OnSpriteRemovedSignature, replace: bool = False): ...
 
     @overload
     def on(self, event: Literal['sprite_collision', 'object_collision',
-                                'collision'], function: OnSpriteCollisionSignature): ...
+                                'collision'], function: OnSpriteCollisionSignature, replace: bool = False): ...
 
     @overload
-    def on(self, event: Literal['overlap_in'], function: OnOverlapInSignature): ...
+    def on(self, event: Literal['overlap_in'], function: OnOverlapInSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['overlap_out'], function: OnOverlapOutSignature): ...
+    def on(self, event: Literal['overlap_out'], function: OnOverlapOutSignature, replace: bool = False): ...
     @overload
-    def on(self, event: Literal['border_overlap'], function: OnBorderOverlapSignature): ...
-    @overload
-    def on(self, event: Literal['sprite_clicked', 'object_clicked'], function: OnSpriteClickedSignature): ...
+    def on(self, event: Literal['border_overlap'], function: OnBorderOverlapSignature, replace: bool = False): ...
 
-    def on(self, event: Union[Event, EventAliases], function: CallbackSignature):
+    @overload
+    def on(self, event: Literal['sprite_clicked', 'object_clicked'],
+           function: OnSpriteClickedSignature, replace: bool = False): ...
+
+    def on(self, event: Union[Event, EventAliases], function: CallbackSignature, replace: bool = False):
+        funcs = []
         if event == 'key':
-            self.on_key = function
+            funcs = self._on_key
         elif event == 'f1':
-            self.on_f1 = function
+            funcs = self._on_f1
         elif event == 'f2':
-            self.on_f2 = function
+            funcs = self._on_f2
         elif event == 'f3':
-            self.on_f3 = function
+            funcs = self._on_f3
         elif event == 'f4':
-            self.on_f4 = function
+            funcs = self._on_f4
         elif event == 'pointer':
-            self.on_pointer = function
+            funcs = self._on_pointer
         elif event == 'acceleration' or event == 'acc':
-            self.on_acceleration = function
+            funcs = self._on_acceleration
         elif event == 'gyro':
-            self.on_gyro = function
+            funcs = self._on_gyro
         elif event == 'sensor':
-            self.on_sensor = function
+            funcs = self._on_sensor
         elif event == 'data':
-            self.on_data = function
+            funcs = self._on_data
         elif event == 'broadcast_data':
-            self.on_broadcast_data = function
+            funcs = self._on_broadcast_data
         elif event == 'all_data':
-            self.on_all_data = function
+            funcs = self._on_all_data
         elif event == 'device':
-            self.on_device = function
+            funcs = self._on_device
         elif event == 'client_device':
-            self.on_client_device = function
+            funcs = self._on_client_device
         elif event == 'devices':
-            self.on_devices = function
+            funcs = self._on_devices
         elif event == 'error':
-            self.on_error = function
+            funcs = self._on_error
         elif event == 'room_joined':
-            self.on_room_joined = function
+            funcs = self._on_room_joined
         elif event == 'room_left':
-            self.on_room_left = function
+            funcs = self._on_room_left
         elif event == 'sprite_out' or event == 'object_out':
-            self.on_sprite_out = function
+            funcs = self._on_sprite_out
         elif event == 'sprite_removed' or event == 'object_removed':
-            self.on_sprite_removed = function
+            funcs = self._on_sprite_removed
         elif event == 'collision' or event == 'sprite_collision' or event == 'object_collision':
-            self.on_sprite_collision = function
+            funcs = self._on_sprite_collision
         elif event == 'overlap_in':
-            self.on_overlap_in = function
+            funcs = self._on_overlap_in
         elif event == 'overlap_out':
-            self.on_overlap_out = function
+            funcs = self._on_overlap_out
         elif event == 'border_overlap':
-            self.on_border_overlap = function
+            funcs = self._on_border_overlap
         elif event == 'sprite_clicked' or event == 'object_clicked':
-            self.on_sprite_clicked = function
+            funcs = self._on_sprite_clicked
+
+        if replace:
+            funcs.clear()
+        funcs.append(function)
+
+    def remove(self, event: Union[Event, EventAliases], function: Optional[CallbackSignature] = None):
+        '''removes an assigned "on" callback functions. When no function is provided, all callbacks are removed
+        '''
+        funcs = []
+        if event == 'key':
+            funcs = self._on_key
+        elif event == 'f1':
+            funcs = self._on_f1
+        elif event == 'f2':
+            funcs = self._on_f2
+        elif event == 'f3':
+            funcs = self._on_f3
+        elif event == 'f4':
+            funcs = self._on_f4
+        elif event == 'pointer':
+            funcs = self._on_pointer
+        elif event == 'acceleration' or event == 'acc':
+            funcs = self._on_acceleration
+        elif event == 'gyro':
+            funcs = self._on_gyro
+        elif event == 'sensor':
+            funcs = self._on_sensor
+        elif event == 'data':
+            funcs = self._on_data
+        elif event == 'broadcast_data':
+            funcs = self._on_broadcast_data
+        elif event == 'all_data':
+            funcs = self._on_all_data
+        elif event == 'device':
+            funcs = self._on_device
+        elif event == 'client_device':
+            funcs = self._on_client_device
+        elif event == 'devices':
+            funcs = self._on_devices
+        elif event == 'error':
+            funcs = self._on_error
+        elif event == 'room_joined':
+            funcs = self._on_room_joined
+        elif event == 'room_left':
+            funcs = self._on_room_left
+        elif event == 'sprite_out' or event == 'object_out':
+            funcs = self._on_sprite_out
+        elif event == 'sprite_removed' or event == 'object_removed':
+            funcs = self._on_sprite_removed
+        elif event == 'collision' or event == 'sprite_collision' or event == 'object_collision':
+            funcs = self._on_sprite_collision
+        elif event == 'overlap_in':
+            funcs = self._on_overlap_in
+        elif event == 'overlap_out':
+            funcs = self._on_overlap_out
+        elif event == 'border_overlap':
+            funcs = self._on_border_overlap
+        elif event == 'sprite_clicked' or event == 'object_clicked':
+            funcs = self._on_sprite_clicked
+
+        if function is None:
+            funcs.clear()
+        else:
+            funcs.remove(function)
 
     __on_notify_subscribers: SubscriptionCallbackSignature = noop
     __subscription_job: CancleSubscription = None
@@ -2280,11 +2375,11 @@ class Connector:
         elif arg_count == 2:
             clbk(data, self)
 
-    def animate(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05) -> Union[ThreadJob, CancleSubscription]:
-        return self.subscribe_async(callback=callback, interval=interval)
+    def animate(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, count: int = float('inf')) -> Union[ThreadJob, CancleSubscription]:
+        return self.subscribe_async(callback=callback, interval=interval, iteration_count=count)
 
-    def subscribe_async(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05) -> Union[ThreadJob, CancleSubscription]:
-        return self.subscribe(callback=callback, interval=interval, blocking=False)
+    def subscribe_async(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, count: int = float('inf')) -> Union[ThreadJob, CancleSubscription]:
+        return self.subscribe(callback=callback, interval=interval, blocking=False, iteration_count=count)
 
     def set_update_interval(self, interval: float):
         return self.subscribe(interval=interval, blocking=True)
@@ -2294,16 +2389,20 @@ class Connector:
 
     @ overload
     def subscribe(self, callback: SubscriptionCallbackSignature = None,
-                  interval: float = 0.05, blocking=True) -> Union[ThreadJob, CancleSubscription]:
+                  interval: float = 0.05, blocking=True, iteration_count: int = float('inf')) -> Union[ThreadJob, CancleSubscription]:
         ...
 
     @ overload
-    def subscribe(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking=False) -> None:
+    def subscribe(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking=False, iteration_count: int = float('inf')) -> None:
         ...
 
-    def subscribe(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking: bool = True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
+    def subscribe(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking: bool = True, iteration_count: int = float('inf')) -> Union[None, Union[ThreadJob, CancleSubscription]]:
         '''
         blocked : bool wheter the main thread gets blocked or not.
+
+        iteration_count : int
+            how often the callback should be called (it is called at least once).
+            Has only effect on async calls
         '''
         if blocking:
             self.__on_notify_subscribers = cast(Callable, callback)
@@ -2323,7 +2422,8 @@ class Connector:
         else:
             thread_job = ThreadJob(
                 lambda job: self.__distribute_dataframe(to=callback, job=job),
-                interval
+                interval,
+                iterations=iteration_count
             )
             self.__async_subscription_jobs.append(thread_job)
             thread_job.start()
@@ -2385,19 +2485,21 @@ class Connector:
 
     def __callback(self, name, data):
         callback = getattr(self, name)
-        if callback is None:
-            return
-        try:
-            arg_count = len(signature(callback).parameters)
-            if arg_count == 0:
-                callback()
-            elif arg_count == 1:
-                callback(data)
-            elif arg_count == 2:
-                callback(data, self)
-        except Exception as e:
-            logging.warn(e)
-            pass
+        callbacks = getattr(self, f'_{name}')
+        for clbk in [callback, *callbacks]:
+            if clbk is None:
+                continue
+            try:
+                arg_count = len(signature(clbk).parameters)
+                if arg_count == 0:
+                    clbk()
+                elif arg_count == 1:
+                    clbk(data)
+                elif arg_count == 2:
+                    clbk(data, self)
+            except Exception as e:
+                logging.warn(e)
+                pass
 
     def __update_current_data_frame(self, data: dict):
         if data['device_id'] not in self.__current_data_frame:
