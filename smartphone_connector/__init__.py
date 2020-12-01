@@ -856,6 +856,7 @@ class Connector:
                              shift_y: Optional[Number] = None,
                              color: Optional[Union[Colors, str]] = None,
                              images: Optional[Union[Path, str]] = None,
+                             audio_tracks: Optional[Union[Path, str]] = None,
                              image: Optional[str] = None,
                              **delivery_opts):
         '''
@@ -917,6 +918,30 @@ class Connector:
                     name = img.stem
                     file_type = img.suffix
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
+        raw_tracks = []
+        if audio_tracks is not None:
+            sound_tracks = Path(audio_tracks)
+            if sound_tracks.is_absolute():
+                pass
+            else:
+                rpath = Path.cwd().rglob(str(audio_tracks))
+                try:
+                    while True:
+                        new_p = next(rpath)
+                        if new_p.is_dir():
+                            audio_tracks = new_p
+                            break
+                except:
+                    pass
+
+            if not audio_tracks.is_dir():
+                raise f'audio_tracks path {audio_tracks} not found'
+            for track in audio_tracks.iterdir():
+                if track.suffix in ['.mp3', '.wav', '.ogg']:
+                    raw = track.read_bytes()
+                    name = track.stem
+                    file_type = track.suffix
+                    raw_tracks.append({'name': name, 'audio': raw, 'type': file_type[1:]})
 
         playground_config = without_none({
                 'width': width,
@@ -925,7 +950,8 @@ class Connector:
                 'shift_y': shift_y if shift_y is not None else 0,
                 'color': color,
                 'image': image,
-                'images': raw_images
+                'images': raw_images,
+                'audio_tracks': raw_tracks
             })
         self.__playground_config = playground_config
         config = {
@@ -1095,6 +1121,34 @@ class Connector:
     update_sprites = add_sprites
     add_objects = add_sprites
     update_objects = add_sprites
+
+    def play_sound(self, name: str, id: Optional[str] = None, repeat: bool = False, volume: float = 0.8, **delivery_opts):
+        '''
+        volume : float
+            0 -> no sound, 1 -> full volume
+        '''
+        self.emit(
+            SocketEvents.NEW_DATA,
+            without_none({
+                'type': DataType.START_AUDIO,
+                'name': name,
+                'repeat': repeat,
+                'volume': volume,
+                'id': id
+            }),
+            **delivery_opts
+        )
+
+    def stop_sound(self, name: Optional[str] = None, id: Optional[str] = None, **delivery_opts):
+        self.emit(
+            SocketEvents.NEW_DATA,
+            without_none({
+                'type': DataType.STOP_AUDIO,
+                'name': name,
+                'id': id
+            }),
+            **delivery_opts
+        )
 
     def add_circle(
             self,
@@ -2452,6 +2506,7 @@ class Connector:
     def disconnect(self):
         if not self.sio.connected:
             return
+        self.stop_sound()
         self.cancel_async_subscriptions()
         self.cancel_subscription()
         self.sleep(0.2)

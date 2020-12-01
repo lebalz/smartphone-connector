@@ -64,6 +64,8 @@ class DataType(str, Enum):
     LINE = "line"
     LINES = "lines"
     UNKNOWN = "unknown"
+    START_AUDIO = "start_audio"
+    STOP_AUDIO = "stop_audio"
 
 
 class ClientDataMsgInputType(str, Enum):
@@ -547,6 +549,9 @@ class SpriteCollisionMsg(SpriteCollision):
     device_nr: int
 
 
+ObjectCollisionMsg = SpriteCollisionMsg
+
+
 class BorderOverlap(DataMsg):
     type: Literal['border_overlap']
     border: Literal['left', 'right', 'top', 'bottom']
@@ -580,6 +585,9 @@ class SpriteClickedMsg(SpriteClicked):
     device_nr: int
 
 
+ObjectClickedMsg = SpriteClickedMsg
+
+
 class SpriteOut(DataMsg):
     type: Literal['sprite_out']
     id: str
@@ -593,6 +601,9 @@ class SpriteOutMsg(SpriteOut):
     device_nr: int
 
 
+ObjectOutMsg = SpriteOutMsg
+
+
 class SpriteRemoved(DataMsg):
     type: Literal['sprite_removed']
     id: str
@@ -604,6 +615,9 @@ class SpriteRemovedMsg(SpriteRemoved):
     time_stamp: float
     device_id: str
     device_nr: int
+
+
+ObjectRemovedMsg = SpriteRemovedMsg
 
 
 class Unknown(DictX):
