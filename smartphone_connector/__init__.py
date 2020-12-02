@@ -941,7 +941,7 @@ class Connector:
             if not images.is_dir():
                 raise f'Image path {images} not found'
             for img in images.iterdir():
-                if img.suffix in ['.jpg', '.jpeg', '.png']:
+                if img.suffix in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']:
                     raw = img.read_bytes()
                     name = img.stem
                     file_type = img.suffix

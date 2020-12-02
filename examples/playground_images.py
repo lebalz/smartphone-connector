@@ -12,7 +12,7 @@ device.configure_playground(
     height=60,
     images='images',
     color=Colors.ALICEBLUE,
-    image='explosion'
+    image='waterfall'
 )
 device.add_sprite(
     id='cookie',

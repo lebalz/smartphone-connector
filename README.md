@@ -79,3 +79,12 @@ rm -rf build/ dist/ smartphone_connector.egg-info/ && \
 python3 setup.py sdist bdist_wheel && \
 python3 -m twine upload dist/*
 ```
+
+## Changelog
+
+- 0.0.100: support image formats `.gif`, `.bmp`, `.webp`
+- 0.0.99: introduce method `add_svg_to_playground(name: str, raw_svg: str)` to upload plain svg source text
+- 0.0.98 fix iteration count
+- 0.0.97: introduce sound - provide a `audio_tracks` source directory in `configure_playground` and start/stop sounds with `play_sound(name: str, id: Optional[str])` / `stop_sound(name: Optional[str], id: Optional[str])`
+- 0.0.96 register multiple callback functions with `on(event, clbk)`
+- 0.0.95 support `border_style` and `border_width` for sprites
