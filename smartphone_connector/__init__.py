@@ -1028,6 +1028,7 @@ class Connector:
                 time_span: Optional[Number] = None,
                 width: Optional[Number] = None,
                 rotate: Optional[Number] = None,
+                movements: Optional[SpriteAutoMovement] = None,
                 z_index: Optional[int] = None,
                 **rest) -> str:
             '''
@@ -1129,6 +1130,7 @@ class Connector:
                 'rotate': rotate,
                 'time_span': time_span,
                 'z_index': z_index,
+                'movements': movements,
                 'width': width
             }
             sprites.append(without_none(s))
@@ -1212,6 +1214,7 @@ class Connector:
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
             z_index: Optional[int] = None,
+            movements: Optional[SpriteAutoMovement] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1292,6 +1295,7 @@ class Connector:
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
+            movements=movements,
             **delivery_opts
         )
 
@@ -1323,6 +1327,7 @@ class Connector:
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
             z_index: Optional[int] = None,
+            movements: Optional[SpriteAutoMovement] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1406,6 +1411,7 @@ class Connector:
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
+            movements=movements,
             **delivery_opts
         )
     update_ellips = add_ellipse
@@ -1435,6 +1441,7 @@ class Connector:
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
             z_index: Optional[int] = None,
+            movements: Optional[SpriteAutoMovement] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1515,6 +1522,7 @@ class Connector:
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
+            movements=movements,
             **delivery_opts
         )
 
@@ -1546,6 +1554,7 @@ class Connector:
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
             z_index: Optional[int] = None,
+            movements: Optional[SpriteAutoMovement] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1628,6 +1637,7 @@ class Connector:
             border_style=border_style,
             font_color=font_color,
             font_size=font_size,
+            movements=movements,
             z_index=z_index,
             **delivery_opts
         )
@@ -1659,6 +1669,7 @@ class Connector:
             time_span: Optional[Number] = None,
             rotate: Optional[Number] = None,
             z_index: Optional[int] = None,
+            movements: Optional[SpriteAutoMovement] = None,
             **delivery_opts) -> str:
         config = DictX({'width': 100, 'height': 100})
         config.update(without_none(deepcopy(self.__playground_config)))
@@ -1692,6 +1703,7 @@ class Connector:
             font_color=font_color,
             font_size=font_size,
             z_index=z_index,
+            movements=movements,
             **delivery_opts
         )
 
@@ -1724,6 +1736,7 @@ class Connector:
             width: Optional[Number] = None,
             rotate: Optional[Number] = None,
             z_index: Optional[int] = None,
+            movements: Optional[SpriteAutoMovement] = None,
             **delivery_opts) -> str:
         '''
         Optional
@@ -1812,6 +1825,7 @@ class Connector:
             'image': image,
             'time_span': time_span,
             'width': width,
+            'movements': movements,
             'z_index': z_index
         }
         sprite = without_none(sprite)

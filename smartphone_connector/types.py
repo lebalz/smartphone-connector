@@ -444,6 +444,20 @@ class PlaygroundConfigMsg(PlaygroundConfig):
     device_nr: int
 
 
+class AutoMovement(DictX):
+    direction: Tuple[Number, Number]
+    speed: Number
+    distance: Optional[Number]
+    time_span: Optional[Number]
+
+
+class SpriteAutoMovement(DictX):
+    movements: List[AutoMovement]
+    cycle: Optional[bool]
+    repeat: Optional[Number]
+    exit_on_done: Optional[bool]
+
+
 class SpriteForm(str, Enum):
     RECTANGLE = "rectangle"
     ROUND = "round"
