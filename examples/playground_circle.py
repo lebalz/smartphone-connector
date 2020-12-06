@@ -34,4 +34,4 @@ while True:
         color=Colors.next()
     )
     angle += 0.4
-    device.sleep(0.5)
+    device.sleep(0.05)

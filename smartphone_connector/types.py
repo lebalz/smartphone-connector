@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import overload, Union, Literal, Optional, Tuple, List, Callable
+from typing import overload, Union, Literal, Optional, Tuple, List
 from dataclasses import dataclass
 from .dictx import DictX
 from .timings import ThreadJob
@@ -66,6 +66,7 @@ class DataType(str, Enum):
     UNKNOWN = "unknown"
     START_AUDIO = "start_audio"
     STOP_AUDIO = "stop_audio"
+    AUTO_MOVEMENT_POS = "auto_movement_pos"
 
 
 class ClientDataMsgInputType(str, Enum):
@@ -444,11 +445,22 @@ class PlaygroundConfigMsg(PlaygroundConfig):
     device_nr: int
 
 
-class AutoMovement(DictX):
+class RelativeAutoMovement(DictX):
+    movement: Literal['relative']
     direction: Tuple[Number, Number]
     speed: Number
     distance: Optional[Number]
     time_span: Optional[Number]
+
+
+class AbsoluteAutoMovement(DictX):
+    movement: Literal['absolute']
+    to: Tuple[Number, Number]
+    speed: Optional[Number]
+    time: Optional[Number]
+
+
+AutoMovement = Union[RelativeAutoMovement, AbsoluteAutoMovement]
 
 
 class SpriteAutoMovement(DictX):
@@ -456,6 +468,23 @@ class SpriteAutoMovement(DictX):
     cycle: Optional[bool]
     repeat: Optional[Number]
     exit_on_done: Optional[bool]
+    cancel_previous: Optional[bool]
+
+
+class AutoMovementPos(DictX):
+    id: str
+    movement_id: str
+    x: Number
+    y: Number
+
+
+class AutoMovementPosMsg(AutoMovementPos):
+    type: Literal['auto_movement_pos']
+    time_stamp: float
+    device_id: str
+    device_nr: int
+    sprite: Optional[Sprite]
+    object: Optional[Sprite]
 
 
 class SpriteForm(str, Enum):

@@ -93,6 +93,7 @@ class Connector:
     on_overlap_out: OnOverlapOutSignature = noop
     on_border_overlap: OnBorderOverlapSignature = noop
     on_sprite_clicked: OnSpriteClickedSignature = noop
+    on_auto_movement_pos: OnAutoMovementPosSignature = noop
 
     _on_key: List[OnKeySignature] = []
     _on_f1: List[OnF1Signature] = []
@@ -119,6 +120,7 @@ class Connector:
     _on_overlap_out: List[OnOverlapOutSignature] = []
     _on_border_overlap: List[OnBorderOverlapSignature] = []
     _on_sprite_clicked: List[OnSpriteClickedSignature] = []
+    _on_auto_movement_pos: List[OnAutoMovementPosSignature] = []
 
     @overload
     def on(self, event: Literal['key'], function: OnKeySignature, replace: bool = False): ...
@@ -173,6 +175,8 @@ class Connector:
     def on(self, event: Literal['overlap_out'], function: OnOverlapOutSignature, replace: bool = False): ...
     @overload
     def on(self, event: Literal['border_overlap'], function: OnBorderOverlapSignature, replace: bool = False): ...
+    @overload
+    def on(self, event: Literal['auto_movement_pos'], function: OnAutoMovementPosSignature, replace: bool = False): ...
 
     @overload
     def on(self, event: Literal['sprite_clicked', 'object_clicked'],
@@ -230,6 +234,8 @@ class Connector:
             funcs = self._on_border_overlap
         elif event == 'sprite_clicked' or event == 'object_clicked':
             funcs = self._on_sprite_clicked
+        elif event == 'auto_movement_pos':
+            funcs = self._on_auto_movement_pos
 
         if replace:
             funcs.clear()
@@ -289,6 +295,8 @@ class Connector:
             funcs = self._on_border_overlap
         elif event == 'sprite_clicked' or event == 'object_clicked':
             funcs = self._on_sprite_clicked
+        elif event == 'auto_movement_pos':
+            funcs = self._on_auto_movement_pos
 
         if function is None:
             funcs.clear()
@@ -1160,6 +1168,38 @@ class Connector:
     update_sprites = add_sprites
     add_objects = add_sprites
     update_objects = add_sprites
+
+    @overload
+    def move_to(self, id: str, pos: Tuple[Number, Number], speed: Number,
+                via: Optional[Tuple[Number, Number]] = None): ...
+
+    @overload
+    def move_to(self, id: str, pos: Tuple[Number, Number], time: Number,
+                via: Optional[Tuple[Number, Number]] = None): ...
+
+    def move_to(self, id: str, pos: Tuple[Number, Number], speed: Optional[Number] = None, time: Optional[Number] = None, via: Optional[Tuple[Number, Number]] = None, cancel_previous: Optional[bool] = True):
+        movements = []
+        if via is not None:
+            movements.append(without_none({
+                'movement': 'absolute',
+                'to': via,
+                'speed': speed,
+                'time': time / 2 if time is not None else None
+            }))
+
+        movements.append(without_none({
+            'movement': 'absolute',
+            'to': pos,
+            'speed': speed,
+            'time': time / 2 if time is not None and via is not None else None
+        }))
+        self.update_sprite(
+            id=id,
+            movements={
+                'movements': movements,
+                'cancel_previous': cancel_previous
+            }
+        )
 
     def play_sound(self, name: str, id: Optional[str] = None, repeat: bool = False, volume: float = 0.8, **delivery_opts):
         '''
@@ -2694,6 +2734,17 @@ class Connector:
                     })
                     self.__sprites.remove(sprite)
                 self.__callback('on_sprite_removed', data)
+            elif data['type'] == DataType.AUTO_MOVEMENT_POS:
+                sprite = self.get_sprite(data['id'])
+                if sprite is not None:
+                    sprite['pos_x'] = data['x']
+                    sprite['pos_y'] = data['y']
+                    obj = deepcopy(sprite)
+                    data.update({
+                        'sprite': obj,
+                        'object': obj
+                    })
+                self.__callback('on_auto_movement_pos', data)
             elif data['type'] == DataType.SPRITE_COLLISION:
                 if len(data['sprites']) == 2:
                     try:
@@ -2856,11 +2907,14 @@ OnOverlapInSignature = Union[Callable[[SpriteCollisionMsg], None], Callable[[Spr
 OnOverlapOutSignature = Union[Callable[[SpriteCollisionMsg], None], Callable[[SpriteCollisionMsg, Connector], None]]
 OnBorderOverlapSignature = Union[Callable[[BorderOverlapMsg], None], Callable[[BorderOverlapMsg, Connector], None]]
 OnSpriteClickedSignature = Union[Callable[[SpriteClickedMsg], None], Callable[[SpriteClickedMsg, Connector], None]]
+OnAutoMovementPosSignature = Union[Callable[[AutoMovementPosMsg], None],
+                                   Callable[[AutoMovementPosMsg, Connector], None]]
 SubscriptionCallbackSignature = Union[Callable[[], None],
                                       Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]]
 Event = Literal['key', 'f1', 'f2', 'f3', 'f4', 'pointer', 'acceleration', 'gyro', 'sensor', 'data', 'broadcast_data', 'all_data', 'device', 'client_device',
-                'devices', 'error', 'room_joined', 'room_left', 'sprite_out', 'sprite_removed', 'sprite_collision', 'overlap_in', 'overlap_out', 'border_overlap', 'sprite_clicked']
+                'devices', 'error', 'room_joined', 'room_left', 'sprite_out', 'sprite_removed', 'sprite_collision', 'overlap_in', 'overlap_out', 'border_overlap',
+                'sprite_clicked', 'auto_movement_pos']
 EventAliases = Literal['acc', 'object_out', 'object_removed', 'object_collision', 'collision', 'object_clicked']
 CallbackSignature = Union[
-    OnKeySignature, OnF1Signature, OnF2Signature, OnF3Signature, OnF4Signature, OnPointerSignature, OnAccelerationSignature, OnGyroSignature, OnSensorSignature, OnDataSignature, OnBroadcastDataSignature, OnAll_dataSignature, OnDeviceSignature, OnClientDeviceSignature, OnDevicesSignature, OnErrorSignature, OnRoomJoinedSignature, OnRoomLeftSignature, OnSpriteOutSignature, OnSpriteRemovedSignature, OnSpriteCollisionSignature, OnOverlapInSignature, OnOverlapOutSignature, OnBorderOverlapSignature, OnSpriteClickedSignature
+    OnKeySignature, OnF1Signature, OnF2Signature, OnF3Signature, OnF4Signature, OnPointerSignature, OnAccelerationSignature, OnGyroSignature, OnSensorSignature, OnDataSignature, OnBroadcastDataSignature, OnAll_dataSignature, OnDeviceSignature, OnClientDeviceSignature, OnDevicesSignature, OnErrorSignature, OnRoomJoinedSignature, OnRoomLeftSignature, OnSpriteOutSignature, OnSpriteRemovedSignature, OnSpriteCollisionSignature, OnOverlapInSignature, OnOverlapOutSignature, OnBorderOverlapSignature, OnSpriteClickedSignature, OnAutoMovementPosSignature
 ]

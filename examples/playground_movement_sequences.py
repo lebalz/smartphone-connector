@@ -34,20 +34,24 @@ device.update_circle(
         'repeat': 2,
         'movements': [
             {
+                'movement': 'relative',
                 'direction': [1, 0],
                 'distance': 10,
                 'speed': speed
             },
             {
+                'movement': 'relative',
                 'direction': [0, 1],
                 'speed': speed,
                 'time_span': 0.5
             },
             {
+                'movement': 'relative',
                 'direction': [-1, 0],
                 'distance': 10,
                 'speed': speed
             }, {
+                'movement': 'relative',
                 'direction': [0, -1],
                 'time_span': 0.5,
                 'speed': speed
@@ -61,11 +65,13 @@ device.update_circle(
     movements={
         'movements': [
             {
+                'movement': 'relative',
                 'direction': [0, 1],
                 'distance': 10,
                 'speed': 10
             },
             {
+                'movement': 'relative',
                 'direction': [0, -1],
                 'distance': 10,
                 'speed': 10

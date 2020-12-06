@@ -82,6 +82,7 @@ python3 -m twine upload dist/*
 
 ## Changelog
 
+- 0.0.101: introduce `move_to(id: str, pos: [x, y], via: [x, y])` method to make jumps easyier. Event `auto_movement_pos` is triggered when an auto movement within a sequence finished.
 - 0.0.100: support image formats `.gif`, `.bmp`, `.webp`
 - 0.0.99: introduce method `add_svg_to_playground(name: str, raw_svg: str)` to upload plain svg source text
 - 0.0.98 fix iteration count
