@@ -82,6 +82,7 @@ python3 -m twine upload dist/*
 
 ## Changelog
 
+- 0.0.103: change function annotation of `set_timeout(callback, time, repeat=1)` instead of `set_timeout(callback, interval, iteration_count=inf)`
 - 0.0.102: add alias methods for `subscribe_async`: `set_timeout`, `schedule`, `execute_in`
 - 0.0.101: introduce `move_to(id: str, pos: [x, y], via: [x, y])` method to make jumps easyier. Event `auto_movement_pos` is triggered when an auto movement within a sequence finished.
 - 0.0.100: support image formats `.gif`, `.bmp`, `.webp`
