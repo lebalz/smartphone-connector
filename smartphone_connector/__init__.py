@@ -2530,8 +2530,12 @@ class Connector:
     def set_update_interval(self, interval: float):
         return self.subscribe(interval=interval, blocking=True)
 
-    def set_timeout(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, blocking=True) -> Union[None, Union[ThreadJob, CancleSubscription]]:
-        return self.subscribe(callback=callback, interval=interval, blocking=blocking)
+    def set_timeout(self, callback: SubscriptionCallbackSignature = None, interval: float = 0.05, iteration_count: int = float('inf'), blocking=False) -> Union[None, Union[ThreadJob, CancleSubscription]]:
+        return self.subscribe(callback=callback, interval=interval, iteration_count=iteration_count, blocking=blocking)
+
+    execute_in = set_timeout
+    run_in = set_timeout
+    schedule = set_timeout
 
     @ overload
     def subscribe(self, callback: SubscriptionCallbackSignature = None,
