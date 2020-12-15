@@ -1191,11 +1191,18 @@ class Connector:
                 'movements': [without_none({'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed})],
             }
         )
+
     @contextmanager
-    def apply_movements(self, id: str, cancel_previous: Optional[bool] = True):
+    def apply_movements(self, id: str, repeat: Optional[int] = None, cycle: Optional[bool] = None, cancel_previous: Optional[bool] = True):
         '''
         Parameters
         ----------
+        repeat : Optional[int], by default 1
+            how often the sequence should be repeated
+
+        cycle : Optional[bool], by default False
+            wheter to repeat the movements infinitely
+
         cancel_previous : Optional[bool], by default True
             wheter previous movements should be canceled or not
         '''
@@ -1225,10 +1232,12 @@ class Connector:
         else:
             self.update_sprite(
                 id=id,
-                movements={
+                movements=without_none({
+                    'cycle': cycle,
+                    'repeat': repeat,
                     'cancel_previous': cancel_previous,
                     'movements': movements
-                }
+                })
             )
 
     @overload
