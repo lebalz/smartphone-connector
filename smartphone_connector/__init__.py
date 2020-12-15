@@ -1169,7 +1169,7 @@ class Connector:
     add_objects = add_sprites
     update_objects = add_sprites
 
-    def apply_movement(self, id: str, direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1, cancel_previous: Optional[bool] = True):
+    def apply_movement(self, id: str, direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1, distance: Optional[Number] = None, cancel_previous: Optional[bool] = True):
         '''
         Parameters
         ----------
@@ -1181,6 +1181,10 @@ class Connector:
 
         speed : Optional[Number], by default 1 
             the speed of the sprite
+
+        distance : Optional[Number]
+            the distance the sprite should move
+
         cancel_previous : Optional[bool], by default True
             wheter previous movements should be canceled or not
         '''
@@ -1188,7 +1192,7 @@ class Connector:
             id=id,
             movements={
                 'cancel_previous': cancel_previous,
-                'movements': [without_none({'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed})],
+                'movements': [without_none({'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed, 'distance': distance})],
             }
         )
 
@@ -1208,7 +1212,7 @@ class Connector:
         '''
         movements = []
 
-        def movement(direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1):
+        def movement(direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1, distance: Optional[Number] = None):
             '''
             Parameters
             ----------
@@ -1220,9 +1224,12 @@ class Connector:
 
             speed : Optional[Number], by default 1 
                 the speed of the sprite
+
+            distance : Optional[Number]
+                the distance the sprite should move
             '''
             movements.append(without_none(
-                {'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed}
+                {'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed, 'distance': distance}
             ))
         try:
             yield movement
