@@ -1169,6 +1169,68 @@ class Connector:
     add_objects = add_sprites
     update_objects = add_sprites
 
+    def apply_movement(self, id: str, direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1, cancel_previous: Optional[bool] = True):
+        '''
+        Parameters
+        ----------
+        direction : [Number, Number]
+            movement direction of the sprite
+
+        time_span : Optional[Number]
+            the time the sprite should be moved in the given Direction until the next movement takes place
+
+        speed : Optional[Number], by default 1 
+            the speed of the sprite
+        cancel_previous : Optional[bool], by default True
+            wheter previous movements should be canceled or not
+        '''
+        self.update_sprite(
+            id=id,
+            movements={
+                'cancel_previous': cancel_previous,
+                'movements': [without_none({'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed})],
+            }
+        )
+    @contextmanager
+    def apply_movements(self, id: str, cancel_previous: Optional[bool] = True):
+        '''
+        Parameters
+        ----------
+        cancel_previous : Optional[bool], by default True
+            wheter previous movements should be canceled or not
+        '''
+        movements = []
+
+        def movement(direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1):
+            '''
+            Parameters
+            ----------
+            direction : [Number, Number]
+                movement direction of the sprite
+
+            time_span : Optional[Number]
+                the time the sprite should be moved in the given Direction until the next movement takes place
+
+            speed : Optional[Number], by default 1 
+                the speed of the sprite
+            '''
+            movements.append(without_none(
+                {'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed}
+            ))
+        try:
+            yield movement
+        except:
+            movements = []
+            raise
+        else:
+            self.update_sprite(
+                id=id,
+                movements={
+                    'cancel_previous': cancel_previous,
+                    'movements': movements
+                }
+            )
+
     @overload
     def move_to(self, id: str, pos: Tuple[Number, Number], speed: Number,
                 via: Optional[Tuple[Number, Number]] = None): ...
