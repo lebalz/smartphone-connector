@@ -1212,7 +1212,21 @@ class Connector:
         '''
         movements = []
 
-        def movement(direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1, distance: Optional[Number] = None):
+        @overload
+        def movement(direction: Tuple[Number, Number], time_span: Optional[Number]
+                     = None, speed: Optional[Number] = 1, absolute=False): ...
+
+        @overload
+        def movement(direction: Tuple[Number, Number], distance: Optional[Number]
+                     = None, speed: Optional[Number] = 1, absolute=False): ...
+
+        @overload
+        def movement(pos: Tuple[Number, Number], speed: Number, movement='absolute'): ...
+
+        @overload
+        def movement(pos: Tuple[Number, Number], time: Number, movement='absolute'): ...
+
+        def movement(direction: Tuple[Number, Number] = None, time_span: Optional[Number] = None, time: Optional[Number] = None, speed: Optional[Number] = 1, distance: Optional[Number] = None, movement: Optional[Literal['absolute', 'relative']] = 'relative', pos: Optional[Tuple[Number, Number]] = None):
             '''
             Parameters
             ----------
@@ -1228,9 +1242,28 @@ class Connector:
             distance : Optional[Number]
                 the distance the sprite should move
             '''
-            movements.append(without_none(
-                {'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed, 'distance': distance}
-            ))
+            if time is not None and time_span is None:
+                time_span = time
+
+            if movement == 'absolute':
+                if pos is None:
+                    logging.warn('No position provided for absolute movement, skipping...')
+                elif time_span is None and speed is None:
+                    logging.warn('No time or speed provided for absolute movement, skipping...')
+                else:
+                    movements.append(without_none(
+                        {'movement': 'absolute', 'to': pos, 'time': time_span, 'speed': speed}
+                    ))
+            else:
+                if direction is None:
+                    logging.warn('No direction provided for relative movement, skipping...')
+                elif speed is None:
+                    logging.warn('No speed provided for relative movement, skipping...')
+                else:
+                    movements.append(without_none(
+                        {'movement': 'relative', 'direction': direction,
+                            'time_span': time_span, 'speed': speed, 'distance': distance}
+                    ))
         try:
             yield movement
         except:
@@ -1255,8 +1288,10 @@ class Connector:
     def move_to(self, id: str, pos: Tuple[Number, Number], time: Number,
                 via: Optional[Tuple[Number, Number]] = None): ...
 
-    def move_to(self, id: str, pos: Tuple[Number, Number], speed: Optional[Number] = None, time: Optional[Number] = None, via: Optional[Tuple[Number, Number]] = None, cancel_previous: Optional[bool] = True):
+    def move_to(self, id: str, pos: Tuple[Number, Number], speed: Optional[Number] = None, time: Optional[Number] = None, time_span: Optional[Number] = None, via: Optional[Tuple[Number, Number]] = None, cancel_previous: Optional[bool] = True):
         movements = []
+        if time is None and time_span is not None:
+            time = time_span
         if via is not None:
             movements.append(without_none({
                 'movement': 'absolute',
