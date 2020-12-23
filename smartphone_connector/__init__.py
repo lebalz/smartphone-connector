@@ -1100,7 +1100,7 @@ class Connector:
                 name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
 
             rotate : Number
-                degrees to rotate the sprite clockwise 
+                degrees to rotate the sprite clockwise
 
             time_span : Number
                 the time a sprite lives
@@ -1169,7 +1169,27 @@ class Connector:
     add_objects = add_sprites
     update_objects = add_sprites
 
-    def apply_movement(self, id: str, direction: Tuple[Number, Number], time_span: Optional[Number] = None, speed: Optional[Number] = 1, distance: Optional[Number] = None, cancel_previous: Optional[bool] = True):
+    @overload
+    def apply_movement(id: str, direction: Tuple[Number, Number], time_span: Optional[Number]
+                       = None, speed: Optional[Number] = 1, absolute=False, cancel_previous: Optional[bool] = True): ...
+
+    @overload
+    def apply_movement(id: str, direction: Tuple[Number, Number], distance: Optional[Number]
+                       = None, speed: Optional[Number] = 1, absolute=False, cancel_previous: Optional[bool] = True): ...
+
+    @overload
+    def apply_movement(id: str, pos: Tuple[Number, Number], speed: Number,
+                       movement='absolute', cancel_previous: Optional[bool] = True): ...
+
+    @overload
+    def apply_movement(id: str, pos: Tuple[Number, Number], time: Number,
+                       movement='absolute', cancel_previous: Optional[bool] = True): ...
+
+    def apply_movement(self, id: str,
+                       direction: Tuple[Number, Number], time_span: Optional[Number] = None,
+                       speed: Optional[Number] = 1, distance: Optional[Number] = None,
+                       pos: Optional[Tuple[Number, Number]] = None, time: Optional[Number] = None,
+                       movement=Optional[Literal['relative', 'absolute']], cancel_previous: Optional[bool] = True):
         '''
         Parameters
         ----------
@@ -1179,7 +1199,7 @@ class Connector:
         time_span : Optional[Number]
             the time the sprite should be moved in the given Direction until the next movement takes place
 
-        speed : Optional[Number], by default 1 
+        speed : Optional[Number], by default 1
             the speed of the sprite
 
         distance : Optional[Number]
@@ -1187,12 +1207,42 @@ class Connector:
 
         cancel_previous : Optional[bool], by default True
             wheter previous movements should be canceled or not
+
+        movement : 'absolute' | 'relative'
+            wheter the movement is relative or absolute
         '''
+        movement_msg = {}
+
+        if time is not None and time_span is None:
+            time_span = time
+        if movement == 'absolute':
+            if pos is None:
+                logging.warn('No position provided for absolute movement, skipping...')
+                return
+            elif time_span is None and speed is None:
+                logging.warn('No time or speed provided for absolute movement, skipping...')
+                return
+            else:
+                movement_msg = without_none(
+                    {'movement': 'absolute', 'to': pos, 'time': time_span, 'speed': speed}
+                )
+        else:
+            if direction is None:
+                logging.warn('No direction provided for relative movement, skipping...')
+                return
+            elif speed is None:
+                logging.warn('No speed provided for relative movement, skipping...')
+                return
+            else:
+                movement_msg = without_none(
+                    {'movement': 'relative', 'direction': direction,
+                        'time_span': time_span, 'speed': speed, 'distance': distance}
+                )
         self.update_sprite(
             id=id,
             movements={
                 'cancel_previous': cancel_previous,
-                'movements': [without_none({'movement': 'relative', 'direction': direction, 'time_span': time_span, 'speed': speed, 'distance': distance})],
+                'movements': [movement_msg],
             }
         )
 

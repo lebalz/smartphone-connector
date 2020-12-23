@@ -82,6 +82,7 @@ python3 -m twine upload dist/*
 
 ## Changelog
 
+- 0.0.107: can mix absolute and relative movements with `apply_movements` and `apply_movement`
 - 0.0.106: add possibility to control movement distances
 - 0.0.105: control repeats of movement sequences
 - 0.0.104: add methods to apply movements to objects:
