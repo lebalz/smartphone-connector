@@ -43,6 +43,7 @@ class DataType(str, Enum):
     ALL_DATA = "all_data"
     BORDER_OVERLAP = "border_overlap"
     CLEAR_PLAYGROUND = "clear_playground"
+    CLEAN_PLAYGROUND = "clean_playground"
     COLOR = "color"
     GRID = "grid"
     GRID_UPDATE = "grid_update"
@@ -239,7 +240,20 @@ def default(type: str) -> DictX:
         return DictX({
             **base,
             'type': 'sprite_collision',
-            'sprites': ['s1', 's2'],
+            'sprites': [
+                    DictX({
+                        'id': 's1',
+                        'collision_detection': True,
+                        'pos_x': -10,
+                        'pos_y': 20,
+                    }),
+                    DictX({
+                        'id': 's2',
+                        'collision_detection': True,
+                        'pos_x': -15,
+                        'pos_y': 20,
+                    })
+            ],
             'overlap': 'in'
         })
     elif type == 'sprite_out':

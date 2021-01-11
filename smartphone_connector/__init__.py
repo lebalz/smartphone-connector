@@ -949,12 +949,12 @@ class Connector:
             if not images.is_dir():
                 raise f'Image path {images} not found'
             for img in images.iterdir():
-                if img.suffix in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']:
+                if img.suffix in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.JPG', '.JPEG', '.PNG', '.GIF', '.BMP', '.WEBP']:
                     raw = img.read_bytes()
                     name = img.stem
                     file_type = img.suffix
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
-                elif img.suffix in ['.svg']:
+                elif img.suffix in ['.svg', '.SVG']:
                     raw = img.read_text('utf-8')
                     name = img.stem
                     file_type = img.suffix
@@ -998,10 +998,10 @@ class Connector:
             'type': DataType.PLAYGROUND_CONFIG,
             'config': playground_config
         }
-        if 'images' in self.__playground_config:
+        if 'images' in self.__playground_config and len(raw_images) > 0:
             playground_config['images'] = [*raw_images, *self.__playground_config['images']]
-        if 'audio_tracks' in self.__playground_config:
-            playground_config['audio_tracks'] = [*raw_images, *self.__playground_config['audio_tracks']]
+        if 'audio_tracks' in self.__playground_config and len(raw_tracks) > 0:
+            playground_config['audio_tracks'] = [*raw_tracks, *self.__playground_config['audio_tracks']]
         self.__playground_config.update(playground_config)
         self.emit(SocketEvents.NEW_DATA, config, **delivery_opts)
 
@@ -2048,7 +2048,11 @@ class Connector:
         return sprite['id']
 
     def clear_playground(self, **delivery_opts):
+        '''Cleans the playground and reconfigures the playground to
+        the default playground config. Images and soundtracks have to be uploaded again
+        '''
         self.__sprites = []
+        self.__lines = []
         self.__playground_config = deepcopy(DEFAULT_PLAYGROUND_CONFIG)
         self.emit(
             SocketEvents.NEW_DATA,
@@ -2057,6 +2061,19 @@ class Connector:
             }
         )
         self.sleep(0.2)
+
+    def clean_playground(self, **delivery_opts):
+        '''Cleans the playground without reconfiguring the playground.
+        Images and soundtracks can be reused and dont need to be uploaded again.
+        '''
+        self.__sprites = []
+        self.__lines = []
+        self.emit(
+            SocketEvents.NEW_DATA,
+            {
+                'type': DataType.CLEAN_PLAYGROUND
+            }
+        )
 
     def remove_sprite(self, sprite_id: str, **delivery_opts):
         to_remove = first(lambda s: s.id == sprite_id, self.__sprites)
@@ -2923,12 +2940,19 @@ class Connector:
                             s1 = s2
                             s2 = t
                         if s1 is not None:
+                            raw = data['sprites'][0]
                             data['sprites'][0] = deepcopy(s1)
+                            data['sprites'][0]['pos_x '] = raw['pos_x']
+                            data['sprites'][0]['pos_y '] = raw['pos_y']
+                            # update the position
                         else:
                             data['sprites'][0] = DictX(data['sprites'][0])
 
                         if s2 is not None:
+                            raw = data['sprites'][1]
                             data['sprites'][1] = deepcopy(s2)
+                            data['sprites'][1]['pos_x '] = raw['pos_x']
+                            data['sprites'][1]['pos_y '] = raw['pos_y']
                         else:
                             data['sprites'][1] = DictX(data['sprites'][1])
                     except:

@@ -5,3 +5,4 @@ build/
 .DS_Store
 *.vscode
 pythonenv3.8/
+server_adress.py

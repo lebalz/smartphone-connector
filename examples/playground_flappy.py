@@ -7,19 +7,19 @@ from examples.server_adress import SERVER_ADRESS
 device = Connector(SERVER_ADRESS, 'FooBar')
 score = 0
 device.clear_playground()
-device.add_text(
-    id='score',
-    text='Score: 0',
-    pos_x=0,
-    pos_y=22,
-    z_index=999999
-)
 device.configure_playground(
     width=100,
     height=50,
     origin_x=20,
     origin_y=25,
     color=Colors.ALICEBLUE,
+)
+device.add_text(
+    id='score',
+    text='Score: 0',
+    pos_x=0,
+    pos_y=22,
+    z_index=999999
 )
 device.add_circle(
     id='flappy',
@@ -29,6 +29,15 @@ device.add_circle(
     color=Colors.REBECCAPURPLE,
     z_index=99999999,
     collision_detection=True
+)
+device.add_circle(
+    id='button',
+    radius=3,
+    pos_x=30,
+    pos_y=-20,
+    color=Colors.RED,
+    z_index=999999999,
+    clickable=True
 )
 
 SPACE = 16
@@ -70,6 +79,13 @@ def on_key(data: KeyMsg):
             movement(direction=[0, -1], speed=2)
 
 
+def on_clicked(data: ObjectClickedMsg):
+    if data.id == 'button':
+        with device.apply_movements(id='flappy') as movement:
+            movement(direction=[0, 1], time_span=0.1, speed=4)
+            movement(direction=[0, -1], speed=2)
+
+
 def set_score(new_score):
     global score
     score = new_score
@@ -85,6 +101,7 @@ def on_collision(data: ObjectCollisionMsg):
 
 
 device.on('key', on_key)
+device.on('object_clicked', on_clicked)
 device.on('collision', on_collision)
 add_obstacles()
 device.wait()
