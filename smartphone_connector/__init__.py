@@ -949,15 +949,15 @@ class Connector:
             if not images.is_dir():
                 raise f'Image path {images} not found'
             for img in images.iterdir():
-                if img.suffix in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.JPG', '.JPEG', '.PNG', '.GIF', '.BMP', '.WEBP']:
+                if img.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']:
                     raw = img.read_bytes()
                     name = img.stem
-                    file_type = img.suffix
+                    file_type = img.suffix.lower()
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
-                elif img.suffix in ['.svg', '.SVG']:
+                elif img.suffix.lower() in ['.svg']:
                     raw = img.read_text('utf-8')
                     name = img.stem
-                    file_type = img.suffix
+                    file_type = img.suffix.lower()
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
         raw_tracks = []
         if audio_tracks is not None:
@@ -1617,7 +1617,7 @@ class Connector:
             movements=movements,
             **delivery_opts
         )
-    update_ellips = add_ellipse
+    update_ellipse = add_ellipse
 
     def add_square(
             self,
@@ -1878,6 +1878,7 @@ class Connector:
         config.update(without_none(deepcopy(self.__playground_config)))
         if height is None:
             height = config.height / 20
+        text = str(text)
         text_len = len(text)
         width = text_len * (height * config.height / config.width) / 4
 
