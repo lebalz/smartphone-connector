@@ -4,10 +4,10 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import Connector, DataFrame, time_s
 from smartphone_connector.types import KeyMsg
-from examples.server_adress import SERVER_ADRESS
+from examples.server_address import SERVER_ADDRESS
 
 
-device = Connector(SERVER_ADRESS, 'FooBar')
+device = Connector(SERVER_ADDRESS, 'FooBar')
 Screen().tracer(1, 0)
 
 

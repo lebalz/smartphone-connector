@@ -1,4 +1,4 @@
-from examples.server_adress import SERVER_ADRESS
+from examples.server_address import SERVER_ADDRESS
 from smartphone_connector import Connector, GridPointerMsg
 import os
 import sys
@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 GRID_W = 20
 GRID_H = 20
 
-device = Connector(SERVER_ADRESS, 'FooBar')
+device = Connector(SERVER_ADDRESS, 'FooBar')
 # set up white grid
 device.setup_grid(GRID_H, GRID_W, enumerate=True)
 

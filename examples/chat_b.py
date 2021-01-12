@@ -2,9 +2,9 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import *
-from examples.server_adress import SERVER_ADRESS
+from examples.server_address import SERVER_ADDRESS
 
-device_b = Connector(SERVER_ADRESS, 'FooBar2')
+device_b = Connector(SERVER_ADDRESS, 'FooBar2')
 
 
 def on_data(data: DataMsg):

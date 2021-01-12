@@ -3,9 +3,9 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from smartphone_connector import Connector, DictX, KeyMsg, AccMsg, random_color, BorderOverlapMsg, SpriteCollisionMsg, Colors
 from random import randint
-from examples.server_adress import SERVER_ADRESS
+from examples.server_address import SERVER_ADDRESS
 
-device = Connector(SERVER_ADRESS, 'FooBar')
+device = Connector(SERVER_ADDRESS, 'FooBar')
 WIDTH = 100
 HEIGHT = 100
 SHIFT_X = 0
