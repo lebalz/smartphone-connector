@@ -82,6 +82,7 @@ python3 -m twine upload dist/*
 
 ## Changelog
 
+- 0.0.110: add method `report(value: int | float, report_type: str, to: '__GAME_RUNNER__')`
 - 0.0.109: fix typo in `update_ellipse`
 - 0.0.108: introduce `clean_playground` method to remove all sprites and lines from the current playground, but keep the playground config as is. And minor bug fixes.
 - 0.0.107: can mix absolute and relative movements with `apply_movements` and `apply_movement`

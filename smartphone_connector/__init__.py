@@ -65,6 +65,7 @@ class Connector:
 
     __sprites = []
     __lines = []
+    __reportings: DictX
 
     # callback functions
 
@@ -355,6 +356,7 @@ class Connector:
     get_object = get_sprite
 
     def __init__(self, server_url: str, device_id: str):
+        self.__reportings = DictX({})
         device_id = device_id.strip()
         self.__server_url = server_url
         self.__device_id = device_id
@@ -2769,6 +2771,23 @@ class Connector:
         for job in self.__async_subscription_jobs:
             job.cancel()
         self.__async_subscription_jobs.clear()
+
+    def report(self, value: Union[int, str] = None, report_type: Literal['report_score'] = 'report_score', to: str = '__GAME_RUNNER__'):
+        '''reports a value to a listener, e.g. to report a new highscore to the game runner.
+
+        Example
+        -------
+        ```py
+        score = 12
+        device.report(score)
+        ```
+        '''
+        if report_type in self.__reportings:
+            if type(value) in [int, float] and type(self.__reportings[report_type]) in [int, float]:
+                if value < self.__reportings[report_type]:
+                    return
+        self.__reportings[report_type] = value
+        self.send({'type': report_type, 'score': value, 'deliver_to': to})
 
     stop_all_animations = cancel_async_subscriptions
 
