@@ -35,6 +35,7 @@ class SocketEvents(str, Enum):
     ROOM_JOINED = "room_joined"
     ROOM_LEFT = "room_left"
     SET_NEW_DEVICE_NR = "set_new_device_nr"
+    TIMER = "timer"
 
 
 class DataType(str, Enum):
@@ -87,6 +88,11 @@ A = float
 RgbColor = Union[Tuple[R, G, B], List[int]]
 CssColorType = Union[int, str, RgbColor, Tuple[R, G, B, A], List[float], List[Union[int, float]]]
 BaseColor = Union[str, RgbColor]
+
+
+@dataclass
+class TimerMsg:
+    time: float = 0
 
 
 @dataclass

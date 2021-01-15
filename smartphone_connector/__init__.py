@@ -95,6 +95,7 @@ class Connector:
     on_border_overlap: OnBorderOverlapSignature = noop
     on_sprite_clicked: OnSpriteClickedSignature = noop
     on_auto_movement_pos: OnAutoMovementPosSignature = noop
+    on_timer: OnTimerSignature = noop
 
     _on_key: List[OnKeySignature] = []
     _on_f1: List[OnF1Signature] = []
@@ -122,6 +123,7 @@ class Connector:
     _on_border_overlap: List[OnBorderOverlapSignature] = []
     _on_sprite_clicked: List[OnSpriteClickedSignature] = []
     _on_auto_movement_pos: List[OnAutoMovementPosSignature] = []
+    _on_timer: List[OnTimerSignature] = []
 
     @overload
     def on(self, event: Literal['key'], function: OnKeySignature, replace: bool = False): ...
@@ -178,6 +180,8 @@ class Connector:
     def on(self, event: Literal['border_overlap'], function: OnBorderOverlapSignature, replace: bool = False): ...
     @overload
     def on(self, event: Literal['auto_movement_pos'], function: OnAutoMovementPosSignature, replace: bool = False): ...
+    @overload
+    def on(self, event: Literal['timer'], function: OnTimerSignature, replace: bool = False): ...
 
     @overload
     def on(self, event: Literal['sprite_clicked', 'object_clicked'],
@@ -237,6 +241,8 @@ class Connector:
             funcs = self._on_sprite_clicked
         elif event == 'auto_movement_pos':
             funcs = self._on_auto_movement_pos
+        elif event == 'timer':
+            funcs = self._on_timer
 
         if replace:
             funcs.clear()
@@ -298,6 +304,8 @@ class Connector:
             funcs = self._on_sprite_clicked
         elif event == 'auto_movement_pos':
             funcs = self._on_auto_movement_pos
+        elif event == 'timer':
+            funcs = self._on_timer
 
         if function is None:
             funcs.clear()
@@ -371,6 +379,7 @@ class Connector:
         self.sio.on(SocketEvents.INFORMATION_MSG, self.__on_information)
         self.sio.on(SocketEvents.ROOM_JOINED, self.__on_room_joined)
         self.sio.on(SocketEvents.ROOM_LEFT, self.__on_room_left)
+        self.sio.on(SocketEvents.TIMER, self.__on_timer)
         self.joined_rooms = [device_id]
         self.connect()
 
@@ -3036,6 +3045,10 @@ class Connector:
             if device['device'] in self.joined_rooms:
                 self.joined_rooms.remove(device['device'])
 
+    def __on_timer(self, time_msg: dict):
+        time_msg = DictX(time_msg)
+        self.__callback('on_timer', time_msg)
+
     def __on_room_joined(self, device: dict):
         device = DictX(device)
         if device['room'] == self.device_id:
@@ -3122,9 +3135,10 @@ OnAutoMovementPosSignature = Union[Callable[[AutoMovementPosMsg], None],
                                    Callable[[AutoMovementPosMsg, Connector], None]]
 SubscriptionCallbackSignature = Union[Callable[[], None],
                                       Callable[[DataFrame], None], Callable[[DataFrame, Connector], None]]
+OnTimerSignature = Union[Callable[[TimerMsg], None], Callable[[TimerMsg, Connector], None]]
 Event = Literal['key', 'f1', 'f2', 'f3', 'f4', 'pointer', 'acceleration', 'gyro', 'sensor', 'data', 'broadcast_data', 'all_data', 'device', 'client_device',
                 'devices', 'error', 'room_joined', 'room_left', 'sprite_out', 'sprite_removed', 'sprite_collision', 'overlap_in', 'overlap_out', 'border_overlap',
-                'sprite_clicked', 'auto_movement_pos']
+                'sprite_clicked', 'auto_movement_pos', 'timer']
 EventAliases = Literal['acc', 'object_out', 'object_removed', 'object_collision', 'collision', 'object_clicked']
 CallbackSignature = Union[
     OnKeySignature, OnF1Signature, OnF2Signature, OnF3Signature, OnF4Signature, OnPointerSignature, OnAccelerationSignature, OnGyroSignature, OnSensorSignature, OnDataSignature, OnBroadcastDataSignature, OnAll_dataSignature, OnDeviceSignature, OnClientDeviceSignature, OnDevicesSignature, OnErrorSignature, OnRoomJoinedSignature, OnRoomLeftSignature, OnSpriteOutSignature, OnSpriteRemovedSignature, OnSpriteCollisionSignature, OnOverlapInSignature, OnOverlapOutSignature, OnBorderOverlapSignature, OnSpriteClickedSignature, OnAutoMovementPosSignature
