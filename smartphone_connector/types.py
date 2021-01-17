@@ -122,6 +122,7 @@ class Device(DictX):
     is_client: bool
     device_nr: int
     socket_id: str
+    is_silent: bool
 
 
 class DevicesMsg(TimeStampedMsg):
