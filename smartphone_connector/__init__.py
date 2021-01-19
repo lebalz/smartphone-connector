@@ -12,6 +12,7 @@ from .colors import Colors
 from random import randint
 from contextlib import contextmanager
 from pathlib import Path
+import sys
 
 
 def noop(x):
@@ -947,7 +948,7 @@ class Connector:
             if images.is_absolute():
                 pass
             else:
-                rpath = Path.cwd().rglob(str(images))
+                rpath = Path(sys.argv[0]).parent.rglob(str(images))
                 try:
                     while True:
                         new_p = next(rpath)
@@ -958,7 +959,7 @@ class Connector:
                     pass
 
             if not images.is_dir():
-                raise f'Image path {images} not found'
+                raise Exception(f'Image path {images} not found')
             for img in images.iterdir():
                 if img.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']:
                     raw = img.read_bytes()
@@ -976,7 +977,7 @@ class Connector:
             if sound_tracks.is_absolute():
                 pass
             else:
-                rpath = Path.cwd().rglob(str(audio_tracks))
+                rpath = rpath = Path(sys.argv[0]).parent.rglob(str(audio_tracks))
                 try:
                     while True:
                         new_p = next(rpath)
@@ -987,7 +988,7 @@ class Connector:
                     pass
 
             if not audio_tracks.is_dir():
-                raise f'audio_tracks path {audio_tracks} not found'
+                raise Exception(f'audio_tracks path {audio_tracks} not found')
             for track in audio_tracks.iterdir():
                 if track.suffix in ['.mp3', '.wav', '.ogg']:
                     raw = track.read_bytes()
