@@ -987,14 +987,14 @@ class Connector:
                 except:
                     pass
 
-            if not audio_tracks.is_dir():
-                raise Exception(f'audio_tracks path {audio_tracks} not found')
-            for track in audio_tracks.iterdir():
-                if track.suffix in ['.mp3', '.wav', '.ogg']:
-                    raw = track.read_bytes()
-                    name = track.stem
-                    file_type = track.suffix
-                    raw_tracks.append({'name': name, 'audio': raw, 'type': file_type[1:]})
+                if not audio_tracks.is_dir():
+                    raise Exception(f'audio_tracks path {audio_tracks} not found')
+                for track in audio_tracks.iterdir():
+                    if track.suffix in ['.mp3', '.wav', '.ogg']:
+                        raw = track.read_bytes()
+                        name = track.stem
+                        file_type = track.suffix
+                        raw_tracks.append({'name': name, 'audio': raw, 'type': file_type[1:]})
 
         playground_config = without_none({
                 'width': width,
