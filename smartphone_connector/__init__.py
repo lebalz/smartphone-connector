@@ -973,8 +973,8 @@ class Connector:
                     raw_images.append({'name': name, 'image': raw, 'type': file_type[1:]})
         raw_tracks = []
         if audio_tracks is not None:
-            sound_tracks = Path(audio_tracks)
-            if sound_tracks.is_absolute():
+            audio_tracks = Path(audio_tracks)
+            if audio_tracks.is_absolute():
                 pass
             else:
                 rpath = Path(sys.argv[0]).parent.rglob(str(audio_tracks))
