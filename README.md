@@ -82,6 +82,7 @@ python3 -m twine upload dist/*
 
 ## Changelog
 
+- 0.0.113: fix reporting of `pos_x` and `pos_y` on collisions
 - 0.0.111: support `timer` events from socketio_server
 - 0.0.110: add method `report(value: int | float, report_type: str, to: '__GAME_RUNNER__')`
 - 0.0.109: fix typo in `update_ellipse`

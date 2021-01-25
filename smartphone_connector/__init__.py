@@ -977,7 +977,7 @@ class Connector:
             if sound_tracks.is_absolute():
                 pass
             else:
-                rpath = rpath = Path(sys.argv[0]).parent.rglob(str(audio_tracks))
+                rpath = Path(sys.argv[0]).parent.rglob(str(audio_tracks))
                 try:
                     while True:
                         new_p = next(rpath)
@@ -2972,8 +2972,8 @@ class Connector:
                         if s1 is not None:
                             raw = data['sprites'][0]
                             data['sprites'][0] = deepcopy(s1)
-                            data['sprites'][0]['pos_x '] = raw['pos_x']
-                            data['sprites'][0]['pos_y '] = raw['pos_y']
+                            data['sprites'][0]['pos_x'] = raw['pos_x']
+                            data['sprites'][0]['pos_y'] = raw['pos_y']
                             # update the position
                         else:
                             data['sprites'][0] = DictX(data['sprites'][0])
@@ -2981,8 +2981,8 @@ class Connector:
                         if s2 is not None:
                             raw = data['sprites'][1]
                             data['sprites'][1] = deepcopy(s2)
-                            data['sprites'][1]['pos_x '] = raw['pos_x']
-                            data['sprites'][1]['pos_y '] = raw['pos_y']
+                            data['sprites'][1]['pos_x'] = raw['pos_x']
+                            data['sprites'][1]['pos_y'] = raw['pos_y']
                         else:
                             data['sprites'][1] = DictX(data['sprites'][1])
                     except:
