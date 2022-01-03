@@ -14,6 +14,7 @@ device.configure_playground(
     height=100,
     origin_x=50,
     origin_y=50,
+    images='images',
     audio_tracks='tracks'
 )
 device.play_sound('helicopter', volume=0.1)

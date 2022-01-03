@@ -880,8 +880,8 @@ class Connector:
         raw_svg : str
             the svg content. This should contain a root element containing a viewBox and xmlns attributes
 
-        Example
-        -------
+        Examples
+        --------
         A simple triangle
         ```svg
         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -1418,7 +1418,7 @@ class Connector:
             anchor: Optional[Tuple[Number, Number]] = None,
             clickable: Optional[bool] = None,
             collision_detection: Optional[bool] = None,
-            direction: Optional[List[Number]] = None,
+            direction: Optional[Tuple[Number, Number]] = None,
             distance: Optional[Number] = None,
             reset_time: Optional[Number] = None,
             speed: Optional[Number] = None,
@@ -1431,60 +1431,63 @@ class Connector:
             z_index: Optional[int] = None,
             movements: Optional[SpriteAutoMovement] = None,
             **delivery_opts) -> str:
-        '''
-        Optional
-        --------
-        id : str
+        """
+
+        Parameters
+        ----------
+        id : Optional[str], optional
             unique id. When already present, this sprite will be updated.
-
-        radius : Number
-            the width of the circle in playground units
-
-        pos_x : Number
+        pos_x : Optional[Number], optional
             the x position in playground units
-
-        pos_y : Number
+        pos_y : Optional[Number], optional
             the y position in playground units
-
-        anchor : Tuple[Number, Number]
-            the anchor (center) of the circle: range from 0 (left/bottom) to 1 (right/top)
-
-        color : str
+        radius : Optional[Number], optional
+            the width of the circle in playground units
+        color : Optional[Union[Colors, str]], optional
             the color of the circle
-
-        clickable : bool
+        border_color : Optional[Union[Colors, str]], optional
+            [description], by default None
+        border_width : Optional[int], optional
+            [description], by default None
+        border_style : Optional[Literal[, optional
+            [description], by default None
+        anchor : Optional[Tuple[Number, Number]], optional
+            the anchor (center) of the circle: range from 0 (left/bottom) to 1 (right/top)
+        clickable : Optional[bool], optional
             wheter an event is delivered when the circle is clicked
-
-        collision_detection : bool
+        collision_detection : Optional[bool], optional
             wheter to report collisions with other circles or not. Collision-Detection can be costly,
             so use it with care.
-
-        direction : [x: Number, y: Number]
+        direction : Optional[Tuple[Number]], optional
             the direction of the circle. In combination with a speed value, the circle will be advanced
             for each display refresh in this direction.
-
-        distance : Number
+        distance : Optional[Number], optional
             the circle will disappear after the given distance (in auto-movement mode) is reached.
-
-        reset_time : bool
+        reset_time : Optional[Number], optional
             wheter to reset the start time on an update. Resets the time_span or distance
             for auto-movement circles.
-
-        speed : Number
-            makes a circle auto-movable.
-
-        text : str
-            the text that is displayed on the circle.
-
-        image : str
-            name of the image to be displayed. The image must be set when the playground is configured. No file ending expected.
-
-        rotate : Number
-            degrees to rotate the circle clockwise
-
-        time_span : Number
+        speed : Optional[Number], optional
+            makes a circle auto-movable
+        text : Optional[str], optional
+            the text that is displayed on the circle
+        font_color : Optional[str], optional
+            [description], by default None
+        font_size : Optional[Number], optional
+            [description], by default None
+        image : Optional[str], optional
+            name of the image to be displayed. The image must be set when the playground is configured. No file ending expected
+        time_span : Optional[Number], optional
             the time a circle lives
-        '''
+        rotate : Optional[Number], optional
+            degrees to rotate the circle clockwise
+        z_index : Optional[int], optional
+        movements : Optional[SpriteAutoMovement], optional
+
+        Returns
+        -------
+        str
+            the assigned id of the sprite
+        """
         return self.add_sprite(
             id=id,
             form='round',
@@ -2448,7 +2451,7 @@ class Connector:
             **delivery_opts
         )
 
-    def set_image(self, image: Union[List[str], str], base_color: Union[BaseColor] = None, enumerate: bool = None, **delivery_opts):
+    def set_image(self, image: Union[List[str], str], base_color: BaseColor = None, enumerate: bool = None, **delivery_opts):
         '''
         Parameters
         ----------

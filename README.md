@@ -110,3 +110,11 @@ python3 -m twine upload dist/*
 - 0.0.97: introduce sound - provide a `audio_tracks` source directory in `configure_playground` and start/stop sounds with `play_sound(name: str, id: Optional[str])` / `stop_sound(name: Optional[str], id: Optional[str])`
 - 0.0.96 register multiple callback functions with `on(event, clbk)`
 - 0.0.95 support `border_style` and `border_width` for sprites
+
+## Development
+
+### Docs
+
+```sh
+brew install sphinx-doc
+```

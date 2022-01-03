@@ -1,2 +1,2 @@
-# SERVER_ADDRESS = 'https://io.lebalz.ch'
-SERVER_ADDRESS = 'http://localhost:5000'
+SERVER_ADDRESS = 'https://io.gbsl.website'
+# SERVER_ADDRESS = 'http://localhost:5000'
